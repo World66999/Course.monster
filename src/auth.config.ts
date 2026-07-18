@@ -21,7 +21,13 @@ export const authConfig = {
 
       if (isLoginPage) {
         if (isLoggedIn) {
-          return Response.redirect(new URL("/admin", request.nextUrl));
+          // Behind a reverse proxy the request origin is the internal
+          // address, so build redirects on the canonical public origin.
+          const base =
+            process.env.AUTH_URL ??
+            process.env.NEXT_PUBLIC_SITE_URL ??
+            request.nextUrl.origin;
+          return Response.redirect(new URL("/admin", base));
         }
         return true;
       }
