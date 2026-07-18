@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  passwordHash String
+  role         Role       @default(ADMIN)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  auditLogs    AuditLog[]
+
+  @@map("users")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  icon        String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  courses     Course[]
+
+  @@index([order])
+  @@map("categories")
+}
+
+model Course {
+  id               String          @id @default(cuid())
+  slug             String          @unique
+  title            String
+  shortDescription String?
+  description      String
+  thumbnail        String?
+  banner           String?
+  categoryId       String?
+  category         Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags             String[]        @default([])
+  downloadUrl      String
+  telegramUrl      String?
+  sizeLabel        String?
+  lecturesCount    Int?
+  published        Boolean         @default(false)
+  featured         Boolean         @default(false)
+  trending         Boolean         @default(false)
+  order            Int             @default(0)
+  seoTitle         String?
+  seoDescription   String?
+  metaImage        String?
+  views            Int             @default(0)
+  downloads        Int             @default(0)
+  contentUpdatedAt DateTime        @default(now())
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  shortLinks       ShortLink[]
+  downloadEvents   DownloadEvent[]
+
+  @@index([published, createdAt(sort: Desc)])
+  @@index([published, featured])
+  @@index([published, trending])
+  @@index([published, downloads(sort: Desc)])
+  @@index([categoryId])
+  @@index([order])
+  @@map("courses")
+}
+
+model ShortLink {
+  id              String   @id @default(cuid())
+  courseId        String
+  course          Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  destinationHash String
+  shortUrl        String
+  createdAt       DateTime @default(now())
+
+  @@unique([courseId, destinationHash])
+  @@map("short_links")
+}
+
+model DownloadEvent {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  ipHash    String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([courseId, createdAt])
+  @@index([createdAt])
+  @@map("download_events")
+}
+
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
+
+model Page {
+  slug      String   @id
+  title     String
+  content   String
+  updatedAt DateTime @updatedAt
+
+  @@map("pages")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  entity    String
+  entityId  String?
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  @@map("newsletter_subscribers")
+}

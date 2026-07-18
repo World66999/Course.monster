@@ -1,0 +1,81 @@
+"use client";
+
+import * as React from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+export function AdminSearch({
+  placeholder,
+  statusOptions,
+}: {
+  placeholder: string;
+  statusOptions?: { value: string; label: string }[];
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentQ = searchParams.get("q") ?? "";
+  const currentStatus = searchParams.get("status") ?? "";
+  const [value, setValue] = React.useState(currentQ);
+
+  const update = React.useCallback(
+    (patch: Record<string, string>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("page");
+      for (const [k, v] of Object.entries(patch)) {
+        if (v) params.set(k, v);
+        else params.delete(k);
+      }
+      router.replace(`${pathname}${params.size ? `?${params}` : ""}`);
+    },
+    [router, pathname, searchParams]
+  );
+
+  React.useEffect(() => {
+    if (value === currentQ) return;
+    const t = setTimeout(() => update({ q: value.trim() }), 350);
+    return () => clearTimeout(t);
+  }, [value, currentQ, update]);
+
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="relative flex-1">
+        <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+        <Input
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder={placeholder}
+          aria-label={placeholder}
+          className="pl-9"
+        />
+      </div>
+      {statusOptions && (
+        <div className="w-full sm:w-44">
+          <Select
+            value={currentStatus || "all"}
+            onValueChange={(v) => update({ status: v === "all" ? "" : v })}
+          >
+            <SelectTrigger aria-label="Filter by status">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {statusOptions.map((o) => (
+                <SelectItem key={o.value || "all"} value={o.value || "all"}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+    </div>
+  );
+}

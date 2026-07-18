@@ -1,0 +1,47 @@
+import type { NextAuthConfig } from "next-auth";
+
+/**
+ * Edge-safe Auth.js config (no Node-only imports) shared by middleware
+ * and the full server config in `src/auth.ts`.
+ */
+export const authConfig = {
+  pages: {
+    signIn: "/admin/login",
+  },
+  session: {
+    strategy: "jwt",
+    maxAge: 60 * 60 * 12, // 12 hours
+  },
+  callbacks: {
+    authorized({ auth, request }) {
+      const { pathname } = request.nextUrl;
+      const isLoggedIn = Boolean(auth?.user);
+      const isAdminArea = pathname.startsWith("/admin");
+      const isLoginPage = pathname === "/admin/login";
+
+      if (isLoginPage) {
+        if (isLoggedIn) {
+          return Response.redirect(new URL("/admin", request.nextUrl));
+        }
+        return true;
+      }
+      if (isAdminArea) return isLoggedIn;
+      return true;
+    },
+    jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.role = (user as { role?: string }).role ?? "ADMIN";
+      }
+      return token;
+    },
+    session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.role = token.role as "ADMIN" | "EDITOR";
+      }
+      return session;
+    },
+  },
+  providers: [],
+} satisfies NextAuthConfig;

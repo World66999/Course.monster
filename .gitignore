@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# uploads (user content lives outside git)
+/uploads
+
+# allow the env template
+!.env.example
