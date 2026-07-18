@@ -5,6 +5,16 @@ const optionalUrl = z
   .optional()
   .default("");
 
+/** Absolute URL or a local admin-uploaded image path. */
+const imageRef = z
+  .union([
+    z.string().url(),
+    z.string().regex(/^\/uploads\/[a-zA-Z0-9._-]+$/),
+    z.literal(""),
+  ])
+  .optional()
+  .default("");
+
 export const siteSettingsSchema = z.object({
   siteName: z.string().min(1).max(60).default("CourseVault"),
   tagline: z.string().max(120).default("Premium courses, free for everyone"),
@@ -14,8 +24,8 @@ export const siteSettingsSchema = z.object({
     .default(
       "Browse, search and download hand-picked free courses on development, design, marketing and more."
     ),
-  logoUrl: optionalUrl,
-  faviconUrl: optionalUrl,
+  logoUrl: imageRef,
+  faviconUrl: imageRef,
   announcement: z
     .object({
       enabled: z.boolean().default(false),
@@ -49,7 +59,7 @@ export const siteSettingsSchema = z.object({
         .default(
           "Download hand-picked free courses on development, design, marketing and more."
         ),
-      metaImageUrl: optionalUrl,
+      metaImageUrl: imageRef,
       twitterHandle: z.string().max(30).optional().default(""),
     })
     .prefault({}),
