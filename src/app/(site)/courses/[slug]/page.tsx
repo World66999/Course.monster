@@ -15,7 +15,7 @@ import {
 import { db } from "@/lib/db";
 import { getPublishedCourse, getRelatedCourses } from "@/lib/courses";
 import { getSiteSettings } from "@/lib/settings";
-import { absoluteUrl, formatDate, formatNumber } from "@/lib/utils";
+import { absoluteUrl, formatDate, formatNumber, safeJsonLd } from "@/lib/utils";
 import { buttonClasses } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CourseImage } from "@/components/site/course-image";
@@ -115,7 +115,7 @@ export default async function CoursePage({ params }: Props) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify([jsonLd, breadcrumbLd]) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd([jsonLd, breadcrumbLd]) }}
       />
 
       {/* Banner */}

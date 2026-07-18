@@ -34,6 +34,24 @@ export function absoluteUrl(path = ""): string {
   return `${base.replace(/\/$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
+/**
+ * Serialize a value for safe embedding inside a `<script>` tag.
+ * `JSON.stringify` alone is unsafe here: a string containing `</script>`
+ * (or the JS line terminators U+2028/U+2029) would break out of the tag.
+ * Escaping `<`, `>`, `&` and those separators as unicode escapes keeps the
+ * JSON valid while making tag breakout impossible.
+ */
+export function safeJsonLd(value: unknown): string {
+  const escapes: Record<string, string> = {
+    "<": "\\u003c",
+    ">": "\\u003e",
+    "&": "\\u0026",
+    "\u2028": "\\u2028",
+    "\u2029": "\\u2029",
+  };
+  return JSON.stringify(value).replace(/[<>&\u2028\u2029]/g, (c) => escapes[c]);
+}
+
 /** Deterministic gradient pair from a string, used for image placeholders. */
 export function gradientFromString(input: string): { from: string; to: string } {
   let hash = 0;

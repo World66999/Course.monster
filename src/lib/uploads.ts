@@ -3,6 +3,9 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomBytes } from "node:crypto";
 import sharp from "sharp";
+import { uploadDir } from "@/lib/upload-path";
+
+export { resolveUploadPath, uploadDir } from "@/lib/upload-path";
 
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"]);
@@ -15,10 +18,6 @@ const VARIANTS = {
 } as const;
 
 export type UploadKind = keyof typeof VARIANTS;
-
-export function uploadDir(): string {
-  return path.resolve(process.env.UPLOAD_DIR ?? "./uploads");
-}
 
 export async function saveImageUpload(file: File, kind: UploadKind): Promise<string> {
   if (!ALLOWED_TYPES.has(file.type)) {
@@ -50,11 +49,3 @@ export async function saveImageUpload(file: File, kind: UploadKind): Promise<str
 }
 
 export class UploadError extends Error {}
-
-/** Resolve a stored upload filename to an absolute path, refusing traversal. */
-export function resolveUploadPath(fileName: string): string | null {
-  if (!/^[a-zA-Z0-9._-]+$/.test(fileName)) return null;
-  const abs = path.join(uploadDir(), fileName);
-  if (!abs.startsWith(uploadDir() + path.sep)) return null;
-  return abs;
-}

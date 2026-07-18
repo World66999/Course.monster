@@ -3,7 +3,7 @@ import { stat } from "node:fs/promises";
 import { createReadStream } from "node:fs";
 import { Readable } from "node:stream";
 import path from "node:path";
-import { resolveUploadPath } from "@/lib/uploads";
+import { resolveUploadPath } from "@/lib/upload-path";
 
 const CONTENT_TYPES: Record<string, string> = {
   ".webp": "image/webp",

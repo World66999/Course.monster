@@ -128,7 +128,7 @@ export function FiltersBar({ categories }: { categories: CategoryOption[] }) {
             )}
           >
             {c.name}
-            <span className="ml-1.5 text-xs opacity-70">{c.count}</span>
+            <span className="ml-1.5 text-xs tabular-nums">{c.count}</span>
           </button>
         ))}
       </div>
