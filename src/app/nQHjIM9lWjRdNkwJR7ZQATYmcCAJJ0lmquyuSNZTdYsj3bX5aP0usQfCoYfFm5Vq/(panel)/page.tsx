@@ -11,6 +11,7 @@ import { db } from "@/lib/db";
 import { formatNumber, formatDate } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { adminPath } from "@/lib/admin-path";
 
 export const dynamic = "force-dynamic";
 
@@ -157,7 +158,7 @@ export default async function AdminDashboard() {
             {popularCourses.map((course, i) => (
               <li key={course.id}>
                 <Link
-                  href={`/admin/courses/${course.id}/edit`}
+                  href={adminPath(`courses/${course.id}/edit`)}
                   className="group flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-muted"
                 >
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
@@ -210,7 +211,7 @@ export default async function AdminDashboard() {
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-semibold">Recent activity</h2>
             <Link
-              href="/admin/activity"
+              href={adminPath("activity")}
               className="inline-flex items-center gap-0.5 text-xs font-medium text-primary hover:underline"
             >
               View all

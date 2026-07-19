@@ -6,6 +6,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientIp, hashIp } from "@/lib/ip";
 import { logAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
+import { ADMIN_BASE, ADMIN_LOGIN_PATH } from "@/lib/admin-path";
 
 export interface LoginState {
   error?: string;
@@ -23,7 +24,7 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
     await signIn("credentials", {
       email,
       password: String(formData.get("password") ?? ""),
-      redirectTo: "/admin",
+      redirectTo: ADMIN_BASE,
     });
     return {};
   } catch (error) {
@@ -44,5 +45,5 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
 }
 
 export async function logoutAction(): Promise<void> {
-  await signOut({ redirectTo: "/admin/login" });
+  await signOut({ redirectTo: ADMIN_LOGIN_PATH });
 }

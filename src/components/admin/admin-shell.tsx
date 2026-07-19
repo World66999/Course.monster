@@ -20,15 +20,16 @@ import { logoutAction } from "@/server/actions/auth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/site/theme-toggle";
 import { cn } from "@/lib/utils";
+import { ADMIN_BASE, adminPath } from "@/lib/admin-path";
 
 const NAV = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { href: "/admin/courses", label: "Courses", icon: BookOpen },
-  { href: "/admin/categories", label: "Categories", icon: FolderOpen },
-  { href: "/admin/pages", label: "Pages", icon: FileText },
-  { href: "/admin/subscribers", label: "Subscribers", icon: Mail },
-  { href: "/admin/activity", label: "Activity", icon: Activity },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: ADMIN_BASE, label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: adminPath("courses"), label: "Courses", icon: BookOpen },
+  { href: adminPath("categories"), label: "Categories", icon: FolderOpen },
+  { href: adminPath("pages"), label: "Pages", icon: FileText },
+  { href: adminPath("subscribers"), label: "Subscribers", icon: Mail },
+  { href: adminPath("activity"), label: "Activity", icon: Activity },
+  { href: adminPath("settings"), label: "Settings", icon: Settings },
 ];
 
 export function AdminShell({

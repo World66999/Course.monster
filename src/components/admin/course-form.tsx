@@ -11,6 +11,7 @@ import type { z } from "zod";
 import { courseFormSchema, type CourseFormValues } from "@/lib/validation";
 import { saveCourseAction } from "@/server/actions/courses";
 import { slugify } from "@/lib/utils";
+import { adminPath } from "@/lib/admin-path";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { Input, Label, FieldError, FieldHint, Textarea } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -97,7 +98,7 @@ export function CourseForm({
     const result = await saveCourseAction(courseId, values);
     if (result.ok) {
       toast.success(courseId ? "Course updated" : "Course created");
-      router.push("/admin/courses");
+      router.push(adminPath("courses"));
       router.refresh();
     } else {
       toast.error(result.error);
@@ -108,7 +109,7 @@ export function CourseForm({
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <Link
-          href="/admin/courses"
+          href={adminPath("courses")}
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden />
@@ -503,7 +504,7 @@ export function CourseForm({
           {courseId ? "Save changes" : "Create course"}
         </Button>
       </div>
-      <Link href="/admin/courses" className={buttonClasses("ghost", "sm", "sr-only")}>
+      <Link href={adminPath("courses")} className={buttonClasses("ghost", "sm", "sr-only")}>
         Cancel
       </Link>
     </form>

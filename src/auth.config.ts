@@ -1,4 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
+import { ADMIN_BASE, ADMIN_LOGIN_PATH } from "@/lib/admin-path";
 
 /**
  * Edge-safe Auth.js config (no Node-only imports) shared by middleware
@@ -6,7 +7,7 @@ import type { NextAuthConfig } from "next-auth";
  */
 export const authConfig = {
   pages: {
-    signIn: "/admin/login",
+    signIn: ADMIN_LOGIN_PATH,
   },
   session: {
     strategy: "jwt",
@@ -16,8 +17,8 @@ export const authConfig = {
     authorized({ auth, request }) {
       const { pathname } = request.nextUrl;
       const isLoggedIn = Boolean(auth?.user);
-      const isAdminArea = pathname.startsWith("/admin");
-      const isLoginPage = pathname === "/admin/login";
+      const isAdminArea = pathname === ADMIN_BASE || pathname.startsWith(`${ADMIN_BASE}/`);
+      const isLoginPage = pathname === ADMIN_LOGIN_PATH;
 
       if (isLoginPage) {
         if (isLoggedIn) {
@@ -27,7 +28,7 @@ export const authConfig = {
             process.env.AUTH_URL ??
             process.env.NEXT_PUBLIC_SITE_URL ??
             request.nextUrl.origin;
-          return Response.redirect(new URL("/admin", base));
+          return Response.redirect(new URL(ADMIN_BASE, base));
         }
         return true;
       }

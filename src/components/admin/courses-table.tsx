@@ -22,6 +22,7 @@ import {
   setPublishedAction,
 } from "@/server/actions/courses";
 import { Button, buttonClasses } from "@/components/ui/button";
+import { adminPath } from "@/lib/admin-path";
 import { Badge } from "@/components/ui/badge";
 import { CourseImage } from "@/components/site/course-image";
 import {
@@ -198,7 +199,7 @@ export function CoursesTable({
                     </div>
                     <div className="min-w-0">
                       <Link
-                        href={`/admin/courses/${course.id}/edit`}
+                        href={adminPath(`courses/${course.id}/edit`)}
                         className="block max-w-64 truncate font-medium hover:text-primary"
                       >
                         {course.title}
@@ -258,7 +259,7 @@ export function CoursesTable({
                     </DropdownTrigger>
                     <DropdownContent align="end">
                       <DropdownItem asChild>
-                        <Link href={`/admin/courses/${course.id}/edit`}>
+                        <Link href={adminPath(`courses/${course.id}/edit`)}>
                           <Pencil className="h-3.5 w-3.5" aria-hidden />
                           Edit
                         </Link>
@@ -360,7 +361,7 @@ export function CoursesTable({
         ) : (
           <>Reordering is available when no search or filter is active.</>
         )}{" "}
-        <Link href="/admin/courses/new" className={buttonClasses("ghost", "sm", "h-auto p-0 text-xs text-primary")}>
+        <Link href={adminPath("courses/new")} className={buttonClasses("ghost", "sm", "h-auto p-0 text-xs text-primary")}>
           Add a new course →
         </Link>
       </p>

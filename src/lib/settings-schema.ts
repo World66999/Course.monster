@@ -76,7 +76,9 @@ export const siteSettingsSchema = z.object({
   robotsTxt: z
     .string()
     .max(4000)
-    .default("User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /go/\nDisallow: /download/"),
+    // The admin panel is deliberately absent here: it lives at a secret path
+    // that must never be published, and naming it would defeat the purpose.
+    .default("User-agent: *\nAllow: /\nDisallow: /go/\nDisallow: /download/"),
   theme: z
     .object({
       defaultMode: z.enum(["system", "dark", "light"]).default("system"),

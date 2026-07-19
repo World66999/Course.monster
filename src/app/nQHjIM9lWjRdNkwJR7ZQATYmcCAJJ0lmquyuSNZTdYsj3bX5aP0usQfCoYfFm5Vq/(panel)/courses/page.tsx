@@ -6,6 +6,7 @@ import type { Prisma } from "@prisma/client";
 import { buttonClasses } from "@/components/ui/button";
 import { CoursesTable } from "@/components/admin/courses-table";
 import { AdminSearch } from "@/components/admin/admin-search";
+import { adminPath } from "@/lib/admin-path";
 
 export const metadata: Metadata = { title: "Courses" };
 export const dynamic = "force-dynamic";
@@ -56,7 +57,7 @@ export default async function AdminCoursesPage({
             {total} course{total === 1 ? "" : "s"} total
           </p>
         </div>
-        <Link href="/admin/courses/new" className={buttonClasses("primary", "md")}>
+        <Link href={adminPath("courses/new")} className={buttonClasses("primary", "md")}>
           <Plus className="h-4 w-4" aria-hidden />
           New course
         </Link>

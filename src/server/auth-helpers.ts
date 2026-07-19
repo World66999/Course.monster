@@ -9,7 +9,7 @@ export class UnauthorizedError extends Error {
 
 /**
  * Server-side guard for every admin action and admin data loader.
- * Middleware already protects /admin routes; this is defense in depth so
+ * Middleware already protects the admin routes; this is defense in depth so
  * server actions can never be invoked without a valid admin session.
  */
 export async function requireAdmin() {
