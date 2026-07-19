@@ -1,10 +1,16 @@
 import Link from "next/link";
-import { ArrowUpRight, Clock3, Download, Film, HardDrive } from "lucide-react";
+import { ArrowUpRight, BarChart3, Clock3, Download, Film, HardDrive, Timer } from "lucide-react";
 import type { CourseCard as CourseCardData } from "@/lib/courses";
 import { Badge } from "@/components/ui/badge";
 import { CourseImage } from "@/components/site/course-image";
 import { formatNumber } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+
+const SKILL_LABELS: Record<string, string> = {
+  BEGINNER: "Beginner",
+  INTERMEDIATE: "Intermediate",
+  ADVANCED: "Advanced",
+};
 
 export function CourseCard({ course, priority = false }: { course: CourseCardData; priority?: boolean }) {
   return (
@@ -41,9 +47,19 @@ export function CourseCard({ course, priority = false }: { course: CourseCardDat
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
-        {course.category && (
-          <span className="text-xs font-semibold tracking-wider text-primary uppercase">
-            {course.category.name}
+        {(course.category || course.skillLevel) && (
+          <span className="flex items-center justify-between gap-2">
+            {course.category && (
+              <span className="text-xs font-semibold tracking-wider text-primary uppercase">
+                {course.category.name}
+              </span>
+            )}
+            {course.skillLevel && (
+              <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground">
+                <BarChart3 className="h-3.5 w-3.5" aria-hidden />
+                {SKILL_LABELS[course.skillLevel]}
+              </span>
+            )}
           </span>
         )}
         <h3 className="line-clamp-2 leading-snug font-semibold text-card-foreground transition-colors duration-200 group-hover:text-primary">
@@ -54,6 +70,12 @@ export function CourseCard({ course, priority = false }: { course: CourseCardDat
         )}
 
         <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border/60 pt-3 text-xs text-muted-foreground">
+          {course.durationHours != null && course.durationHours > 0 && (
+            <span className="inline-flex items-center gap-1">
+              <Timer className="h-3.5 w-3.5" aria-hidden />
+              {Math.round(course.durationHours * 10) / 10}h
+            </span>
+          )}
           {course.lecturesCount != null && course.lecturesCount > 0 && (
             <span className="inline-flex items-center gap-1">
               <Film className="h-3.5 w-3.5" aria-hidden />

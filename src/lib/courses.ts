@@ -11,6 +11,8 @@ export const courseCardSelect = {
   thumbnail: true,
   sizeLabel: true,
   lecturesCount: true,
+  skillLevel: true,
+  durationHours: true,
   downloads: true,
   views: true,
   featured: true,
