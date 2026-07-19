@@ -8,7 +8,8 @@ import { PrismaClient } from "@prisma/client";
 
 const db = new PrismaClient();
 
-const TELEGRAM_URL = "https://t.me/Unique_One_in";
+const TELEGRAM_URL = "https://t.me/Peace_mean_What";
+const LEGAL_EMAIL = "chessmasterpiece9@gmail.com";
 
 const PAGES: { slug: string; title: string; content: string }[] = [
   {
@@ -103,15 +104,17 @@ Questions about this policy, or a request to delete your newsletter email? Reach
   {
     slug: "contact",
     title: "Contact",
-    content: `We're happy to hear from learners, creators, and rights holders.
+    content: `We're happy to hear from learners, creators, and rights holders. Please use the channel that matches your request.
 
-## Reach us
+## General support & questions
 
-- **Telegram (fastest):** [${TELEGRAM_URL.replace("https://", "")}](${TELEGRAM_URL}) — message the channel admins.
+- **Telegram:** [@Peace_mean_What](${TELEGRAM_URL})
 
-## Copyright owners and instructors
+## Copyright, DMCA & legal
 
-If you believe content on this platform infringes your rights, please read the [Copyright & DMCA policy](/copyright) first — it lists exactly what to include (URLs, proof of ownership, contact details) so that we can review your request promptly and remove or disable access to the reported content where appropriate.
+- **Email:** [${LEGAL_EMAIL}](mailto:${LEGAL_EMAIL})
+
+Please read the [Copyright & DMCA policy](/copyright) first — it lists exactly what to include (URLs, proof of ownership, contact details) so that we can review your request promptly and remove or disable access to the reported content where appropriate.
 
 ## Newsletter removal
 

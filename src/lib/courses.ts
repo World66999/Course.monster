@@ -1,5 +1,5 @@
 import "server-only";
-import { Prisma } from "@prisma/client";
+import { Prisma, type SkillLevel } from "@prisma/client";
 import { db } from "@/lib/db";
 import type { ListCoursesQuery } from "@/lib/validation";
 
@@ -58,6 +58,14 @@ export async function listCourses(query: ListCoursesQuery): Promise<{
   }
   if (query.category) where.category = { slug: query.category };
   if (query.tag) where.tags = { has: query.tag };
+  if (query.level) where.skillLevel = query.level.toUpperCase() as SkillLevel;
+  if (query.lang) where.language = { equals: query.lang, mode: "insensitive" };
+  if (query.duration === "short") where.durationHours = { gt: 0, lte: 5 };
+  else if (query.duration === "medium") where.durationHours = { gt: 5, lte: 20 };
+  else if (query.duration === "long") where.durationHours = { gt: 20 };
+  if (query.flag === "featured") where.featured = true;
+  else if (query.flag === "trending") where.trending = true;
+  else if (query.flag === "popular") where.popular = true;
 
   const [total, items] = await Promise.all([
     db.course.count({ where }),
@@ -160,6 +168,17 @@ export async function getSiteStats() {
     categories: categoryCount,
     downloads: downloadsAgg._sum.downloads ?? 0,
   };
+}
+
+/** Distinct languages across published courses, for the language filter. */
+export async function getCourseLanguages(): Promise<string[]> {
+  const rows = await db.course.findMany({
+    where: { published: true, language: { not: null } },
+    distinct: ["language"],
+    select: { language: true },
+    orderBy: { language: "asc" },
+  });
+  return rows.map((r) => r.language!).filter(Boolean);
 }
 
 export async function getAllCategories() {

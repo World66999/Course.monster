@@ -27,7 +27,35 @@ const SORT_OPTIONS = [
   { value: "az", label: "A → Z" },
 ] as const;
 
-export function FiltersBar({ categories }: { categories: CategoryOption[] }) {
+const ALL = "__all__";
+
+const LEVEL_OPTIONS = [
+  { value: ALL, label: "All levels" },
+  { value: "beginner", label: "Beginner" },
+  { value: "intermediate", label: "Intermediate" },
+  { value: "advanced", label: "Advanced" },
+] as const;
+
+const DURATION_OPTIONS = [
+  { value: ALL, label: "Any duration" },
+  { value: "short", label: "Short (≤ 5h)" },
+  { value: "medium", label: "Medium (5–20h)" },
+  { value: "long", label: "Long (20h+)" },
+] as const;
+
+const FLAG_OPTIONS = [
+  { value: "featured", label: "Featured" },
+  { value: "trending", label: "Trending" },
+  { value: "popular", label: "Popular" },
+] as const;
+
+export function FiltersBar({
+  categories,
+  languages = [],
+}: {
+  categories: CategoryOption[];
+  languages?: string[];
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -36,6 +64,10 @@ export function FiltersBar({ categories }: { categories: CategoryOption[] }) {
   const currentCategory = searchParams.get("category") ?? "";
   const currentSort = searchParams.get("sort") ?? "newest";
   const currentTag = searchParams.get("tag") ?? "";
+  const currentLevel = searchParams.get("level") ?? "";
+  const currentLang = searchParams.get("lang") ?? "";
+  const currentDuration = searchParams.get("duration") ?? "";
+  const currentFlag = searchParams.get("flag") ?? "";
 
   const [search, setSearch] = React.useState(currentQ);
   React.useEffect(() => setSearch(currentQ), [currentQ]);
@@ -98,6 +130,86 @@ export function FiltersBar({ categories }: { categories: CategoryOption[] }) {
               ))}
             </SelectContent>
           </Select>
+        </div>
+      </div>
+
+      {/* Attribute filters */}
+      <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
+        <div className="sm:w-44">
+          <Select
+            value={currentLevel || ALL}
+            onValueChange={(v) => update({ level: v === ALL ? "" : v })}
+          >
+            <SelectTrigger aria-label="Filter by skill level">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LEVEL_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="sm:w-44">
+          <Select
+            value={currentDuration || ALL}
+            onValueChange={(v) => update({ duration: v === ALL ? "" : v })}
+          >
+            <SelectTrigger aria-label="Filter by duration">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DURATION_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {languages.length > 0 && (
+          <div className="sm:w-44">
+            <Select
+              value={currentLang || ALL}
+              onValueChange={(v) => update({ lang: v === ALL ? "" : v })}
+            >
+              <SelectTrigger aria-label="Filter by language">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>All languages</SelectItem>
+                {languages.map((lang) => (
+                  <SelectItem key={lang} value={lang}>
+                    {lang}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        <div
+          className="col-span-2 flex flex-wrap items-center gap-2"
+          role="group"
+          aria-label="Show only"
+        >
+          {FLAG_OPTIONS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              onClick={() => update({ flag: currentFlag === f.value ? "" : f.value })}
+              aria-pressed={currentFlag === f.value}
+              className={cn(
+                "cursor-pointer rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all duration-200 active:scale-95",
+                currentFlag === f.value
+                  ? "border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/25"
+                  : "border-border bg-card text-muted-foreground shadow-soft hover:border-primary/50 hover:text-foreground"
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
       </div>
 

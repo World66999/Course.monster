@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { listCourses, getAllCategories } from "@/lib/courses";
+import { listCourses, getAllCategories, getCourseLanguages } from "@/lib/courses";
 import { listCoursesQuerySchema } from "@/lib/validation";
 import { Section } from "@/components/site/section";
 import { FiltersBar } from "@/components/site/filters-bar";
@@ -29,6 +29,10 @@ async function CourseResults({ searchParams }: { searchParams: SearchParams }) {
   if (query.q) qs.set("q", query.q);
   if (query.category) qs.set("category", query.category);
   if (query.tag) qs.set("tag", query.tag);
+  if (query.level) qs.set("level", query.level);
+  if (query.lang) qs.set("lang", query.lang);
+  if (query.duration) qs.set("duration", query.duration);
+  if (query.flag) qs.set("flag", query.flag);
   if (query.sort !== "newest") qs.set("sort", query.sort);
 
   return (
@@ -43,7 +47,7 @@ async function CourseResults({ searchParams }: { searchParams: SearchParams }) {
 }
 
 export default async function CoursesPage({ searchParams }: { searchParams: SearchParams }) {
-  const categories = await getAllCategories();
+  const [categories, languages] = await Promise.all([getAllCategories(), getCourseLanguages()]);
 
   return (
     <Section className="py-12">
@@ -62,6 +66,7 @@ export default async function CoursesPage({ searchParams }: { searchParams: Sear
               name: c.name,
               count: c._count.courses,
             }))}
+            languages={languages}
           />
         </Suspense>
       </div>

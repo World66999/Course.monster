@@ -6,7 +6,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/server/auth-helpers";
 import { logAudit } from "@/lib/audit";
-import { courseFormSchema, parseTags } from "@/lib/validation";
+import { courseFormSchema, parseLines, parseTags } from "@/lib/validation";
 import { invalidateShortLinks } from "@/lib/shortener";
 import { slugify } from "@/lib/utils";
 
@@ -43,9 +43,20 @@ export async function saveCourseAction(
     telegramUrl: v.telegramUrl || null,
     sizeLabel: v.sizeLabel || null,
     lecturesCount: v.lecturesCount ?? null,
+    skillLevel: v.skillLevel || null,
+    language: v.language.trim() || null,
+    durationHours: v.durationHours && v.durationHours > 0 ? v.durationHours : null,
+    instructor: v.instructor.trim() || null,
+    publisher: v.publisher.trim() || null,
+    sourceUrl: v.sourceUrl || null,
+    prerequisites: parseLines(v.prerequisites),
+    learningOutcomes: parseLines(v.learningOutcomes),
+    certificate: v.certificate === "unset" ? null : v.certificate === "yes",
+    lifetimeAccess: v.lifetimeAccess === "unset" ? null : v.lifetimeAccess === "yes",
     published: v.published,
     featured: v.featured,
     trending: v.trending,
+    popular: v.popular,
     seoTitle: v.seoTitle || null,
     seoDescription: v.seoDescription || null,
     metaImage: v.metaImage || null,

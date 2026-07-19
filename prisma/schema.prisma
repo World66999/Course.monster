@@ -40,6 +40,12 @@ model Category {
   @@map("categories")
 }
 
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
 model Course {
   id               String          @id @default(cuid())
   slug             String          @unique
@@ -55,9 +61,20 @@ model Course {
   telegramUrl      String?
   sizeLabel        String?
   lecturesCount    Int?
+  skillLevel       SkillLevel?
+  language         String?
+  durationHours    Float?
+  instructor       String?
+  publisher        String?
+  sourceUrl        String?
+  prerequisites    String[]        @default([])
+  learningOutcomes String[]        @default([])
+  certificate      Boolean?
+  lifetimeAccess   Boolean?
   published        Boolean         @default(false)
   featured         Boolean         @default(false)
   trending         Boolean         @default(false)
+  popular          Boolean         @default(false)
   order            Int             @default(0)
   seoTitle         String?
   seoDescription   String?
@@ -73,6 +90,7 @@ model Course {
   @@index([published, createdAt(sort: Desc)])
   @@index([published, featured])
   @@index([published, trending])
+  @@index([published, popular])
   @@index([published, downloads(sort: Desc)])
   @@index([categoryId])
   @@index([order])

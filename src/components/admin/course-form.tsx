@@ -12,7 +12,8 @@ import { courseFormSchema, type CourseFormValues } from "@/lib/validation";
 import { saveCourseAction } from "@/server/actions/courses";
 import { slugify } from "@/lib/utils";
 import { Button, buttonClasses } from "@/components/ui/button";
-import { Input, Label, FieldError, FieldHint } from "@/components/ui/input";
+import { Input, Label, FieldError, FieldHint, Textarea } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import {
   Select,
@@ -32,6 +33,34 @@ export interface CategoryOption {
 }
 
 const NONE = "__none__";
+
+const SKILL_LEVELS = [
+  { value: "", label: "Not specified" },
+  { value: "BEGINNER", label: "Beginner" },
+  { value: "INTERMEDIATE", label: "Intermediate" },
+  { value: "ADVANCED", label: "Advanced" },
+] as const;
+
+const TRI_STATE = [
+  { value: "unset", label: "Not specified" },
+  { value: "yes", label: "Yes" },
+  { value: "no", label: "No" },
+] as const;
+
+function CharCount({ value, max }: { value: string | undefined; max: number }) {
+  const len = value?.length ?? 0;
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "ml-auto text-xs tabular-nums",
+        len > max ? "font-medium text-destructive" : "text-muted-foreground"
+      )}
+    >
+      {len}/{max}
+    </span>
+  );
+}
 
 export function CourseForm({
   courseId,
@@ -132,7 +161,10 @@ export function CourseForm({
               <FieldError message={errors.slug?.message} />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="shortDescription">Short description</Label>
+              <div className="flex items-center">
+                <Label htmlFor="shortDescription">Short description</Label>
+                <CharCount value={watch("shortDescription")} max={220} />
+              </div>
               <Input
                 id="shortDescription"
                 {...register("shortDescription")}
@@ -150,6 +182,137 @@ export function CourseForm({
                 )}
               />
               <FieldError message={errors.description?.message} />
+            </div>
+          </section>
+
+          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+            <h2 className="font-semibold">Course details</h2>
+            <p className="-mt-2 text-xs text-muted-foreground">
+              All optional — only filled-in fields are shown on the public page.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>Skill level</Label>
+                <Controller
+                  control={control}
+                  name="skillLevel"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value || ""}
+                      onValueChange={(v) => field.onChange(v === NONE ? "" : v)}
+                    >
+                      <SelectTrigger aria-label="Skill level">
+                        <SelectValue placeholder="Not specified" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SKILL_LEVELS.map((o) => (
+                          <SelectItem key={o.value || NONE} value={o.value || NONE}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="language">Primary language</Label>
+                <Input id="language" {...register("language")} placeholder="English" />
+                <FieldError message={errors.language?.message} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="durationHours">Estimated duration (hours)</Label>
+                <Input
+                  id="durationHours"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  {...register("durationHours")}
+                  placeholder="42"
+                />
+                <FieldHint>Total content length. Leave empty if unknown.</FieldHint>
+                <FieldError message={errors.durationHours?.message} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="instructor">Instructor</Label>
+                <Input id="instructor" {...register("instructor")} placeholder="Jane Doe" />
+                <FieldError message={errors.instructor?.message} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="publisher">Publisher / provider</Label>
+                <Input id="publisher" {...register("publisher")} placeholder="Udemy, Coursera, …" />
+                <FieldError message={errors.publisher?.message} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="sourceUrl">Source website</Label>
+                <Input id="sourceUrl" {...register("sourceUrl")} placeholder="https://…" />
+                <FieldHint>Official course page, for attribution.</FieldHint>
+                <FieldError message={errors.sourceUrl?.message} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Certificate available</Label>
+                <Controller
+                  control={control}
+                  name="certificate"
+                  render={({ field }) => (
+                    <Select value={field.value || "unset"} onValueChange={field.onChange}>
+                      <SelectTrigger aria-label="Certificate available">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TRI_STATE.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Lifetime access</Label>
+                <Controller
+                  control={control}
+                  name="lifetimeAccess"
+                  render={({ field }) => (
+                    <Select value={field.value || "unset"} onValueChange={field.onChange}>
+                      <SelectTrigger aria-label="Lifetime access">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TRI_STATE.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="learningOutcomes">Learning outcomes</Label>
+              <Textarea
+                id="learningOutcomes"
+                rows={5}
+                {...register("learningOutcomes")}
+                placeholder={"Build production-ready apps\nMaster advanced patterns\n…one outcome per line"}
+              />
+              <FieldHint>One per line, up to 20. Shown as “What you&apos;ll learn”.</FieldHint>
+              <FieldError message={errors.learningOutcomes?.message} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="prerequisites">Prerequisites</Label>
+              <Textarea
+                id="prerequisites"
+                rows={3}
+                {...register("prerequisites")}
+                placeholder={"Basic JavaScript\nFamiliarity with the command line"}
+              />
+              <FieldHint>One per line, up to 20.</FieldHint>
+              <FieldError message={errors.prerequisites?.message} />
             </div>
           </section>
 
@@ -179,12 +342,18 @@ export function CourseForm({
           <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
             <h2 className="font-semibold">SEO</h2>
             <div className="space-y-1.5">
-              <Label htmlFor="seoTitle">SEO title</Label>
+              <div className="flex items-center">
+                <Label htmlFor="seoTitle">SEO title</Label>
+                <CharCount value={watch("seoTitle")} max={70} />
+              </div>
               <Input id="seoTitle" {...register("seoTitle")} placeholder="Defaults to the course title" />
               <FieldError message={errors.seoTitle?.message} />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="seoDescription">SEO description</Label>
+              <div className="flex items-center">
+                <Label htmlFor="seoDescription">SEO description</Label>
+                <CharCount value={watch("seoDescription")} max={200} />
+              </div>
               <Input
                 id="seoDescription"
                 {...register("seoDescription")}
@@ -276,6 +445,16 @@ export function CourseForm({
                   name="trending"
                   render={({ field }) => (
                     <Switch checked={field.value} onCheckedChange={field.onChange} aria-label="Trending" />
+                  )}
+                />
+              </label>
+              <label className="flex cursor-pointer items-center justify-between gap-2 text-sm font-medium">
+                Popular
+                <Controller
+                  control={control}
+                  name="popular"
+                  render={({ field }) => (
+                    <Switch checked={field.value} onCheckedChange={field.onChange} aria-label="Popular" />
                   )}
                 />
               </label>

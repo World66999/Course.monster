@@ -25,9 +25,23 @@ export const courseFormSchema = z.object({
   telegramUrl: urlOrEmpty.optional().default(""),
   sizeLabel: z.string().max(30).optional().default(""),
   lecturesCount: z.coerce.number().int().min(0).max(100_000).optional(),
+  skillLevel: z
+    .union([z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]), z.literal("")])
+    .optional()
+    .default(""),
+  language: z.string().max(40).optional().default(""),
+  durationHours: z.coerce.number().min(0).max(10_000).optional(),
+  instructor: z.string().max(120).optional().default(""),
+  publisher: z.string().max(120).optional().default(""),
+  sourceUrl: urlOrEmpty.optional().default(""),
+  prerequisites: z.string().max(2_000).optional().default(""),
+  learningOutcomes: z.string().max(4_000).optional().default(""),
+  certificate: z.enum(["unset", "yes", "no"]).optional().default("unset"),
+  lifetimeAccess: z.enum(["unset", "yes", "no"]).optional().default("unset"),
   published: z.boolean().default(false),
   featured: z.boolean().default(false),
   trending: z.boolean().default(false),
+  popular: z.boolean().default(false),
   seoTitle: z.string().max(70).optional().default(""),
   seoDescription: z.string().max(200).optional().default(""),
   metaImage: imageRef.optional().default(""),
@@ -61,12 +75,25 @@ export const listCoursesQuerySchema = z.object({
   q: z.string().max(120).optional(),
   category: z.string().max(64).optional(),
   tag: z.string().max(64).optional(),
+  level: z.enum(["beginner", "intermediate", "advanced"]).optional(),
+  lang: z.string().max(40).optional(),
+  duration: z.enum(["short", "medium", "long"]).optional(),
+  flag: z.enum(["featured", "trending", "popular"]).optional(),
   sort: z.enum(["newest", "oldest", "popular", "az"]).optional().default("newest"),
   cursor: z.string().max(64).optional(),
   limit: z.coerce.number().int().min(1).max(48).optional().default(12),
 });
 
 export type ListCoursesQuery = z.infer<typeof listCoursesQuerySchema>;
+
+/** Turn a newline-separated textarea value into a clean list (prerequisites, outcomes). */
+export function parseLines(input: string, maxItems = 20): string[] {
+  return input
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^[-*•]\s*/, "").trim())
+    .filter((line) => line.length > 0 && line.length <= 200)
+    .slice(0, maxItems);
+}
 
 /** Turn a comma-separated tag string into a clean array. */
 export function parseTags(input: string): string[] {
