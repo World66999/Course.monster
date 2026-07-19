@@ -7,11 +7,7 @@ import { MobileNav } from "@/components/site/mobile-nav";
 import { NavLinks } from "@/components/site/nav-links";
 import { buttonClasses } from "@/components/ui/button";
 
-export const NAV_LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/courses", label: "Courses" },
-  { href: "/how-to-download", label: "How to Download" },
-] as const;
+import { NAV_LINKS } from "@/lib/nav";
 
 export function SiteLogo({ settings, className }: { settings: SiteSettings; className?: string }) {
   return (

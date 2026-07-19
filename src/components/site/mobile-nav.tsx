@@ -7,15 +7,10 @@ import { Menu, Send, X } from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "framer-motion";
 import type { SiteSettings } from "@/lib/settings-schema";
+import { NAV_LINKS } from "@/lib/nav";
 import { Button } from "@/components/ui/button";
 import { buttonClasses } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-const LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/courses", label: "Courses" },
-  { href: "/how-to-download", label: "How to Download" },
-];
 
 export function MobileNav({ settings }: { settings: SiteSettings }) {
   const [open, setOpen] = React.useState(false);
@@ -61,7 +56,7 @@ export function MobileNav({ settings }: { settings: SiteSettings }) {
                   </DialogPrimitive.Close>
                 </div>
                 <nav aria-label="Mobile" className="flex flex-col gap-1">
-                  {LINKS.map((link) => (
+                  {NAV_LINKS.map((link) => (
                     <Link
                       key={link.href}
                       href={link.href}
