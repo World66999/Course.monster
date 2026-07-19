@@ -6,9 +6,10 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/server/auth-helpers";
 import { logAudit } from "@/lib/audit";
 import { pageFormSchema } from "@/lib/validation";
+import { PAGE_SLUGS, getPageMeta } from "@/lib/pages";
 import type { ActionResult } from "@/server/actions/courses";
 
-const slugSchema = z.enum(["how-to-download"]);
+const slugSchema = z.enum(PAGE_SLUGS);
 
 export async function savePageAction(slug: unknown, input: unknown): Promise<ActionResult> {
   const user = await requireAdmin();
@@ -31,6 +32,6 @@ export async function savePageAction(slug: unknown, input: unknown): Promise<Act
     entity: "page",
     entityId: parsedSlug.data,
   });
-  revalidatePath(`/${parsedSlug.data}`);
+  revalidatePath(getPageMeta(parsedSlug.data)?.path ?? `/${parsedSlug.data}`);
   return { ok: true };
 }

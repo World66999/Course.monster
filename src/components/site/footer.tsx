@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Send } from "lucide-react";
 import type { SiteSettings } from "@/lib/settings-schema";
+import { GENERIC_PAGES } from "@/lib/pages";
 import { SiteLogo } from "@/components/site/header";
 import { NewsletterForm } from "@/components/site/newsletter-form";
 import {
@@ -100,9 +101,22 @@ export function Footer({ settings }: { settings: SiteSettings }) {
         )}
       </div>
       <div className="border-t border-border py-6">
-        <p className="mx-auto max-w-7xl px-4 text-sm text-muted-foreground sm:px-6 lg:px-8">
-          © {new Date().getFullYear()} {settings.siteName}. All rights reserved.
-        </p>
+        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-3 px-4 sm:flex-row sm:items-center sm:px-6 lg:px-8">
+          <p className="text-sm text-muted-foreground">
+            © {new Date().getFullYear()} {settings.siteName}. All rights reserved.
+          </p>
+          <nav aria-label="Legal">
+            <ul className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted-foreground">
+              {GENERIC_PAGES.map((page) => (
+                <li key={page.slug}>
+                  <Link href={page.path} className="transition-colors hover:text-primary">
+                    {page.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
       </div>
     </footer>
   );
