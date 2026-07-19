@@ -78,7 +78,10 @@ export default async function CoursePage({ params }: Props) {
     name: course.title,
     description: course.shortDescription || course.seoDescription || course.title,
     url: absoluteUrl(`/courses/${course.slug}`),
+    isAccessibleForFree: true,
+    dateModified: course.contentUpdatedAt.toISOString(),
     ...(course.thumbnail ? { image: absoluteUrl(course.thumbnail) } : {}),
+    ...(course.tags.length ? { keywords: course.tags.join(", ") } : {}),
     provider: {
       "@type": "Organization",
       name: settings.siteName,
@@ -124,7 +127,7 @@ export default async function CoursePage({ params }: Props) {
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
       </div>
 
-      <Section className="relative -mt-24 pb-16">
+      <Section className="relative -mt-24 pb-28 lg:pb-16">
         <nav aria-label="Breadcrumb" className="mb-4">
           <ol className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
             <li>
@@ -268,6 +271,17 @@ export default async function CoursePage({ params }: Props) {
           </div>
         )}
       </Section>
+
+      {/* Mobile sticky download bar — the sidebar CTA is below the fold on phones. */}
+      <div className="glass fixed inset-x-0 bottom-0 z-30 border-x-0 border-b-0 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
+        <Link
+          href={`/download/${course.slug}`}
+          className={buttonClasses("primary", "lg", "w-full")}
+        >
+          <Download className="h-5 w-5" aria-hidden />
+          Download course — 100% free
+        </Link>
+      </div>
     </>
   );
 }

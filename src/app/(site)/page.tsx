@@ -14,8 +14,10 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
+import type { Metadata } from "next";
 import { getHomepageData } from "@/lib/courses";
 import { getSiteSettings } from "@/lib/settings";
+import { absoluteUrl, safeJsonLd } from "@/lib/utils";
 import { buttonClasses } from "@/components/ui/button";
 import { CourseCard } from "@/components/site/course-card";
 import { Section, SectionHeading } from "@/components/site/section";
@@ -23,6 +25,10 @@ import { Reveal } from "@/components/site/reveal";
 import { AnimatedCounter } from "@/components/site/animated-counter";
 
 export const revalidate = 120;
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   code: Code2,
@@ -34,13 +40,35 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>
 };
 
 export default async function HomePage() {
-  const [{ featured, trending, recent, categories, stats }, settings] = await Promise.all([
-    getHomepageData(),
-    getSiteSettings(),
-  ]);
+  const [{ featured, trending, mostDownloaded, recent, categories, stats }, settings] =
+    await Promise.all([getHomepageData(), getSiteSettings()]);
+
+  // Sitelinks-searchbox + organization markup; every value is real site data.
+  const websiteLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: settings.siteName,
+    url: absoluteUrl(),
+    potentialAction: {
+      "@type": "SearchAction",
+      target: `${absoluteUrl("/courses")}?q={search_term_string}`,
+      "query-input": "required name=search_term_string",
+    },
+  };
+  const organizationLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: settings.siteName,
+    url: absoluteUrl(),
+    ...(settings.logoUrl ? { logo: absoluteUrl(settings.logoUrl) } : {}),
+  };
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonLd([websiteLd, organizationLd]) }}
+      />
       {/* ---------- Hero ---------- */}
       <div className="relative overflow-hidden">
         <div className="bg-grid absolute inset-0" aria-hidden />
@@ -169,6 +197,26 @@ export default async function HomePage() {
           </Reveal>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {trending.map((course, i) => (
+              <Reveal key={course.id} delay={Math.min(i * 0.06, 0.3)}>
+                <CourseCard course={course} />
+              </Reveal>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* ---------- Most downloaded ---------- */}
+      {mostDownloaded.length > 0 && (
+        <Section className="py-14">
+          <Reveal>
+            <SectionHeading
+              title="Most downloaded"
+              subtitle="All-time community favorites"
+              href="/courses?sort=popular"
+            />
+          </Reveal>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {mostDownloaded.map((course, i) => (
               <Reveal key={course.id} delay={Math.min(i * 0.06, 0.3)}>
                 <CourseCard course={course} />
               </Reveal>

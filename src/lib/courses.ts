@@ -44,11 +44,17 @@ export async function listCourses(query: ListCoursesQuery): Promise<{
   const where: Prisma.CourseWhereInput = { published: true };
 
   if (query.q) {
-    where.OR = [
-      { title: { contains: query.q, mode: "insensitive" } },
-      { shortDescription: { contains: query.q, mode: "insensitive" } },
-      { tags: { has: query.q.toLowerCase() } },
-    ];
+    // Every word must match somewhere (title, blurb, or tag), so multi-word
+    // queries like "advanced react" find "React — Advanced Patterns" instead
+    // of requiring the exact phrase.
+    const words = query.q.trim().split(/\s+/).slice(0, 8);
+    where.AND = words.map((word) => ({
+      OR: [
+        { title: { contains: word, mode: "insensitive" as const } },
+        { shortDescription: { contains: word, mode: "insensitive" as const } },
+        { tags: { has: word.toLowerCase() } },
+      ],
+    }));
   }
   if (query.category) where.category = { slug: query.category };
   if (query.tag) where.tags = { has: query.tag };
@@ -109,7 +115,7 @@ export async function getRelatedCourses(course: {
 }
 
 export async function getHomepageData() {
-  const [featured, trending, recent, categories, stats] = await Promise.all([
+  const [featured, trending, mostDownloaded, recent, categories, stats] = await Promise.all([
     db.course.findMany({
       where: { published: true, featured: true },
       select: courseCardSelect,
@@ -120,6 +126,12 @@ export async function getHomepageData() {
       where: { published: true, trending: true },
       select: courseCardSelect,
       orderBy: [{ downloads: "desc" }],
+      take: 6,
+    }),
+    db.course.findMany({
+      where: { published: true, downloads: { gt: 0 } },
+      select: courseCardSelect,
+      orderBy: [{ downloads: "desc" }, { id: "asc" }],
       take: 6,
     }),
     db.course.findMany({
@@ -134,7 +146,7 @@ export async function getHomepageData() {
     }),
     getSiteStats(),
   ]);
-  return { featured, trending, recent, categories, stats };
+  return { featured, trending, mostDownloaded, recent, categories, stats };
 }
 
 export async function getSiteStats() {

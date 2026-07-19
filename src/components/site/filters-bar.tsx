@@ -105,6 +105,7 @@ export function FiltersBar({ categories }: { categories: CategoryOption[] }) {
         <button
           type="button"
           onClick={() => update({ category: "" })}
+          aria-pressed={!currentCategory}
           className={cn(
             "cursor-pointer rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all duration-200 active:scale-95",
             !currentCategory
