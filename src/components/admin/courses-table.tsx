@@ -148,10 +148,10 @@ export function CoursesTable({
         </div>
       )}
 
-      <div className="relative overflow-x-auto rounded-2xl border border-border bg-card">
+      <div className="relative overflow-x-auto rounded-2xl border border-border bg-card shadow-soft">
         <table className="w-full min-w-[820px] text-sm">
           <thead>
-            <tr className="border-b border-border text-left text-xs text-muted-foreground uppercase">
+            <tr className="border-b border-border bg-muted/50 text-left text-xs tracking-wider text-muted-foreground uppercase">
               <th className="w-10 p-3">
                 <input
                   type="checkbox"
@@ -181,7 +181,7 @@ export function CoursesTable({
               </tr>
             )}
             {courses.map((course, index) => (
-              <tr key={course.id} className="border-b border-border last:border-0 hover:bg-muted/40">
+              <tr key={course.id} className="border-b border-border transition-colors duration-150 last:border-0 hover:bg-muted/40">
                 <td className="p-3">
                   <input
                     type="checkbox"

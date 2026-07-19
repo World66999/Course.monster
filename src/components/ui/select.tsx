@@ -15,7 +15,7 @@ export const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-10 w-full cursor-pointer items-center justify-between gap-2 rounded-lg border border-input bg-card px-3 py-2 text-sm data-[placeholder]:text-muted-foreground",
+      "flex h-10 w-full cursor-pointer items-center justify-between gap-2 rounded-lg border border-input bg-card px-3 py-2 text-sm shadow-soft transition-[border-color,box-shadow] duration-200 hover:border-ring/50 data-[placeholder]:text-muted-foreground data-[state=open]:border-ring",
       className
     )}
     {...props}
@@ -39,7 +39,7 @@ export function SelectContent({
         position="popper"
         sideOffset={6}
         className={cn(
-          "z-50 max-h-72 min-w-[var(--radix-select-trigger-width)] overflow-y-auto rounded-xl border border-border bg-card p-1.5 shadow-xl",
+          "z-50 max-h-72 min-w-[var(--radix-select-trigger-width)] origin-[var(--radix-select-content-transform-origin)] overflow-y-auto rounded-xl border border-border bg-card p-1.5 shadow-floating inset-shadow-highlight data-[state=open]:animate-pop-in",
           className
         )}
         {...props}
@@ -57,7 +57,7 @@ export const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-sm outline-none select-none data-[highlighted]:bg-muted",
+      "flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors duration-100 outline-none select-none data-[highlighted]:bg-muted",
       className
     )}
     {...props}

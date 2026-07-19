@@ -4,6 +4,7 @@ import type { SiteSettings } from "@/lib/settings-schema";
 import { ThemeToggle } from "@/components/site/theme-toggle";
 import { SearchDialog } from "@/components/site/search-dialog";
 import { MobileNav } from "@/components/site/mobile-nav";
+import { NavLinks } from "@/components/site/nav-links";
 import { buttonClasses } from "@/components/ui/button";
 
 export const NAV_LINKS = [
@@ -19,7 +20,7 @@ export function SiteLogo({ settings, className }: { settings: SiteSettings; clas
         // eslint-disable-next-line @next/next/no-img-element
         <img src={settings.logoUrl} alt="" className="h-7 w-auto" />
       ) : (
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-primary text-white">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-primary text-white shadow-sm shadow-primary/30 inset-shadow-[0_1px_0_0_rgba(255,255,255,0.25)]">
           <GraduationCap className="h-5 w-5" aria-hidden />
         </span>
       )}
@@ -63,15 +64,7 @@ export function Header({ settings }: { settings: SiteSettings }) {
           <div className="flex items-center gap-8">
             <SiteLogo settings={settings} />
             <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
-              {NAV_LINKS.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                >
-                  {link.label}
-                </Link>
-              ))}
+              <NavLinks links={NAV_LINKS} />
             </nav>
           </div>
 

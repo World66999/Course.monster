@@ -65,7 +65,7 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
         New category
       </Button>
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
         {categories.length === 0 ? (
           <p className="p-10 text-center text-sm text-muted-foreground">
             No categories yet. Create your first one.

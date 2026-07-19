@@ -148,6 +148,10 @@ export default async function CoursePage({ params }: Props) {
                 </li>
               </>
             )}
+            <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+            <li aria-current="page" className="max-w-48 truncate font-medium text-foreground sm:max-w-72">
+              {course.title}
+            </li>
           </ol>
         </nav>
 
@@ -217,7 +221,7 @@ export default async function CoursePage({ params }: Props) {
 
           {/* Sidebar */}
           <aside className="lg:sticky lg:top-24 lg:self-start">
-            <div className="glass overflow-hidden rounded-2xl">
+            <div className="glass overflow-hidden rounded-2xl shadow-elevated inset-shadow-highlight">
               <div className="aspect-video overflow-hidden">
                 <CourseImage src={course.thumbnail} title={course.title} />
               </div>

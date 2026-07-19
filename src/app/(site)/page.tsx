@@ -16,11 +16,11 @@ import {
 } from "lucide-react";
 import { getHomepageData } from "@/lib/courses";
 import { getSiteSettings } from "@/lib/settings";
-import { formatNumber } from "@/lib/utils";
 import { buttonClasses } from "@/components/ui/button";
 import { CourseCard } from "@/components/site/course-card";
 import { Section, SectionHeading } from "@/components/site/section";
 import { Reveal } from "@/components/site/reveal";
+import { AnimatedCounter } from "@/components/site/animated-counter";
 
 export const revalidate = 120;
 
@@ -46,11 +46,15 @@ export default async function HomePage() {
         <div className="bg-grid absolute inset-0" aria-hidden />
         <div
           aria-hidden
-          className="absolute -top-40 left-1/2 h-96 w-[42rem] -translate-x-1/2 rounded-full bg-gradient-to-r from-accent/30 to-primary/30 blur-3xl"
+          className="animate-float absolute -top-40 left-1/2 h-96 w-[42rem] -translate-x-1/2 rounded-full bg-gradient-to-r from-accent/30 to-primary/30 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="animate-float-delayed absolute top-10 -right-40 hidden h-72 w-96 rounded-full bg-gradient-to-l from-primary/15 to-accent/10 blur-3xl lg:block"
         />
         <Section className="relative flex flex-col items-center py-20 text-center sm:py-28">
           <Reveal>
-            <span className="glass inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground">
+            <span className="glass inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground shadow-soft inset-shadow-highlight">
               <Sparkles className="h-4 w-4 text-primary" aria-hidden />
               {stats.courses}+ premium courses, 100% free
             </span>
@@ -81,15 +85,17 @@ export default async function HomePage() {
 
           {/* Stats */}
           <Reveal delay={0.32} className="mt-16 w-full max-w-3xl">
-            <dl className="glass grid grid-cols-3 divide-x divide-border rounded-2xl py-6">
+            <dl className="glass grid grid-cols-3 divide-x divide-border rounded-2xl py-6 shadow-elevated inset-shadow-highlight">
               {[
-                { icon: BookOpen, label: "Courses", value: formatNumber(stats.courses) },
-                { icon: Download, label: "Downloads", value: formatNumber(stats.downloads) },
-                { icon: FolderOpen, label: "Categories", value: formatNumber(stats.categories) },
+                { icon: BookOpen, label: "Courses", value: stats.courses },
+                { icon: Download, label: "Downloads", value: stats.downloads },
+                { icon: FolderOpen, label: "Categories", value: stats.categories },
               ].map(({ icon: Icon, label, value }) => (
                 <div key={label} className="flex flex-col items-center gap-1 px-2">
                   <Icon className="mb-1 h-5 w-5 text-primary" aria-hidden />
-                  <dd className="text-2xl font-bold sm:text-3xl">{value}</dd>
+                  <dd className="text-2xl font-bold tabular-nums sm:text-3xl">
+                    <AnimatedCounter value={value} />
+                  </dd>
                   <dt className="text-xs text-muted-foreground sm:text-sm">{label}</dt>
                 </div>
               ))}
@@ -114,9 +120,9 @@ export default async function HomePage() {
                 <Reveal key={category.id} delay={i * 0.05}>
                   <Link
                     href={`/courses?category=${category.slug}`}
-                    className="group flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-5 text-center transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10"
+                    className="group flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-5 text-center shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-elevated"
                   >
-                    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-white group-hover:shadow-md group-hover:shadow-primary/30">
                       <Icon className="h-5 w-5" aria-hidden />
                     </span>
                     <span className="text-sm leading-tight font-semibold">{category.name}</span>
@@ -193,7 +199,7 @@ export default async function HomePage() {
 
       {/* ---------- Value props ---------- */}
       <Section className="py-14">
-        <div className="glass grid gap-8 rounded-3xl p-8 sm:grid-cols-3 sm:p-12">
+        <div className="glass bg-aurora grid gap-8 rounded-3xl p-8 shadow-elevated inset-shadow-highlight sm:grid-cols-3 sm:p-12">
           {[
             {
               icon: Zap,

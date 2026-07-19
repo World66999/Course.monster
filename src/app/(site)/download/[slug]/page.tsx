@@ -39,7 +39,7 @@ export default async function DownloadPage({ params }: Props) {
         Back to course
       </Link>
 
-      <div className="glass overflow-hidden rounded-3xl">
+      <div className="glass overflow-hidden rounded-3xl shadow-elevated inset-shadow-highlight">
         {/* Course summary */}
         <div className="flex gap-4 border-b border-border p-5 sm:gap-5 sm:p-6">
           <div className="h-20 w-32 shrink-0 overflow-hidden rounded-xl bg-muted sm:h-24 sm:w-40">

@@ -54,10 +54,10 @@ export function AdminShell({
             key={href}
             href={href}
             className={cn(
-              "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+              "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
               active
-                ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25 inset-shadow-[0_1px_0_0_rgba(255,255,255,0.15)]"
+                : "text-muted-foreground hover:translate-x-0.5 hover:bg-muted hover:text-foreground"
             )}
             aria-current={active ? "page" : undefined}
           >
@@ -93,8 +93,8 @@ export function AdminShell({
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-border bg-card lg:flex">
         <div className="flex h-16 items-center gap-2 border-b border-border px-6">
-          <span className="text-lg font-bold">{siteName}</span>
-          <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-primary uppercase">
+          <span className="text-lg font-bold tracking-tight">{siteName}</span>
+          <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-primary uppercase ring-1 ring-primary/15 ring-inset">
             Admin
           </span>
         </div>
@@ -140,10 +140,16 @@ export function AdminShell({
           <div className="hidden lg:block" />
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <div className="text-right">
+            <div className="hidden text-right sm:block">
               <p className="text-sm leading-tight font-medium">{user.name}</p>
               <p className="text-xs text-muted-foreground">{user.email}</p>
             </div>
+            <span
+              aria-hidden
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-accent to-primary text-sm font-semibold text-white shadow-sm shadow-primary/30 inset-shadow-[0_1px_0_0_rgba(255,255,255,0.25)]"
+            >
+              {user.name.trim().charAt(0).toUpperCase() || "A"}
+            </span>
           </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>

@@ -107,14 +107,17 @@ export default async function AdminDashboard() {
       {/* Stat cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map(({ label, value, sub, icon: Icon }) => (
-          <div key={label} className="rounded-2xl border border-border bg-card p-5">
+          <div
+            key={label}
+            className="rounded-2xl border border-border bg-card p-5 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-elevated"
+          >
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">{label}</p>
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-primary text-white shadow-sm shadow-primary/30 inset-shadow-[0_1px_0_0_rgba(255,255,255,0.25)]">
                 <Icon className="h-4.5 w-4.5" aria-hidden />
               </span>
             </div>
-            <p className="mt-2 text-3xl font-bold tracking-tight">{formatNumber(value)}</p>
+            <p className="mt-2 text-3xl font-bold tracking-tight tabular-nums">{formatNumber(value)}</p>
             <p className="mt-1 text-xs text-muted-foreground">{sub}</p>
           </div>
         ))}
@@ -122,7 +125,7 @@ export default async function AdminDashboard() {
 
       <div className="grid gap-6 xl:grid-cols-3">
         {/* Downloads chart */}
-        <div className="rounded-2xl border border-border bg-card p-5 xl:col-span-2">
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-soft xl:col-span-2">
           <div className="mb-6 flex items-center justify-between">
             <div>
               <h2 className="font-semibold">Downloads — last 14 days</h2>
@@ -148,7 +151,7 @@ export default async function AdminDashboard() {
         </div>
 
         {/* Popular courses */}
-        <div className="rounded-2xl border border-border bg-card p-5">
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
           <h2 className="mb-4 font-semibold">Popular courses</h2>
           <ol className="space-y-3">
             {popularCourses.map((course, i) => (
@@ -178,7 +181,7 @@ export default async function AdminDashboard() {
 
       <div className="grid gap-6 xl:grid-cols-2">
         {/* Recent downloads */}
-        <div className="rounded-2xl border border-border bg-card p-5">
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
           <h2 className="mb-4 font-semibold">Recent downloads</h2>
           {recentEvents.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">No downloads yet.</p>
@@ -203,7 +206,7 @@ export default async function AdminDashboard() {
         </div>
 
         {/* Recent activity */}
-        <div className="rounded-2xl border border-border bg-card p-5">
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-semibold">Recent activity</h2>
             <Link

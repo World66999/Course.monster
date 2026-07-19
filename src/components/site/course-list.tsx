@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, SearchX } from "lucide-react";
+import { SearchX } from "lucide-react";
 import type { CourseCard as CourseCardData } from "@/lib/courses";
 import { CourseCard } from "@/components/site/course-card";
+import { CourseCardSkeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/site/section";
 import { buttonClasses } from "@/components/ui/button";
 import Link from "next/link";
@@ -92,15 +93,13 @@ export function InfiniteCourseList({ initialItems, initialCursor, total, querySt
         {items.map((course) => (
           <CourseCard key={course.id} course={course} />
         ))}
+        {loading &&
+          Array.from({ length: 4 }, (_, i) => <CourseCardSkeleton key={`skeleton-${i}`} />)}
       </div>
 
       <div ref={sentinelRef} aria-hidden className="h-px" />
 
-      {loading && (
-        <div className="flex justify-center py-10" role="status" aria-label="Loading more courses">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </div>
-      )}
+      {loading && <span role="status" className="sr-only" aria-label="Loading more courses" />}
       {error && (
         <div className="flex flex-col items-center gap-3 py-10">
           <p className="text-sm text-muted-foreground">Couldn&apos;t load more courses.</p>

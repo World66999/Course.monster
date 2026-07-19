@@ -21,6 +21,10 @@
   --destructive: #dc2626;
   --glass: rgba(255, 255, 255, 0.72);
   --glass-border: rgba(15, 23, 42, 0.08);
+  --edge-light: rgba(255, 255, 255, 0.65);
+  --sh-soft: 0 1px 2px rgb(13 18 32 / 0.05), 0 2px 8px -2px rgb(13 18 32 / 0.06);
+  --sh-elevated: 0 2px 4px rgb(13 18 32 / 0.04), 0 10px 24px -6px rgb(13 18 32 / 0.1);
+  --sh-floating: 0 4px 12px rgb(13 18 32 / 0.06), 0 24px 48px -12px rgb(13 18 32 / 0.2);
 }
 
 .dark {
@@ -42,6 +46,10 @@
   --destructive: #f87171;
   --glass: rgba(12, 17, 32, 0.66);
   --glass-border: rgba(148, 163, 184, 0.12);
+  --edge-light: rgba(255, 255, 255, 0.07);
+  --sh-soft: 0 1px 2px rgb(0 0 0 / 0.45), 0 2px 8px -2px rgb(0 0 0 / 0.35);
+  --sh-elevated: 0 2px 6px rgb(0 0 0 / 0.45), 0 12px 28px -6px rgb(0 0 0 / 0.5);
+  --sh-floating: 0 6px 16px rgb(0 0 0 / 0.5), 0 28px 56px -12px rgb(0 0 0 / 0.6);
 }
 
 @theme inline {
@@ -63,7 +71,18 @@
   --color-destructive: var(--destructive);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --shadow-soft: var(--sh-soft);
+  --shadow-elevated: var(--sh-elevated);
+  --shadow-floating: var(--sh-floating);
+  --inset-shadow-highlight: inset 0 1px 0 0 var(--edge-light);
   --animate-shimmer: shimmer 1.6s infinite linear;
+  --animate-overlay-in: overlay-in 0.2s ease-out;
+  --animate-overlay-out: overlay-out 0.15s ease-in;
+  --animate-dialog-in: dialog-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-dialog-out: dialog-out 0.15s ease-in;
+  --animate-pop-in: pop-in 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-float: float 16s ease-in-out infinite;
+  --animate-float-delayed: float 18s ease-in-out -8s infinite;
 
   @keyframes shimmer {
     from {
@@ -71,6 +90,63 @@
     }
     to {
       background-position: 200% 0;
+    }
+  }
+  @keyframes overlay-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes overlay-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      scale: 0.97;
+    }
+    to {
+      opacity: 1;
+      scale: 1;
+    }
+  }
+  @keyframes dialog-out {
+    from {
+      opacity: 1;
+      scale: 1;
+    }
+    to {
+      opacity: 0;
+      scale: 0.97;
+    }
+  }
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      scale: 0.96;
+      translate: 0 -3px;
+    }
+    to {
+      opacity: 1;
+      scale: 1;
+      translate: 0 0;
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+    50% {
+      transform: translate3d(0, -18px, 0);
     }
   }
 }
@@ -95,6 +171,32 @@ body {
   background: color-mix(in srgb, var(--primary) 30%, transparent);
 }
 
+/* Slim, unobtrusive scrollbars that match the theme. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted-foreground) 32%, transparent);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--muted-foreground) 50%, transparent);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--muted-foreground) 35%, transparent) transparent;
+  }
+}
+
 :focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
@@ -117,7 +219,7 @@ body {
 /* ---------- Utilities ---------- */
 
 @utility glass {
-  background: var(--glass);
+  background-color: var(--glass);
   backdrop-filter: blur(16px) saturate(160%);
   -webkit-backdrop-filter: blur(16px) saturate(160%);
   border: 1px solid var(--glass-border);
@@ -136,6 +238,13 @@ body {
     linear-gradient(90deg, color-mix(in srgb, var(--foreground) 4%, transparent) 1px, transparent 1px);
   background-size: 44px 44px;
   mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%);
+}
+
+/* Soft radial glow overlay; background-image only so it layers over any surface. */
+@utility bg-aurora {
+  background-image:
+    radial-gradient(38rem 20rem at 18% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%),
+    radial-gradient(38rem 22rem at 82% 8%, color-mix(in srgb, var(--primary) 14%, transparent), transparent 70%);
 }
 
 @utility skeleton {

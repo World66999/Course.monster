@@ -42,7 +42,7 @@ export function Footer({ settings }: { settings: SiteSettings }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Telegram"
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/50 hover:text-primary hover:shadow-elevated"
                 >
                   <Send className="h-4 w-4" aria-hidden />
                 </a>
@@ -54,7 +54,7 @@ export function Footer({ settings }: { settings: SiteSettings }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/50 hover:text-primary hover:shadow-elevated"
                 >
                   <Icon className="h-4 w-4" aria-hidden />
                 </a>

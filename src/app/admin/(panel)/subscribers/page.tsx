@@ -30,7 +30,7 @@ export default async function AdminSubscribersPage() {
           description="Signups from the footer newsletter form will appear here."
         />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted-foreground uppercase">

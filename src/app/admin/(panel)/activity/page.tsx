@@ -38,7 +38,7 @@ export default async function AdminActivityPage() {
           description="Admin actions like creating and editing courses will appear here."
         />
       ) : (
-        <div className="relative overflow-x-auto rounded-2xl border border-border bg-card">
+        <div className="relative overflow-x-auto rounded-2xl border border-border bg-card shadow-soft">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted-foreground uppercase">

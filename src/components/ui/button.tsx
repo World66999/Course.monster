@@ -6,11 +6,12 @@ type Size = "sm" | "md" | "lg" | "icon";
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-primary text-primary-foreground hover:bg-primary-hover shadow-sm shadow-primary/25",
+    "bg-primary text-primary-foreground inset-shadow-[0_1px_0_0_rgba(255,255,255,0.18)] shadow-sm shadow-primary/25 hover:bg-primary-hover hover:shadow-md hover:shadow-primary/30 hover:-translate-y-px active:translate-y-0",
   secondary: "bg-muted text-foreground hover:bg-border/70",
-  outline: "border border-border bg-transparent hover:bg-muted",
+  outline: "border border-border bg-card shadow-soft hover:border-primary/35 hover:bg-muted/60",
   ghost: "hover:bg-muted",
-  destructive: "bg-destructive text-white hover:opacity-90",
+  destructive:
+    "bg-destructive text-white shadow-sm shadow-destructive/25 hover:opacity-90 hover:shadow-md hover:shadow-destructive/30",
 };
 
 const sizes: Record<Size, string> = {
@@ -31,7 +32,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       ref={ref}
       type={type}
       className={cn(
-        "inline-flex items-center justify-center rounded-lg font-medium transition-colors duration-150 disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
+        "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
         variants[variant],
         sizes[size],
         className
@@ -45,7 +46,7 @@ Button.displayName = "Button";
 /** Anchor styled as a button (for link CTAs). */
 export function buttonClasses(variant: Variant = "primary", size: Size = "md", className?: string) {
   return cn(
-    "inline-flex items-center justify-center rounded-lg font-medium transition-colors duration-150",
+    "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 active:scale-[0.98]",
     variants[variant],
     sizes[size],
     className

@@ -106,10 +106,10 @@ export function FiltersBar({ categories }: { categories: CategoryOption[] }) {
           type="button"
           onClick={() => update({ category: "" })}
           className={cn(
-            "cursor-pointer rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+            "cursor-pointer rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all duration-200 active:scale-95",
             !currentCategory
-              ? "border-primary bg-primary text-primary-foreground"
-              : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
+              ? "border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/25"
+              : "border-border bg-card text-muted-foreground shadow-soft hover:border-primary/50 hover:text-foreground"
           )}
         >
           All
@@ -121,10 +121,10 @@ export function FiltersBar({ categories }: { categories: CategoryOption[] }) {
             onClick={() => update({ category: currentCategory === c.slug ? "" : c.slug })}
             aria-pressed={currentCategory === c.slug}
             className={cn(
-              "cursor-pointer rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+              "cursor-pointer rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all duration-200 active:scale-95",
               currentCategory === c.slug
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                ? "border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/25"
+                : "border-border bg-card text-muted-foreground shadow-soft hover:border-primary/50 hover:text-foreground"
             )}
           >
             {c.name}
