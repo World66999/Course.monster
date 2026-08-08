@@ -4,6 +4,7 @@ import { consumeDownloadToken } from "@/lib/download-token";
 import { getShortLink } from "@/lib/shortener";
 import { getClientIp, hashIp } from "@/lib/ip";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { isSafeExternalUrl } from "@/lib/safe-url";
 
 /**
  * Final step of the download flow: validates the single-use token and
@@ -40,6 +41,13 @@ export async function GET(
   try {
     ({ url: target } = await getShortLink(course));
   } catch {
+    return NextResponse.redirect(home);
+  }
+  // Defence in depth: the form layer now rejects non-http(s) download URLs, but
+  // this value also comes back from an external shortener, so never emit a
+  // Location header for a scheme we didn't intend to send anyone to.
+  if (!isSafeExternalUrl(target)) {
+    console.error("[download] refusing to redirect to an unsafe target for course", course.slug);
     return NextResponse.redirect(home);
   }
 

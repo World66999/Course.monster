@@ -1,14 +1,20 @@
 import { z } from "zod";
+import { isSafeExternalUrl, SAFE_URL_MESSAGE } from "@/lib/safe-url";
 
+/**
+ * These land in the header/footer/mobile-nav on every page, so a bare
+ * `.url()` (which accepts `javascript:`) would be a stored XSS sink for all
+ * visitors — see safe-url.ts.
+ */
 const optionalUrl = z
-  .union([z.string().url(), z.literal("")])
+  .union([z.string().url().refine(isSafeExternalUrl, SAFE_URL_MESSAGE), z.literal("")])
   .optional()
   .default("");
 
 /** Absolute URL or a local admin-uploaded image path. */
 const imageRef = z
   .union([
-    z.string().url(),
+    z.string().url().refine(isSafeExternalUrl, SAFE_URL_MESSAGE),
     z.string().regex(/^\/uploads\/[a-zA-Z0-9._-]+$/),
     z.literal(""),
   ])
@@ -86,6 +92,58 @@ export const siteSettingsSchema = z.object({
     .prefault({}),
   newsletterEnabled: z.boolean().default(true),
   downloadCountdownSeconds: z.number().int().min(0).max(60).default(3),
+  comments: z
+    .object({
+      enabled: z.boolean().default(true),
+      minLength: z.number().int().min(1).max(500).default(2),
+      maxLength: z.number().int().min(10).max(10_000).default(2000),
+      reviewMaxLength: z.number().int().min(10).max(20_000).default(5000),
+      /** Max comments/replies a single user may post within `rateLimitWindowMinutes`. */
+      rateLimitCount: z.number().int().min(1).max(1000).default(20),
+      rateLimitWindowMinutes: z.number().int().min(1).max(1440).default(60),
+      /** Minimum seconds between two consecutive posts by the same user. */
+      cooldownSeconds: z.number().int().min(0).max(3600).default(20),
+      /** Window to check for the same user re-posting identical text. */
+      duplicateWindowMinutes: z.number().int().min(1).max(1440).default(30),
+      profanityFilterEnabled: z.boolean().default(true),
+    })
+    .prefault({}),
+  chat: z
+    .object({
+      enabled: z.boolean().default(true),
+      minLength: z.number().int().min(0).max(500).default(1),
+      maxLength: z.number().int().min(10).max(4_000).default(1_000),
+      /** Max messages a single user may post within `rateLimitWindowMinutes`. */
+      rateLimitCount: z.number().int().min(1).max(2_000).default(60),
+      rateLimitWindowMinutes: z.number().int().min(1).max(1440).default(60),
+      /** Minimum seconds between two consecutive messages by the same user. */
+      cooldownSeconds: z.number().int().min(0).max(3600).default(3),
+      /** Window to check for the same user re-posting identical text. */
+      duplicateWindowMinutes: z.number().int().min(1).max(1440).default(5),
+      profanityFilterEnabled: z.boolean().default(true),
+      /** Client polling interval while the chat panel is visible. */
+      pollIntervalSeconds: z.number().int().min(2).max(60).default(4),
+    })
+    .prefault({}),
+  courseRequests: z
+    .object({
+      enabled: z.boolean().default(true),
+      descriptionMinLength: z.number().int().min(1).max(500).default(20),
+      descriptionMaxLength: z.number().int().min(50).max(20_000).default(4_000),
+      commentMinLength: z.number().int().min(1).max(500).default(2),
+      commentMaxLength: z.number().int().min(10).max(10_000).default(2_000),
+      /** Max requests/comments a single user may post within `rateLimitWindowMinutes`. */
+      rateLimitCount: z.number().int().min(1).max(1000).default(20),
+      rateLimitWindowMinutes: z.number().int().min(1).max(1440).default(60),
+      /** Minimum seconds between two consecutive posts by the same user. */
+      cooldownSeconds: z.number().int().min(0).max(3600).default(20),
+      /** Window to check for the same user re-posting an identical request/comment. */
+      duplicateWindowMinutes: z.number().int().min(1).max(1440).default(60),
+      profanityFilterEnabled: z.boolean().default(true),
+      /** Vote threshold at which a request additionally shows the "Popular" badge. */
+      popularVoteThreshold: z.number().int().min(1).max(10_000).default(10),
+    })
+    .prefault({}),
 });
 
 export type SiteSettings = z.infer<typeof siteSettingsSchema>;
