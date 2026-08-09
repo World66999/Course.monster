@@ -62,6 +62,15 @@ export interface InlineButton {
   text: string;
   callback_data?: string;
   url?: string;
+  /**
+   * Official Bot API fields (InlineKeyboardButton): `style` must be one of
+   * "primary" | "success" | "danger" — omitting it lets Telegram apply its own
+   * app-specific default. `icon_custom_emoji_id` shows a custom emoji before
+   * the caption and only renders for bots with a Fragment username or a
+   * Premium owner; Telegram ignores it otherwise, so it degrades quietly.
+   */
+  style?: "primary" | "success" | "danger";
+  icon_custom_emoji_id?: string;
 }
 export type InlineKeyboard = InlineButton[][];
 

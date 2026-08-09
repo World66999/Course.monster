@@ -12,6 +12,8 @@ import {
   searchPublishedPage,
 } from "./catalog";
 import { siteUrl } from "./config";
+import { getBranding } from "./branding";
+import type { Branding } from "./branding-schema";
 import * as render from "./render";
 import { lastSearch, recordEvent, rememberSearch, touchUser, type TelegramFrom } from "./users";
 
@@ -60,37 +62,32 @@ async function show(chatId: string, messageId: number | null, screen: Screen): P
   await sendMessage(chatId, screen.text, { replyMarkup: screen.keyboard });
 }
 
-async function screenFor(cb: Callback, userId: string): Promise<Screen> {
+async function screenFor(cb: Callback, userId: string, b: Branding): Promise<Screen> {
   switch (cb.kind) {
     case "home":
-      return render.welcome(siteUrl());
+      return render.welcome(b, siteUrl());
     case "help":
-      return render.help(siteUrl());
+      return render.help(b, siteUrl());
     case "browse": {
       await recordEvent(userId, "BROWSE");
-      return render.browseList(await listPublishedPage(cb.page));
+      return render.browseList(b, await listPublishedPage(cb.page));
     }
     case "upcoming": {
       await recordEvent(userId, "UPCOMING_VIEW");
-      return render.upcomingList(await listUpcomingPage(cb.page));
+      return render.upcomingList(b, await listUpcomingPage(cb.page));
     }
     case "search": {
       const previous = await lastSearch(userId);
-      if (!previous) return render.searchPrompt();
-      return render.searchResults(previous, await searchPublishedPage(previous, cb.page));
+      if (!previous) return render.searchPrompt(b);
+      return render.searchResults(b, previous, await searchPublishedPage(previous, cb.page));
     }
     case "course": {
       // Re-resolved server-side; an unpublished/deleted course simply vanishes.
       const published = await getPublishedBotCourse(cb.courseId);
       const course = published ?? (await getUpcomingBotCourse(cb.courseId));
-      if (!course) {
-        return {
-          text: "This course is no longer available.",
-          keyboard: [[{ text: "📚 Browse Courses", callback_data: "b:1" }]],
-        };
-      }
+      if (!course) return render.courseUnavailable(b);
       await recordEvent(userId, "COURSE_VIEW", { courseId: course.id });
-      return render.courseDetail(course, {
+      return render.courseDetail(b, course, {
         from: cb.from,
         page: cb.page,
         siteUrl: siteUrl(),
@@ -98,10 +95,10 @@ async function screenFor(cb: Callback, userId: string): Promise<Screen> {
       });
     }
     case "noop":
-      return render.welcome(siteUrl());
+      return render.welcome(b, siteUrl());
     case "download":
       // Handled by the caller so it can answer the callback distinctly.
-      return render.errorMessage();
+      return render.errorMessage(b);
   }
 }
 
@@ -122,6 +119,7 @@ async function handleCallback(q: CallbackQuery): Promise<void> {
     return;
   }
 
+  const branding = await getBranding();
   const cb = q.data ? decode(q.data) : null;
   if (!cb) {
     // Malformed or tampered callback data: acknowledge and ignore.
@@ -151,12 +149,12 @@ async function handleCallback(q: CallbackQuery): Promise<void> {
     // a storage path. `src` is attribution metadata only.
     const token = createAttributionToken(telegramId, course.id);
     const url = `${siteUrl()}/download/${encodeURIComponent(course.slug)}?src=${encodeURIComponent(token)}`;
-    await show(chatId, messageId, render.downloadHandoff(course, url));
+    await show(chatId, messageId, render.downloadHandoff(branding, course, url));
     return;
   }
 
   await answerCallbackQuery(q.id);
-  await show(chatId, messageId, await screenFor(cb, user.id));
+  await show(chatId, messageId, await screenFor(cb, user.id, branding));
 }
 
 async function handleMessage(m: Message): Promise<void> {
@@ -169,6 +167,7 @@ async function handleMessage(m: Message): Promise<void> {
   const user = await touchUser(m.from);
   if (user.blocked) return;
 
+  const b = await getBranding();
   const text = (m.text ?? "").slice(0, MAX_TEXT).trim();
   if (!text) return;
 
@@ -190,27 +189,27 @@ async function handleMessage(m: Message): Promise<void> {
             return void (await show(
               chatId,
               null,
-              render.courseDetail(course, { from: "browse", page: 1, siteUrl: siteUrl(), downloadable: true })
+              render.courseDetail(b, course, { from: "browse", page: 1, siteUrl: siteUrl(), downloadable: true })
             ));
           }
         }
-        return void (await show(chatId, null, render.welcome(siteUrl())));
+        return void (await show(chatId, null, render.welcome(b, siteUrl()))); 
       }
       case "courses":
         await recordEvent(user.id, "BROWSE");
-        return void (await show(chatId, null, render.browseList(await listPublishedPage(1))));
+        return void (await show(chatId, null, render.browseList(b, await listPublishedPage(1))));
       case "upcoming":
         await recordEvent(user.id, "UPCOMING_VIEW");
-        return void (await show(chatId, null, render.upcomingList(await listUpcomingPage(1))));
+        return void (await show(chatId, null, render.upcomingList(b, await listUpcomingPage(1))));
       case "search":
-        return void (await show(chatId, null, render.searchPrompt()));
+        return void (await show(chatId, null, render.searchPrompt(b)));
       case "website":
-        return void (await show(chatId, null, render.welcome(siteUrl())));
+        return void (await show(chatId, null, render.welcome(b, siteUrl()))); 
       case "help":
         await recordEvent(user.id, "HELP");
-        return void (await show(chatId, null, render.help(siteUrl())));
+        return void (await show(chatId, null, render.help(b, siteUrl())));
       default:
-        return void (await show(chatId, null, render.help(siteUrl())));
+        return void (await show(chatId, null, render.help(b, siteUrl())));
     }
   }
 
@@ -221,7 +220,7 @@ async function handleMessage(m: Message): Promise<void> {
   }
   await rememberSearch(user.id, text);
   await recordEvent(user.id, "SEARCH", { query: text });
-  await show(chatId, null, render.searchResults(text, await searchPublishedPage(text, 1)));
+  await show(chatId, null, render.searchResults(b, text, await searchPublishedPage(text, 1)));
 }
 
 export async function handleUpdate(update: Update): Promise<void> {

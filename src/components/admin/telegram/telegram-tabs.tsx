@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { href: adminPath("telegram"), label: "Overview", exact: true },
+  { href: adminPath("telegram/appearance"), label: "Appearance" },
   { href: adminPath("telegram/users"), label: "Users" },
   { href: adminPath("telegram/broadcasts"), label: "Broadcast & analytics" },
   { href: adminPath("telegram/logs"), label: "Logs" },
