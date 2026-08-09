@@ -304,3 +304,58 @@ export async function listDonations(page: number, pageSize = 10) {
   ]);
   return { items, total, page: safePage, totalPages };
 }
+
+
+export interface Reconciliation {
+  localStars: number;
+  localCount: number;
+  telegramStars: number | null;
+  telegramCount: number | null;
+  matches: boolean | null;
+  note: string;
+}
+
+/**
+ * Compares our completed totals against Telegram's own Star transaction
+ * history. A mismatch is reported, never papered over: local figures are left
+ * exactly as they are so the discrepancy stays visible.
+ */
+export async function reconcileDonations(): Promise<Reconciliation> {
+  const agg = await db.donation.aggregate({
+    where: { status: "COMPLETED" },
+    _count: { _all: true },
+    _sum: { amountStars: true },
+  });
+  const localStars = agg._sum.amountStars ?? 0;
+  const localCount = agg._count._all;
+
+  const res = await callTelegram<{ transactions: { amount?: number; source?: unknown }[] }>(
+    "getStarTransactions",
+    { offset: 0, limit: 100 }
+  );
+  if (!res.ok) {
+    return {
+      localStars,
+      localCount,
+      telegramStars: null,
+      telegramCount: null,
+      matches: null,
+      note: `Telegram history unavailable: ${res.description}`,
+    };
+  }
+
+  // Incoming transactions carry a `source`; outgoing (refunds/payouts) do not.
+  const incoming = res.result.transactions.filter((t) => t.source);
+  const telegramStars = incoming.reduce((n, t) => n + (t.amount ?? 0), 0);
+  const matches = telegramStars === localStars;
+  return {
+    localStars,
+    localCount,
+    telegramStars,
+    telegramCount: incoming.length,
+    matches,
+    note: matches
+      ? "Local totals match Telegram's reported Star transactions."
+      : "RECONCILIATION REQUIRED — local and Telegram totals differ (most recent 100 transactions).",
+  };
+}

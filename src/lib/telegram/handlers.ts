@@ -13,6 +13,7 @@ import {
 } from "./catalog";
 import { siteUrl, isBotAdmin } from "./config";
 import { getBranding } from "./branding";
+import { checkMembership, gateEnabled, requiredChannelUrl } from "./membership";
 import {
   MAX_STARS, MIN_STARS, SUGGESTED_STARS,
   completeDonation, createStarInvoice, handlePreCheckout, parseStarAmount,
@@ -83,6 +84,31 @@ async function startInvoice(
     description: `Donate ${amount} Telegram Stars to support the project.`,
   });
   if (!res.ok) await sendMessage(chatId, `${iconPlain(b, "warn")} ${res.error}`);
+}
+
+/**
+ * Enforces the required-channel gate. Returns true when the caller may proceed.
+ *
+ * Called on every protected entry point rather than once at /start, so leaving
+ * the channel revokes access within the cache TTL instead of lasting forever.
+ * An unavailable check never grants access.
+ */
+async function passesGate(
+  telegramId: string,
+  chatId: string,
+  messageId: number | null,
+  b: Branding,
+  opts: { fresh?: boolean } = {}
+): Promise<boolean> {
+  if (!gateEnabled()) return true;
+  const result = await checkMembership(telegramId, opts);
+  if (result.state === "member") return true;
+  const screen =
+    result.state === "unavailable"
+      ? render.membershipUnavailable(b, requiredChannelUrl())
+      : render.joinGate(b, requiredChannelUrl(), opts.fresh === true);
+  await show(chatId, messageId, screen);
+  return false;
 }
 
 /** Per-user throttles. Reuses the app's existing limiter — no second system. */
@@ -161,6 +187,27 @@ async function handleCallback(q: CallbackQuery): Promise<void> {
   if (await handleAdminCallback(q, telegramId, user.id)) return;
 
   const branding = await getBranding();
+  if (q.data === "mb:v") {
+    // Verify button: always a FRESH check, bypassing the cache, so joining and
+    // immediately verifying can never return a stale "not a member".
+    await answerCallbackQuery(q.id);
+    const branding = await getBranding();
+    if (!allow(telegramId, "verify", 8, 60_000)) {
+      await sendMessage(chatId, `${iconPlain(branding, "warn")} Please wait a moment before verifying again.`);
+      return;
+    }
+    if (await passesGate(telegramId, chatId, messageId, branding, { fresh: true })) {
+      await show(chatId, messageId, render.welcome(branding, siteUrl()));
+    }
+    return;
+  }
+
+  const gateBranding = await getBranding();
+  if (!(await passesGate(telegramId, chatId, messageId, gateBranding))) {
+    await answerCallbackQuery(q.id);
+    return;
+  }
+
   if (q.data?.startsWith("dn:")) {
     await answerCallbackQuery(q.id);
     const branding = await getBranding();
@@ -273,6 +320,9 @@ async function handleMessage(m: Message): Promise<void> {
   if (text.startsWith("/") && (await isDonateWaiting(user.id))) {
     await setDonateWaiting(user.id, false);
   }
+
+  // Everything below is protected content.
+  if (!(await passesGate(telegramId, chatId, null, b))) return;
 
   if (text.startsWith("/")) {
     // Strip any @botusername suffix Telegram adds in groups.

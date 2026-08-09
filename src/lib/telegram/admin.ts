@@ -29,7 +29,8 @@ import { getWebhookInfo, getLastCustomEmojiError } from "./api";
 import { esc } from "./render";
 import { validateCustomEmoji, customEmojiCapability } from "./custom-emoji";
 import { fetchLibrary, planAssignments, verifyConfigured } from "./emoji-library";
-import { getDonationStats, listDonations, refundDonation } from "./donations";
+import { getDonationStats, listDonations, refundDonation, reconcileDonations } from "./donations";
+import { gateEnabled, requiredChannel } from "./membership";
 import { logAudit } from "@/lib/audit";
 
 /** Re-renders the donations list after a mutation. */
@@ -208,6 +209,10 @@ async function statsScreen(snapshot?: Branding): Promise<Screen> {
   ]);
   const premiumCount = Object.values(b.icons).filter((v) => typeof v === "object").length;
   const lastEmojiError = getLastCustomEmojiError();
+  const [donationStats, gatedUsers] = await Promise.all([
+    getDonationStats(),
+    db.telegramEvent.groupBy({ by: ["userId"], where: { type: "START" }, _count: { _all: true } }),
+  ]);
   const lines = [
     `${I(b, "dashboard")} <b>Dashboard</b>`,
     "",
@@ -235,6 +240,10 @@ async function statsScreen(snapshot?: Branding): Promise<Screen> {
       ? `${I(b, "warn")} Last custom-emoji rejection: ${esc(lastEmojiError.description.slice(0, 90))}`
       : `${I(b, "ok")} No custom-emoji rejections`,
     `<i>Button icons render only for bots with a Fragment username or a Premium owner — Telegram decides this, not the bot.</i>`,
+    "",
+    `${I(b, "channel")} Required channel: <b>${gateEnabled() ? esc(requiredChannel() ?? "") : "disabled"}</b>`,
+    `${I(b, "users")} Users who reached the menu: <b>${gatedUsers.length}</b>`,
+    `${I(b, "donate")} Donations <b>${donationStats.totalCompleted}</b> · ${I(b, "stars")} <b>${donationStats.totalStars}</b> Stars`,
   ];
   return { text: lines.join("\n"), keyboard: back(b) };
 }
@@ -497,7 +506,11 @@ export async function handleAdminCallback(
       break;
     }
     case "donations": {
-      const [stats, listed] = await Promise.all([getDonationStats(), listDonations(cb.page + 1, 6)]);
+      const [stats, listed, recon] = await Promise.all([
+        getDonationStats(),
+        listDonations(cb.page + 1, 6),
+        reconcileDonations(),
+      ]);
       const rows = listed.items.map((d) => {
         const who = d.telegramUsername ? `@${d.telegramUsername}` : d.telegramUserId;
         const mark =
@@ -512,6 +525,10 @@ export async function handleAdminCallback(
           `${I(b, "dashboard")} Today <b>${stats.today}</b> · week <b>${stats.week}</b> · month <b>${stats.month}</b>\n` +
           `${I(b, "warn")} Pending <b>${stats.pending}</b> · failed <b>${stats.failed}</b> · refunded <b>${stats.refunded}</b>\n\n` +
           (rows.length ? rows.join("\n") : "<i>No donations yet.</i>") +
+          `\n\n${recon.matches === false ? I(b, "warn") : recon.matches === null ? I(b, "warn") : I(b, "ok")} ` +
+          `Local <b>${recon.localStars}</b>` +
+          (recon.telegramStars !== null ? ` vs Telegram <b>${recon.telegramStars}</b>` : "") +
+          `\n<i>${esc(recon.note)}</i>` +
           `\n\n<i>Figures count completed payments only, never invoice attempts.</i>`,
         keyboard: [
           ...listed.items

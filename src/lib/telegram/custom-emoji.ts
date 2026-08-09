@@ -80,9 +80,16 @@ export async function validateCustomEmoji(id: string, fallbackChar: string): Pro
  * successful lookup proves the id is real, not that it will render for
  * everyone. Reported to the admin in exactly those terms.
  */
+/**
+ * A known-good id used purely to probe whether lookups work at all. It is never
+ * stored as an icon and never rendered — it is the documented example id from
+ * Telegram's own API reference, used here the way a ping uses a fixed address.
+ */
+const CAPABILITY_PROBE_ID = "5368324170671202286";
+
 export async function customEmojiCapability(): Promise<{ canResolve: boolean; detail: string }> {
   if (!hasBotToken()) return { canResolve: false, detail: "Bot token not configured." };
-  const res = await getCustomEmojiStickers(["5368324170671202286"]);
+  const res = await getCustomEmojiStickers([CAPABILITY_PROBE_ID]);
   if (!res.ok) return { canResolve: false, detail: `Telegram lookup failed: ${res.description}` };
   return {
     canResolve: true,

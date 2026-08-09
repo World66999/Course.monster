@@ -74,6 +74,8 @@ export const ICON_META = {
   stars: { default: "⭐", name: "Telegram Stars", where: "Star amounts and invoices" },
   refund: { default: "↩️", name: "Refund", where: "Admin: refunded donations" },
   support: { default: "🛟", name: "Payment support", where: "/paysupport screen" },
+  channel: { default: "📣", name: "Channel", where: "Join-channel gate" },
+  verify: { default: "🔐", name: "Verify", where: "Verify Membership button" },
 } as const satisfies Record<string, IconMeta>;
 
 export type IconKey = keyof typeof ICON_META;
@@ -99,6 +101,9 @@ export const LABEL_META = {
   btn_retry: { default: "Try again", where: "Error screen" },
   btn_donate: { default: "Donate", where: "Main menu, donate screen" },
   btn_donate_custom: { default: "Custom amount", where: "Donate screen" },
+  btn_donate_one: { default: "Donate 1 Star", where: "Donate screen" },
+  btn_join: { default: "Join Main Channel", where: "Membership gate" },
+  btn_verify: { default: "Verify Membership", where: "Membership gate" },
 } as const satisfies Record<string, LabelMeta>;
 
 export type LabelKey = keyof typeof LABEL_META;

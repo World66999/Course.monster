@@ -28,7 +28,10 @@ export async function callTelegram<T = unknown>(
   try {
     // The token lives in the path because that is the only form the Bot API
     // accepts; this URL is never logged or returned to a caller.
-    res = await fetch(`https://api.telegram.org/bot${botToken()}/${method}`, {
+    // Base URL is overridable so the client can be pointed at a local mock in
+    // tests. Server-side env only — same trust level as the token itself.
+    const base = process.env.TELEGRAM_API_BASE?.replace(/\/+$/, "") || "https://api.telegram.org";
+    res = await fetch(`${base}/bot${botToken()}/${method}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),

@@ -295,6 +295,34 @@ export function help(b: Branding, siteUrl: string): Screen {
   };
 }
 
+export function joinGate(b: Branding, channelUrl: string, retry: boolean): Screen {
+  return {
+    text: retry
+      ? `${iconHtml(b, "channel")} <b>Not a member yet</b>\n\n` +
+        "Please join the main channel first, then press Verify Membership again."
+      : `${iconHtml(b, "channel")} <b>Join our main channel</b>\n\n` +
+        "Access to the Course Library is available to channel members.\n\n" +
+        "Please join our main channel first. It helps us keep the library organized " +
+        "and lets you receive important course updates.",
+    keyboard: [
+      [btn(b, { label: "btn_join", icon: "channel", url: channelUrl })],
+      [btn(b, { label: "btn_verify", icon: "verify", callback: "mb:v" })],
+    ],
+  };
+}
+
+export function membershipUnavailable(b: Branding, channelUrl: string): Screen {
+  return {
+    text:
+      `${iconHtml(b, "warn")} <b>Membership verification is temporarily unavailable</b>\n\n` +
+      "Please try again in a moment.",
+    keyboard: [
+      [btn(b, { label: "btn_join", icon: "channel", url: channelUrl })],
+      [btn(b, { label: "btn_verify", icon: "verify", callback: "mb:v" })],
+    ],
+  };
+}
+
 export function donatePrompt(b: Branding, suggested: readonly number[]): Screen {
   const rows: InlineKeyboard = [];
   for (let i = 0; i < suggested.length; i += 3) {
@@ -305,13 +333,20 @@ export function donatePrompt(b: Branding, suggested: readonly number[]): Screen 
       }))
     );
   }
+  rows.unshift([btn(b, { label: "btn_donate_one", icon: "stars", callback: "dn:1" })]);
   rows.push([btn(b, { label: "btn_donate_custom", icon: "edited", callback: "dn:c" })]);
   rows.push([btn(b, { label: "btn_back", icon: "back", callback: encode({ kind: "home" }) })]);
   return {
     text:
-      `${iconHtml(b, "donate")} <b>Donate / Support</b>\n\n` +
-      "Support this project with Telegram Stars.\nChoose any amount you want to contribute.\n\n" +
-      "<i>Payments are handled entirely by Telegram. Use /paysupport if anything goes wrong.</i>",
+      `${iconHtml(b, "donate")} <b>Support Course Library</b>\n\n` +
+      "This library takes time, infrastructure and maintenance to keep running.\n\n" +
+      "If it has been useful to you and you genuinely want to support the project, " +
+      "you can contribute any amount of Telegram Stars. Even 1 Star is completely " +
+      "optional and appreciated.\n\n" +
+      "Only donate if you genuinely want to support the project.\n\n" +
+      "<i>Donations are voluntary. Please choose the amount carefully before confirming " +
+      "payment — this bot does not provide a self-service refund option. " +
+      "Use /paysupport if you need help with a payment.</i>",
     keyboard: rows,
   };
 }

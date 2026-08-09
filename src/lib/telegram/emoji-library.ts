@@ -88,6 +88,8 @@ export const SEMANTIC_EMOJI: Record<IconKey, string[]> = {
   stars: ["⭐️", "✨", "🪙"],
   refund: ["🔂", "💱", "💸"],
   support: ["🩹", "🙏", "🤝"],
+  channel: ["📺", "🎤", "🎟", "🗳"],
+  verify: ["🔓", "🩵", "🤝", "🎖"],
 };
 
 export interface LibraryEntry {
@@ -174,9 +176,9 @@ export function planAssignments(library: LibraryEntry[], keys: IconKey[] = ICON_
     // Second pass: only now accept a shared id, rather than leaving the slot bare.
     if (!picked) {
       for (const pref of prefs) {
-        const any = (byEmoji.get(norm(pref)) ?? [])[0];
-        if (any) {
-          picked = { key, matchedEmoji: pref, id: any.id, set: any.set };
+        const shared = (byEmoji.get(norm(pref)) ?? [])[0];
+        if (shared) {
+          picked = { key, matchedEmoji: pref, id: shared.id, set: shared.set };
           break;
         }
       }
