@@ -18,7 +18,9 @@ if [ -t 0 ]; then
   read -rs TOKEN
   printf '\n'
 else
-  read -r TOKEN            # allows: echo "$TOKEN" | sudo bash scripts/set-telegram-token.sh
+  # `|| true`: read reports failure at EOF when the input has no trailing
+  # newline, which would otherwise abort the script under `set -e`.
+  read -r TOKEN || true    # allows: echo "$TOKEN" | sudo bash scripts/set-telegram-token.sh
 fi
 
 TOKEN=$(printf '%s' "$TOKEN" | tr -d '[:space:]')
