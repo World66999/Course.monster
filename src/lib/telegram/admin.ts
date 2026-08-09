@@ -2,7 +2,7 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { answerCallbackQuery, editMessageText, sendMessage, type InlineKeyboard } from "./api";
-import { getBranding, saveBranding } from "./branding";
+import { getBranding, readBrandingFresh, saveBranding } from "./branding";
 import {
   BUTTON_STYLES,
   BUTTON_STYLE_KEYS,
@@ -151,9 +151,9 @@ function pager(b: Branding, prefix: string, page: number, totalPages: number): I
 
 // ── screens ────────────────────────────────────────────────────────────
 
-async function homeScreen(): Promise<Screen> {
+async function homeScreen(snapshot?: Branding): Promise<Screen> {
   const [b, users, courses] = await Promise.all([
-    getBranding(),
+    snapshot ? Promise.resolve(snapshot) : getBranding(),
     db.telegramUser.count(),
     db.course.count({ where: { published: true } }),
   ]);
@@ -175,9 +175,9 @@ async function homeScreen(): Promise<Screen> {
   };
 }
 
-async function statsScreen(): Promise<Screen> {
+async function statsScreen(snapshot?: Branding): Promise<Screen> {
   const [b, o, courses, webhook] = await Promise.all([
-    getBranding(),
+    snapshot ? Promise.resolve(snapshot) : getBranding(),
     getOverview(),
     db.course.count({ where: { published: true } }),
     getWebhookInfo(),
@@ -204,8 +204,8 @@ async function statsScreen(): Promise<Screen> {
   return { text: lines.join("\n"), keyboard: back(b) };
 }
 
-async function iconsScreen(page: number): Promise<Screen> {
-  const b = await getBranding();
+async function iconsScreen(page: number, snapshot?: Branding): Promise<Screen> {
+  const b = snapshot ?? (await getBranding());
   const totalPages = Math.ceil(ICON_KEYS.length / PAGE);
   const safe = Math.min(page, totalPages - 1);
   const slice = ICON_KEYS.slice(safe * PAGE, safe * PAGE + PAGE);
@@ -228,8 +228,8 @@ async function iconsScreen(page: number): Promise<Screen> {
   };
 }
 
-async function iconEditScreen(key: IconKey): Promise<Screen> {
-  const b = await getBranding();
+async function iconEditScreen(key: IconKey, snapshot?: Branding): Promise<Screen> {
+  const b = snapshot ?? (await getBranding());
   const meta = ICON_META[key];
   return {
     text:
@@ -244,8 +244,8 @@ async function iconEditScreen(key: IconKey): Promise<Screen> {
   };
 }
 
-async function labelsScreen(page: number): Promise<Screen> {
-  const b = await getBranding();
+async function labelsScreen(page: number, snapshot?: Branding): Promise<Screen> {
+  const b = snapshot ?? (await getBranding());
   const totalPages = Math.ceil(LABEL_KEYS.length / PAGE);
   const safe = Math.min(page, totalPages - 1);
   const slice = LABEL_KEYS.slice(safe * PAGE, safe * PAGE + PAGE);
@@ -270,8 +270,8 @@ async function labelsScreen(page: number): Promise<Screen> {
   };
 }
 
-async function labelEditScreen(key: LabelKey, flash = ""): Promise<Screen> {
-  const b = await getBranding();
+async function labelEditScreen(key: LabelKey, flash = "", snapshot?: Branding): Promise<Screen> {
+  const b = snapshot ?? (await getBranding());
   const meta = LABEL_META[key];
   const current = buttonStyleOf(b, key);
   return {
@@ -296,8 +296,8 @@ async function labelEditScreen(key: LabelKey, flash = ""): Promise<Screen> {
   };
 }
 
-async function styleScreen(): Promise<Screen> {
-  const b = await getBranding();
+async function styleScreen(snapshot?: Branding): Promise<Screen> {
+  const b = snapshot ?? (await getBranding());
   return {
     text:
       `${I(b, "brush")} <b>Global Default Button Colour</b>\n\n` +
@@ -402,8 +402,8 @@ export async function handleAdminCallback(
   let toast = "";
 
   switch (cb.k) {
-    case "home": await setState(userId, null); screen = await homeScreen(); break;
-    case "stats": screen = await statsScreen(); break;
+    case "home": await setState(userId, null); screen = await homeScreen(b); break;
+    case "stats": screen = await statsScreen(b); break;
     case "close":
       await answerCallbackQuery(q.id);
       if (messageId !== null) await editMessageText(chatId, messageId, `${I(await getBranding(), "admin")} Panel closed.`, {});
@@ -413,56 +413,52 @@ export async function handleAdminCallback(
       await sendExport(chatId, await getBranding());
       return true;
     }
-    case "icons": await setState(userId, null); screen = await iconsScreen(cb.page); break;
+    case "icons": await setState(userId, null); screen = await iconsScreen(cb.page, b); break;
     case "icon": {
       if (!(cb.key in ICON_META)) break;
       await setState(userId, { mode: "icon", key: cb.key });
-      screen = await iconEditScreen(cb.key as IconKey);
+      screen = await iconEditScreen(cb.key as IconKey, b);
       break;
     }
     case "iconReset": {
       if (!(cb.key in ICON_META)) break;
-      const b = await getBranding();
-      const icons = { ...b.icons };
-      delete icons[cb.key];
-      await saveBranding(brandingSchema.parse({ ...b, icons }));
+      const saved = await saveBranding(
+        brandingSchema.parse({ ...b, icons: Object.fromEntries(Object.entries(b.icons).filter(([k]) => k !== cb.key)) })
+      );
       toast = "Reset to default";
-      screen = await iconEditScreen(cb.key as IconKey);
+      screen = await iconEditScreen(cb.key as IconKey, saved);
       break;
     }
-    case "labels": await setState(userId, null); screen = await labelsScreen(cb.page); break;
+    case "labels": await setState(userId, null); screen = await labelsScreen(cb.page, b); break;
     case "label": {
       if (!(cb.key in LABEL_META)) break;
       await setState(userId, { mode: "label", key: cb.key });
-      screen = await labelEditScreen(cb.key as LabelKey);
+      screen = await labelEditScreen(cb.key as LabelKey, "", b);
       break;
     }
     case "labelReset": {
       if (!(cb.key in LABEL_META)) break;
-      const b = await getBranding();
-      const labels = { ...b.labels };
-      delete labels[cb.key];
-      await saveBranding(brandingSchema.parse({ ...b, labels }));
+      const saved = await saveBranding(
+        brandingSchema.parse({ ...b, labels: Object.fromEntries(Object.entries(b.labels).filter(([k]) => k !== cb.key)) })
+      );
       toast = "Reset to default";
-      screen = await labelEditScreen(cb.key as LabelKey, `${I(b, "reset")} Reset to default`);
+      screen = await labelEditScreen(cb.key as LabelKey, `${I(saved, "reset")} Reset to default`, saved);
       break;
     }
     case "labelColor": {
       if (!(cb.key in LABEL_META)) break;
-      const b = await getBranding();
       const existing = b.labels[cb.key] ?? { text: labelText(b, cb.key as LabelKey) };
       const next = { ...existing, ...(cb.color === "none" ? { style: undefined } : { style: cb.color }) };
-      await saveBranding(brandingSchema.parse({ ...b, labels: { ...b.labels, [cb.key]: next } }));
+      const saved = await saveBranding(brandingSchema.parse({ ...b, labels: { ...b.labels, [cb.key]: next } }));
       toast = "Colour updated";
-      screen = await labelEditScreen(cb.key as LabelKey, `${I(b, "ok")} Colour updated`);
+      screen = await labelEditScreen(cb.key as LabelKey, `${I(saved, "ok")} Colour updated`, saved);
       break;
     }
-    case "style": screen = await styleScreen(); break;
+    case "style": screen = await styleScreen(b); break;
     case "styleSet": {
-      const b = await getBranding();
-      await saveBranding(brandingSchema.parse({ ...b, defaultStyle: cb.value }));
+      const saved = await saveBranding(brandingSchema.parse({ ...b, defaultStyle: cb.value }));
       toast = "Default colour updated";
-      screen = await styleScreen();
+      screen = await styleScreen(saved);
       break;
     }
     case "resetAll":
@@ -472,9 +468,9 @@ export async function handleAdminCallback(
       };
       break;
     case "resetAllGo":
-      await saveBranding(brandingSchema.parse({ icons: {}, labels: {}, defaultStyle: "none" }));
+      const cleared = await saveBranding(brandingSchema.parse({ icons: {}, labels: {}, defaultStyle: "none" }));
       toast = "Appearance reset";
-      screen = await homeScreen();
+      screen = await homeScreen(cleared);
       break;
     case "broadcast": await setState(userId, { mode: "broadcast" }); screen = await broadcastScreen(); break;
     case "broadcastGo": screen = await homeScreen(); break;
@@ -551,12 +547,18 @@ export async function handleAdminInput(
   if (!state) return false;
 
   const b = await getBranding();
-  if (text.trim().toLowerCase() === "/cancel") {
+  // Any command aborts the pending edit. Without this, typing /admin or /start
+  // mid-edit would be saved *as* the new icon or label.
+  if (text.startsWith("/")) {
     await setState(userId, null);
-    const home = await homeScreen();
-    await sendMessage(chatId, `${I(b, "close")} Cancelled.`, {});
-    await sendMessage(chatId, home.text, { replyMarkup: home.keyboard });
-    return true;
+    if (text.trim().toLowerCase() === "/cancel") {
+      const home = await homeScreen(b);
+      await sendMessage(chatId, `${I(b, "close")} Cancelled.`, {});
+      await sendMessage(chatId, home.text, { replyMarkup: home.keyboard });
+      return true;
+    }
+    // Let the normal command handler deal with it.
+    return false;
   }
 
   switch (state.mode) {
@@ -569,10 +571,15 @@ export async function handleAdminInput(
         return true;
       }
       const value = premium ?? plain;
-      const current = await getBranding();
-      await saveBranding(brandingSchema.parse({ ...current, icons: { ...current.icons, [state.key]: value } }));
+      // Read fresh, not through the cache: this runs right after another write
+      // and must not build on a stale snapshot.
+      const current = await readBrandingFresh();
+      const saved = await saveBranding(
+        brandingSchema.parse({ ...current, icons: { ...current.icons, [state.key]: value } })
+      );
       await setState(userId, null);
-      const screen = await iconsScreen(0);
+      // Render from what we just saved, so the panel can never show the old icon.
+      const screen = await iconsScreen(0, saved);
       const shown = premium
         ? `<tg-emoji emoji-id="${premium.premiumId}">${premium.char}</tg-emoji> ${I(b, "premium")} (premium)`
         : plain;
@@ -587,13 +594,18 @@ export async function handleAdminInput(
         await sendMessage(chatId, `${I(b, "warn")} Label must be 1–${MAX_LABEL_LENGTH} characters.`, {});
         return true;
       }
-      const current = await getBranding();
+      const current = await readBrandingFresh();
       const existing = current.labels[state.key];
-      // A premium emoji typed alongside the label becomes that button's icon,
-      // and is stripped from the caption so it isn't shown twice.
+      // A premium emoji typed alongside the label becomes that button's icon and
+      // is stripped from the caption, because Telegram already draws the custom
+      // emoji in front of the text — leaving the fallback glyph in would show it
+      // twice. If the admin sent *only* an emoji there is no caption left, so
+      // fall back to the shipped default rather than re-inserting the glyph.
       const premium = extractPremiumEmoji(text, entities);
-      const cleaned = premium ? value.replace(premium.char, "").trim() || value : value;
-      await saveBranding(
+      const cleaned = premium
+        ? value.split(premium.char).join("").replace(/\s+/g, " ").trim() || LABEL_META[state.key as LabelKey].default
+        : value;
+      const saved = await saveBranding(
         brandingSchema.parse({
           ...current,
           labels: {
@@ -603,8 +615,8 @@ export async function handleAdminInput(
         })
       );
       await setState(userId, null);
-      const screen = await labelsScreen(0);
-      await sendMessage(chatId, `${I(b, "ok")} Button is now <code>${esc(value)}</code>`, {});
+      const screen = await labelsScreen(0, saved);
+      await sendMessage(chatId, `${I(saved, "ok")} Button is now <code>${esc(cleaned)}</code>`, {});
       await sendMessage(chatId, screen.text, { replyMarkup: screen.keyboard });
       return true;
     }
