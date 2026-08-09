@@ -202,6 +202,22 @@ export function getCustomEmojiStickers(ids: string[]) {
   );
 }
 
+export function getForumTopicIconStickers() {
+  return callTelegram<{ custom_emoji_id?: string; emoji?: string; set_name?: string }[]>(
+    "getForumTopicIconStickers",
+    {}
+  );
+}
+
+export function getStickerSet(name: string) {
+  return callTelegram<{
+    name: string;
+    title: string;
+    sticker_type: string;
+    stickers: { custom_emoji_id?: string; emoji?: string }[];
+  }>("getStickerSet", { name });
+}
+
 export function getMe() {
   return callTelegram<{ id: number; username: string; first_name: string }>("getMe");
 }

@@ -123,6 +123,12 @@ export const MAX_ICON_LENGTH = 16;
 const premiumIconSchema = z.object({
   premiumId: z.string().regex(/^\d{1,32}$/, "Custom emoji id must be numeric"),
   char: z.string().min(1).max(MAX_ICON_LENGTH),
+  /** Sticker set the id came from, for the admin's Source column. */
+  set: z.string().max(64).optional(),
+  /** True when assigned by the library rather than chosen by hand. */
+  auto: z.boolean().optional(),
+  /** Last time Telegram confirmed the id resolves (epoch ms). */
+  verifiedAt: z.number().int().optional(),
 });
 
 /** Either a plain emoji string or a premium custom emoji. */

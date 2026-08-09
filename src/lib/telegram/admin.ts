@@ -28,6 +28,7 @@ import { queueBroadcast, runBroadcast } from "./broadcast";
 import { getWebhookInfo, getLastCustomEmojiError } from "./api";
 import { esc } from "./render";
 import { validateCustomEmoji, customEmojiCapability } from "./custom-emoji";
+import { fetchLibrary, planAssignments, verifyConfigured } from "./emoji-library";
 import { isBotAdmin, siteUrl } from "./config";
 
 /**
@@ -97,6 +98,7 @@ export type AdminCallback =
   | { k: "labelColor"; key: string; color: ButtonStyle }
   | { k: "style" } | { k: "styleSet"; value: ButtonStyle }
   | { k: "resetAll" } | { k: "resetAllGo" }
+  | { k: "autoAssign"; mode: "fill" | "replace" } | { k: "verifyLib" } | { k: "library" }
   | { k: "broadcast" } | { k: "broadcastGo" }
   | { k: "dm" }
   | { k: "top"; page: number } | { k: "users"; page: number } | { k: "userBlock"; id: string };
@@ -119,6 +121,9 @@ export function decodeAdmin(raw: string): AdminCallback | null {
     case "bcgo": return { k: "broadcastGo" };
     case "dm": return { k: "dm" };
     case "ra": return { k: "resetAll" };
+    case "lib": return { k: "library" };
+    case "auto": return arg === "fill" || arg === "replace" ? { k: "autoAssign", mode: arg } : null;
+    case "ver": return { k: "verifyLib" };
     case "rago": return { k: "resetAllGo" };
     case "icons": { const p = page(); return p === null ? null : { k: "icons", page: p }; }
     case "labels": { const p = page(); return p === null ? null : { k: "labels", page: p }; }
@@ -170,6 +175,7 @@ async function homeScreen(snapshot?: Branding): Promise<Screen> {
       [{ text: `${I(b, "list")} Recent Users`, callback_data: "a:users:0" }, { text: `${I(b, "export")} Export Data`, callback_data: "a:exp" }],
       [{ text: `${I(b, "palette")} Icon Manager`, callback_data: "a:icons:0" }, { text: `${I(b, "buttons")} Button Labels`, callback_data: "a:labels:0" }],
       [{ text: `${I(b, "brush")} Button Style`, callback_data: "a:style" }],
+      [{ text: `${I(b, "premium")} Premium Emoji Library`, callback_data: "a:lib" }],
       [{ text: `${I(b, "reset")} Reset appearance`, callback_data: "a:ra" }],
       [{ text: `${I(b, "close")} Close`, callback_data: "a:close" }],
     ],
@@ -472,6 +478,54 @@ export async function handleAdminCallback(
       const saved = await saveBranding(brandingSchema.parse({ ...b, defaultStyle: cb.value }));
       toast = "Default colour updated";
       screen = await styleScreen(saved);
+      break;
+    }
+    case "library": {
+      const premium = Object.values(b.icons).filter((v) => typeof v === "object").length;
+      screen = {
+        text:
+          `${I(b, "premium")} <b>Premium Emoji Library</b>\n\n` +
+          `${premium}/${ICON_KEYS.length} icons use a premium custom emoji.\n\n` +
+          `Ids come from Telegram's own topic-icon set and public sets this bot has seen — ` +
+          `never guessed. Each is verified before it is stored.\n\n` +
+          `<i>Whether a button icon renders is Telegram's decision: it needs a Fragment ` +
+          `username or a Premium bot owner.</i>`,
+        keyboard: [
+          [{ text: `${I(b, "premium")} Auto assign (fill gaps)`, callback_data: "a:auto:fill" }],
+          [{ text: `${I(b, "reset")} Replace all icons`, callback_data: "a:auto:replace" }],
+          [{ text: `${I(b, "ok")} Verify library`, callback_data: "a:ver" }],
+          ...back(b),
+        ],
+      };
+      break;
+    }
+    case "autoAssign": {
+      const library = await fetchLibrary();
+      if (library.length === 0) {
+        toast = "Couldn't reach Telegram";
+        screen = await homeScreen(b);
+        break;
+      }
+      const targets = cb.mode === "replace" ? ICON_KEYS : ICON_KEYS.filter((k) => b.icons[k] === undefined);
+      const { assigned, unmatched } = planAssignments(library, targets);
+      const icons = { ...b.icons };
+      for (const a of assigned) {
+        icons[a.key] = { premiumId: a.id, char: a.matchedEmoji, set: a.set, auto: true, verifiedAt: Date.now() };
+      }
+      const saved = await saveBranding(brandingSchema.parse({ ...b, icons }));
+      toast = `${assigned.length} assigned, ${unmatched.length} unmatched`;
+      screen = await iconsScreen(0, saved);
+      break;
+    }
+    case "verifyLib": {
+      const result = await verifyConfigured(b);
+      toast =
+        result.checked === 0
+          ? "Nothing configured yet"
+          : result.invalid.length
+            ? `${result.invalid.length}/${result.checked} no longer resolve`
+            : `All ${result.checked} ids resolve`;
+      screen = await iconsScreen(0, b);
       break;
     }
     case "resetAll":

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, RotateCcw, Save, Sparkles } from "lucide-react";
+import { Eye, Loader2, RotateCcw, Save, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Label, FieldError, FieldHint } from "@/components/ui/input";
@@ -30,6 +30,8 @@ import {
   type LabelKey,
 } from "@/lib/telegram/branding-schema";
 import {
+  autoAssignPremiumIconsAction,
+  verifyEmojiLibraryAction,
   resetAllBrandingAction,
   resetIconAction,
   resetLabelAction,
@@ -72,6 +74,7 @@ export function AppearanceManager({
   const router = useRouter();
   const [busy, setBusy] = React.useState<string | null>(null);
   const [confirmReset, setConfirmReset] = React.useState(false);
+  const [showAll, setShowAll] = React.useState(false);
 
   async function run(
     id: string,
@@ -117,6 +120,87 @@ export function AppearanceManager({
         )}
       </div>
 
+      <section className="space-y-3">
+        <header>
+          <h2 className="font-semibold">✨ Premium Emoji Library</h2>
+          <p className="text-sm text-muted-foreground">
+            Ids come only from Telegram&apos;s own <code>getForumTopicIconStickers</code> and public
+            sets this bot has legitimately seen. Nothing is guessed or copied from the web, and
+            every id is checked against Telegram before it is stored.
+          </p>
+        </header>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" size="sm" disabled={busy !== null}
+            onClick={() => void run("auto", () => autoAssignPremiumIconsAction("fill"), "Premium icons assigned")}>
+            {busy === "auto" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Sparkles className="h-4 w-4" aria-hidden />}
+            Auto Assign Premium Icons
+          </Button>
+          <Button type="button" variant="outline" size="sm" disabled={busy !== null}
+            onClick={() => void run("replace", () => autoAssignPremiumIconsAction("replace"), "All icons replaced")}>
+            {busy === "replace" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <RotateCcw className="h-4 w-4" aria-hidden />}
+            Replace All Icons
+          </Button>
+          <Button type="button" variant="outline" size="sm" disabled={busy !== null}
+            onClick={() => void run("verify", verifyEmojiLibraryAction, "Library verified")}>
+            {busy === "verify" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <ShieldCheck className="h-4 w-4" aria-hidden />}
+            Verify Emoji Library
+          </Button>
+          <Button type="button" variant="ghost" size="sm" disabled={busy !== null}
+            onClick={() => setShowAll((v) => !v)}>
+            <Eye className="h-4 w-4" aria-hidden />
+            {showAll ? "Hide" : "Preview All"}
+          </Button>
+          <Button type="button" variant="ghost" size="sm" disabled={busy !== null}
+            onClick={() => setConfirmReset(true)} className="text-destructive hover:bg-destructive/10">
+            <RotateCcw className="h-4 w-4" aria-hidden />
+            Reset All
+          </Button>
+        </div>
+
+        {showAll && (
+          <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+            <table className="w-full min-w-[46rem] text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs text-muted-foreground uppercase">
+                  <th className="p-3 font-medium">Icon</th>
+                  <th className="p-3 font-medium">Current</th>
+                  <th className="p-3 font-medium">Custom emoji id</th>
+                  <th className="p-3 font-medium">Source</th>
+                  <th className="p-3 font-medium">Status</th>
+                  <th className="p-3 font-medium">Used where</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ICON_KEYS.map((k) => {
+                  const v = branding.icons[k];
+                  const premium = typeof v === "object" ? v : null;
+                  return (
+                    <tr key={k} className="border-b border-border/60 last:border-0">
+                      <td className="p-3 font-medium whitespace-nowrap">{ICON_META[k].name}</td>
+                      <td className="p-3 text-lg">{iconPlain(branding, k)}</td>
+                      <td className="p-3 font-mono text-xs">{premium ? premium.premiumId : "—"}</td>
+                      <td className="p-3 text-xs text-muted-foreground">
+                        {premium ? `${premium.set ?? "manual"}${premium.auto ? " (auto)" : " (manual)"}` : "default"}
+                      </td>
+                      <td className="p-3">
+                        {premium ? (
+                          <Badge variant={premium.verifiedAt ? "success" : "secondary"}>
+                            {premium.verifiedAt ? "verified" : "unverified"}
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">ordinary</Badge>
+                        )}
+                      </td>
+                      <td className="p-3 text-xs text-muted-foreground">{ICON_META[k].where}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
       <section className="space-y-4">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -126,17 +210,6 @@ export function AppearanceManager({
               fallback character.
             </p>
           </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={busy !== null}
-            onClick={() => setConfirmReset(true)}
-            className="text-destructive hover:bg-destructive/10"
-          >
-            <RotateCcw className="h-4 w-4" aria-hidden />
-            Reset everything
-          </Button>
         </header>
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -302,6 +375,7 @@ function IconRow({
           <div className="flex flex-wrap items-center gap-1.5">
             <p className="font-medium">{meta.name}</p>
             {isPremium && <Badge variant="warning">premium</Badge>}
+            {isPremium && current.auto && <Badge variant="secondary">auto</Badge>}
             {customised && <Badge variant="secondary">customised</Badge>}
           </div>
           <p className="mt-0.5 text-xs text-muted-foreground">{meta.where}</p>

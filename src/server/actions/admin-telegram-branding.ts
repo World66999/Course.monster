@@ -8,7 +8,8 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/server/auth-helpers";
 import { logAudit } from "@/lib/audit";
 import { adminPath } from "@/lib/admin-path";
-import { BRANDING_CACHE_TAG } from "@/lib/telegram/branding";
+import { BRANDING_CACHE_TAG, readBrandingFresh } from "@/lib/telegram/branding";
+import { fetchLibrary, planAssignments, verifyConfigured } from "@/lib/telegram/emoji-library";
 import {
   BRANDING_KEY,
   brandingSchema,
@@ -16,6 +17,7 @@ import {
   iconValueSchema,
   labelValueSchema,
   ICON_META,
+  ICON_KEYS,
   LABEL_META,
   type Branding,
 } from "@/lib/telegram/branding-schema";
@@ -231,4 +233,77 @@ export async function resetAllBrandingAction(): Promise<ActionResult> {
   });
   revalidate();
   return { ok: true };
+}
+
+// ── Premium emoji library ──────────────────────────────────────────────
+
+/**
+ * Assigns verified premium custom emoji to icons by semantic match.
+ *
+ * `mode: "fill"` only touches icons that are still on their ordinary default;
+ * `mode: "replace"` re-assigns every icon, discarding manual choices. Icons
+ * with no semantic match keep their ordinary emoji and are reported as
+ * unmatched rather than being given something arbitrary.
+ */
+export async function autoAssignPremiumIconsAction(mode: unknown): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const parsed = z.enum(["fill", "replace"]).safeParse(mode);
+  if (!parsed.success) return { ok: false, error: "Invalid request" };
+
+  const library = await fetchLibrary();
+  if (library.length === 0) {
+    return { ok: false, error: "Couldn't reach Telegram to load the emoji library." };
+  }
+
+  try {
+    let assignedCount = 0;
+    let unmatchedCount = 0;
+    await mutateBranding((current) => {
+      const targets =
+        parsed.data === "replace"
+          ? ICON_KEYS
+          : ICON_KEYS.filter((k) => current.icons[k] === undefined);
+      const { assigned, unmatched } = planAssignments(library, targets);
+      assignedCount = assigned.length;
+      unmatchedCount = unmatched.length;
+      const icons = { ...current.icons };
+      for (const a of assigned) {
+        icons[a.key] = {
+          premiumId: a.id,
+          // Telegram requires a real emoji as the fallback; the matched glyph
+          // is exactly what the sticker represents.
+          char: a.matchedEmoji,
+          set: a.set,
+          auto: true,
+          verifiedAt: Date.now(),
+        };
+      }
+      return { ...current, icons };
+    });
+
+    await logAudit({
+      userId: admin.id,
+      action: "telegramBranding.autoAssign",
+      entity: "telegramBranding",
+      meta: { mode: parsed.data, assigned: assignedCount, unmatched: unmatchedCount },
+    });
+    revalidate();
+    return { ok: true, id: `${assignedCount} assigned, ${unmatchedCount} without a match` };
+  } catch (err) {
+    console.error("[telegram] autoAssign failed:", err);
+    return { ok: false, error: "Couldn't assign premium icons. Please try again." };
+  }
+}
+
+/** Re-checks every configured id against Telegram and reports what no longer resolves. */
+export async function verifyEmojiLibraryAction(): Promise<ActionResult> {
+  await requireAdmin();
+  const current = await readBrandingFresh();
+  const result = await verifyConfigured(current);
+  revalidate();
+  if (result.checked === 0) return { ok: true, id: "No premium emoji configured yet" };
+  if (result.invalid.length > 0) {
+    return { ok: false, error: `${result.invalid.length} of ${result.checked} ids no longer resolve at Telegram.` };
+  }
+  return { ok: true, id: `All ${result.checked} configured ids resolve` };
 }
