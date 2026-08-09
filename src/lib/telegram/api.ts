@@ -79,32 +79,89 @@ interface SendOpts {
   disablePreview?: boolean;
 }
 
+/**
+ * Telegram refuses a whole message when a custom emoji is unusable — so one bad
+ * configured id could take every screen dark for every user. These strip the
+ * custom-emoji bits so a send can be retried as plain text rather than lost.
+ */
+const CUSTOM_EMOJI_FAILURE = /custom emoji|CUSTOM_EMOJI|EMOJI_INVALID|emoji-id|not enough rights.*emoji/i;
+
+function stripTgEmoji(text: string): string {
+  // Replace the tag with its fallback body, which is a real emoji by contract.
+  return text.replace(/<tg-emoji\s+emoji-id="[^"]*"\s*>([\s\S]*?)<\/tg-emoji>/g, "$1");
+}
+
+function stripKeyboardEmoji(keyboard?: InlineKeyboard): InlineKeyboard | undefined {
+  if (!keyboard) return keyboard;
+  return keyboard.map((row) =>
+    row.map((button) => {
+      const copy = { ...button };
+      delete copy.icon_custom_emoji_id;
+      return copy;
+    })
+  );
+}
+
+function usesCustomEmoji(text: string, keyboard?: InlineKeyboard): boolean {
+  return text.includes("<tg-emoji") || Boolean(keyboard?.some((r) => r.some((b) => b.icon_custom_emoji_id)));
+}
+
+/** Records the most recent custom-emoji rejection so the admin panel can show it. */
+let lastCustomEmojiError: { at: number; description: string } | null = null;
+export function getLastCustomEmojiError() {
+  return lastCustomEmojiError;
+}
+export function clearLastCustomEmojiError() {
+  lastCustomEmojiError = null;
+}
+
 /** Telegram hard-caps message text at 4096 characters. */
 export const MAX_MESSAGE_CHARS = 4096;
 
-export function sendMessage(chatId: string, text: string, opts: SendOpts = {}) {
-  return callTelegram<{ message_id: number }>("sendMessage", {
+export async function sendMessage(chatId: string, text: string, opts: SendOpts = {}) {
+  const body = (t: string, kb?: InlineKeyboard) => ({
     chat_id: chatId,
-    text: text.slice(0, MAX_MESSAGE_CHARS),
+    text: t.slice(0, MAX_MESSAGE_CHARS),
     parse_mode: "HTML",
     link_preview_options: { is_disabled: opts.disablePreview ?? true },
-    ...(opts.replyMarkup ? { reply_markup: { inline_keyboard: opts.replyMarkup } } : {}),
+    ...(kb ? { reply_markup: { inline_keyboard: kb } } : {}),
   });
+
+  const res = await callTelegram<{ message_id: number }>("sendMessage", body(text, opts.replyMarkup));
+  if (res.ok || !usesCustomEmoji(text, opts.replyMarkup) || !CUSTOM_EMOJI_FAILURE.test(res.description)) {
+    return res;
+  }
+  // Custom emoji were the problem: deliver the message without them rather than
+  // not at all. The configured ids stay stored so nothing the admin set is lost.
+  lastCustomEmojiError = { at: Date.now(), description: res.description };
+  console.warn("[telegram] custom emoji rejected, retrying without:", res.description);
+  return callTelegram<{ message_id: number }>(
+    "sendMessage",
+    body(stripTgEmoji(text), stripKeyboardEmoji(opts.replyMarkup))
+  );
 }
 
 /**
  * Editing the existing message is what keeps navigation from spamming the
  * chat with a new message per button press.
  */
-export function editMessageText(chatId: string, messageId: number, text: string, opts: SendOpts = {}) {
-  return callTelegram("editMessageText", {
+export async function editMessageText(chatId: string, messageId: number, text: string, opts: SendOpts = {}) {
+  const body = (t: string, kb?: InlineKeyboard) => ({
     chat_id: chatId,
     message_id: messageId,
-    text: text.slice(0, MAX_MESSAGE_CHARS),
+    text: t.slice(0, MAX_MESSAGE_CHARS),
     parse_mode: "HTML",
     link_preview_options: { is_disabled: opts.disablePreview ?? true },
-    ...(opts.replyMarkup ? { reply_markup: { inline_keyboard: opts.replyMarkup } } : {}),
+    ...(kb ? { reply_markup: { inline_keyboard: kb } } : {}),
   });
+
+  const res = await callTelegram("editMessageText", body(text, opts.replyMarkup));
+  if (res.ok || !usesCustomEmoji(text, opts.replyMarkup) || !CUSTOM_EMOJI_FAILURE.test(res.description)) {
+    return res;
+  }
+  lastCustomEmojiError = { at: Date.now(), description: res.description };
+  console.warn("[telegram] custom emoji rejected on edit, retrying without:", res.description);
+  return callTelegram("editMessageText", body(stripTgEmoji(text), stripKeyboardEmoji(opts.replyMarkup)));
 }
 
 /**
@@ -131,6 +188,18 @@ export function getWebhookInfo() {
     max_connections?: number;
     allowed_updates?: string[];
   }>("getWebhookInfo");
+}
+
+/**
+ * Resolves custom emoji ids to their stickers. An id that does not exist simply
+ * comes back missing from the array, which is how a configured id is validated
+ * before it is ever stored.
+ */
+export function getCustomEmojiStickers(ids: string[]) {
+  return callTelegram<{ custom_emoji_id: string; emoji?: string; set_name?: string }[]>(
+    "getCustomEmojiStickers",
+    { custom_emoji_ids: ids.slice(0, 200) }
+  );
 }
 
 export function getMe() {

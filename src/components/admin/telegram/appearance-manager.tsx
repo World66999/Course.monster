@@ -60,7 +60,15 @@ function caption(icon: string, text: string): string {
   return `${icon} ${text}`.trim().slice(0, MAX_LABEL_LENGTH);
 }
 
-export function AppearanceManager({ branding }: { branding: Branding }) {
+export function AppearanceManager({
+  branding,
+  capability,
+  lastEmojiError,
+}: {
+  branding: Branding;
+  capability: { canResolve: boolean; detail: string };
+  lastEmojiError: string | null;
+}) {
   const router = useRouter();
   const [busy, setBusy] = React.useState<string | null>(null);
   const [confirmReset, setConfirmReset] = React.useState(false);
@@ -86,8 +94,29 @@ export function AppearanceManager({ branding }: { branding: Branding }) {
     }
   }
 
+  const premiumCount = Object.values(branding.icons).filter((v) => typeof v === "object").length;
+
   return (
     <div className="space-y-8">
+      {/* Telegram, not this app, decides whether a custom emoji renders — say so plainly. */}
+      <div
+        className={cn(
+          "rounded-2xl border p-4 text-sm",
+          capability.canResolve ? "border-border bg-card" : "border-warning/40 bg-warning/10"
+        )}
+      >
+        <p className="font-medium">
+          Premium custom emoji — {premiumCount} icon{premiumCount === 1 ? "" : "s"} configured
+        </p>
+        <p className="mt-1 text-muted-foreground">{capability.detail}</p>
+        {lastEmojiError && (
+          <p className="mt-2 text-warning">
+            Telegram last rejected a custom emoji: <code>{lastEmojiError}</code>. The message was
+            re-sent without it, so nothing was lost.
+          </p>
+        )}
+      </div>
+
       <section className="space-y-4">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>

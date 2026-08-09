@@ -25,8 +25,9 @@ import {
 } from "./branding-schema";
 import { getMostDownloadedCourses, getMostRequestedCourses, getOverview } from "./analytics";
 import { queueBroadcast, runBroadcast } from "./broadcast";
-import { getWebhookInfo } from "./api";
+import { getWebhookInfo, getLastCustomEmojiError } from "./api";
 import { esc } from "./render";
+import { validateCustomEmoji, customEmojiCapability } from "./custom-emoji";
 import { isBotAdmin, siteUrl } from "./config";
 
 /**
@@ -176,12 +177,15 @@ async function homeScreen(snapshot?: Branding): Promise<Screen> {
 }
 
 async function statsScreen(snapshot?: Branding): Promise<Screen> {
-  const [b, o, courses, webhook] = await Promise.all([
+  const [b, o, courses, webhook, capability] = await Promise.all([
     snapshot ? Promise.resolve(snapshot) : getBranding(),
     getOverview(),
     db.course.count({ where: { published: true } }),
     getWebhookInfo(),
+    customEmojiCapability(),
   ]);
+  const premiumCount = Object.values(b.icons).filter((v) => typeof v === "object").length;
+  const lastEmojiError = getLastCustomEmojiError();
   const lines = [
     `${I(b, "dashboard")} <b>Dashboard</b>`,
     "",
@@ -200,6 +204,15 @@ async function statsScreen(snapshot?: Branding): Promise<Screen> {
           ? `\n${I(b, "warn")} ${esc(webhook.result.last_error_message.slice(0, 100))}`
           : `\n${I(b, "ok")} No webhook errors`)
       : `${I(b, "warn")} Telegram unreachable`,
+    "",
+    `${I(b, "premium")} Premium icons in use <b>${premiumCount}</b>`,
+    capability.canResolve
+      ? `${I(b, "ok")} Custom emoji ids resolve against Telegram`
+      : `${I(b, "warn")} ${esc(capability.detail)}`,
+    lastEmojiError
+      ? `${I(b, "warn")} Last custom-emoji rejection: ${esc(lastEmojiError.description.slice(0, 90))}`
+      : `${I(b, "ok")} No custom-emoji rejections`,
+    `<i>Button icons render only for bots with a Fragment username or a Premium owner — Telegram decides this, not the bot.</i>`,
   ];
   return { text: lines.join("\n"), keyboard: back(b) };
 }
@@ -570,7 +583,24 @@ export async function handleAdminInput(
         await sendMessage(chatId, `${I(b, "warn")} Send a single emoji (max ${MAX_ICON_LENGTH} characters).`, {});
         return true;
       }
-      const value = premium ?? plain;
+      let value: string | { premiumId: string; char: string } = plain;
+      if (premium) {
+        // Confirm the id resolves before storing it, so "set it and nothing
+        // happened" becomes an explicit error instead of silent breakage.
+        const check = await validateCustomEmoji(premium.premiumId, premium.char);
+        if (!check.ok) {
+          await sendMessage(chatId, `${I(b, "warn")} ${esc(check.message)}`, {});
+          return true;
+        }
+        value = { premiumId: check.premiumId, char: check.char };
+        if (!check.verified) {
+          await sendMessage(
+            chatId,
+            `${I(b, "warn")} Saved, but Telegram couldn't be reached to verify this custom emoji right now.`,
+            {}
+          );
+        }
+      }
       // Read fresh, not through the cache: this runs right after another write
       // and must not build on a stale snapshot.
       const current = await readBrandingFresh();
@@ -602,6 +632,13 @@ export async function handleAdminInput(
       // twice. If the admin sent *only* an emoji there is no caption left, so
       // fall back to the shipped default rather than re-inserting the glyph.
       const premium = extractPremiumEmoji(text, entities);
+      if (premium) {
+        const check = await validateCustomEmoji(premium.premiumId, premium.char);
+        if (!check.ok) {
+          await sendMessage(chatId, `${I(b, "warn")} ${esc(check.message)}`, {});
+          return true;
+        }
+      }
       const cleaned = premium
         ? value.split(premium.char).join("").replace(/\s+/g, " ").trim() || LABEL_META[state.key as LabelKey].default
         : value;
