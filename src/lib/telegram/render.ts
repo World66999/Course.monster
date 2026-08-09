@@ -283,6 +283,51 @@ export function help(b: Branding, siteUrl: string): Screen {
   };
 }
 
+export interface AdminStats {
+  totalUsers: number;
+  activeUsers: number;
+  newToday: number;
+  publishedCourses: number;
+  downloadRequests: number;
+  completedDownloads: number;
+  pendingUpdates: number | null;
+  lastWebhookError: string | null;
+}
+
+/**
+ * Admin-only status screen.
+ *
+ * Deliberately read-only, and deliberately does NOT contain a link to the web
+ * admin panel: that path is a secret, and a Telegram message can be forwarded,
+ * screenshotted or synced to another device. Management stays on the website.
+ */
+export function adminPanel(b: Branding, stats: AdminStats, siteUrl: string): Screen {
+  const lines = [
+    "👮 <b>Bot Admin</b>",
+    "",
+    `👥 Users: <b>${stats.totalUsers}</b> · active 7d <b>${stats.activeUsers}</b> · new today <b>${stats.newToday}</b>`,
+    `${iconHtml(b, "browse")} Published courses: <b>${stats.publishedCourses}</b>`,
+    `${iconHtml(b, "download")} Download requests: <b>${stats.downloadRequests}</b> · completed <b>${stats.completedDownloads}</b>`,
+  ];
+  if (stats.pendingUpdates !== null) {
+    lines.push(`🔌 Webhook queue: <b>${stats.pendingUpdates}</b>`);
+  }
+  lines.push(
+    stats.lastWebhookError
+      ? `${iconHtml(b, "warn")} Last webhook error: ${esc(clamp(stats.lastWebhookError, 120))}`
+      : "✅ No recent webhook errors"
+  );
+  lines.push("", "<i>Icons, labels, broadcasts and users are managed on the website.</i>");
+
+  return {
+    text: lines.join("\n"),
+    keyboard: [
+      [btn(b, { label: "btn_website", icon: "website", url: siteUrl })],
+      [btn(b, { label: "btn_back", icon: "back", callback: encode({ kind: "home" }) })],
+    ],
+  };
+}
+
 export function courseUnavailable(b: Branding): Screen {
   return {
     text: "This course is no longer available.",

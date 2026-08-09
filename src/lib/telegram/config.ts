@@ -43,6 +43,24 @@ export function siteUrl(): string {
   return (process.env.NEXT_PUBLIC_SITE_URL ?? "https://courses.monster").replace(/\/+$/, "");
 }
 
+/**
+ * Telegram user ids allowed to use in-bot admin commands, comma-separated.
+ * Empty means nobody — the admin command then behaves as if it doesn't exist.
+ */
+export function adminIds(): Set<string> {
+  const raw = process.env.TELEGRAM_ADMIN_IDS ?? "";
+  return new Set(
+    raw
+      .split(",")
+      .map((id) => id.trim())
+      .filter((id) => /^\d{1,20}$/.test(id))
+  );
+}
+
+export function isBotAdmin(telegramId: string): boolean {
+  return adminIds().has(telegramId);
+}
+
 /** Public bot username, used only to build t.me deep links on the website. */
 export function botUsername(): string | null {
   return process.env.NEXT_PUBLIC_TELEGRAM_BOT ?? null;

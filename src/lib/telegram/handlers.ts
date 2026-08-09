@@ -11,11 +11,33 @@ import {
   listUpcomingPage,
   searchPublishedPage,
 } from "./catalog";
-import { siteUrl } from "./config";
+import { siteUrl, isBotAdmin } from "./config";
 import { getBranding } from "./branding";
 import type { Branding } from "./branding-schema";
 import * as render from "./render";
 import { lastSearch, recordEvent, rememberSearch, touchUser, type TelegramFrom } from "./users";
+import { db } from "@/lib/db";
+import { getOverview } from "./analytics";
+import { getWebhookInfo } from "./api";
+
+/** Gathered only for an authenticated admin, never on a normal user's path. */
+async function adminStats(): Promise<render.AdminStats> {
+  const [overview, publishedCourses, webhook] = await Promise.all([
+    getOverview(),
+    db.course.count({ where: { published: true } }),
+    getWebhookInfo(),
+  ]);
+  return {
+    totalUsers: overview.totalUsers,
+    activeUsers: overview.activeUsers,
+    newToday: overview.newToday,
+    publishedCourses,
+    downloadRequests: overview.downloadRequests,
+    completedDownloads: overview.completedDownloads,
+    pendingUpdates: webhook.ok ? webhook.result.pending_update_count : null,
+    lastWebhookError: webhook.ok ? (webhook.result.last_error_message ?? null) : null,
+  };
+}
 
 /**
  * Update dispatcher.
@@ -205,6 +227,15 @@ async function handleMessage(m: Message): Promise<void> {
         return void (await show(chatId, null, render.searchPrompt(b)));
       case "website":
         return void (await show(chatId, null, render.welcome(b, siteUrl()))); 
+      case "admin": {
+        // Unknown to everyone else: a non-admin gets exactly what any
+        // unrecognised command returns, so the command's existence never leaks.
+        if (!isBotAdmin(telegramId)) {
+          return void (await show(chatId, null, render.help(b, siteUrl())));
+        }
+        const stats = await adminStats();
+        return void (await show(chatId, null, render.adminPanel(b, stats, siteUrl())));
+      }
       case "help":
         await recordEvent(user.id, "HELP");
         return void (await show(chatId, null, render.help(b, siteUrl())));

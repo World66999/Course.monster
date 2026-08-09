@@ -137,8 +137,20 @@ export function getMe() {
   return callTelegram<{ id: number; username: string; first_name: string }>("getMe");
 }
 
-export function setMyCommands(commands: { command: string; description: string }[]) {
-  return callTelegram("setMyCommands", { commands });
+/**
+ * `scope` targets a single chat. Telegram resolves a user's command menu by
+ * taking the first scope that is set, chat-specific first — which is how an
+ * admin-only command stays out of everyone else's menu.
+ */
+export function setMyCommands(
+  commands: { command: string; description: string }[],
+  scope?: { type: "chat"; chat_id: string }
+) {
+  return callTelegram("setMyCommands", { commands, ...(scope ? { scope } : {}) });
+}
+
+export function deleteMyCommands(scope?: { type: "chat"; chat_id: string }) {
+  return callTelegram("deleteMyCommands", { ...(scope ? { scope } : {}) });
 }
 
 export function setWebhook(url: string, secretToken: string) {

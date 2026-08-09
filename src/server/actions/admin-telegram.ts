@@ -8,6 +8,7 @@ import { logAudit } from "@/lib/audit";
 import { adminPath } from "@/lib/admin-path";
 import { queueBroadcast, runBroadcast } from "@/lib/telegram/broadcast";
 import { deleteWebhook, getMe, setMyCommands, setWebhook } from "@/lib/telegram/api";
+import { adminIds } from "@/lib/telegram/config";
 import { hasBotToken, siteUrl, webhookPathSegment, webhookSecret } from "@/lib/telegram/config";
 import type { ActionResult } from "@/server/actions/courses";
 
@@ -149,14 +150,26 @@ export async function registerWebhookAction(): Promise<ActionResult> {
   const res = await setWebhook(url, secret);
   if (!res.ok) return { ok: false, error: `Telegram rejected the webhook: ${res.description}` };
 
-  await setMyCommands([
+  const publicCommands = [
     { command: "start", description: "Main menu" },
     { command: "courses", description: "Browse the course catalog" },
     { command: "search", description: "Search for a course" },
     { command: "upcoming", description: "See what's coming next" },
     { command: "website", description: "Open courses.monster" },
     { command: "help", description: "How to use this bot" },
-  ]);
+  ];
+  await setMyCommands(publicCommands);
+
+  // Telegram resolves a user's command menu from the most specific scope that
+  // is set, so a per-chat list keeps /admin out of everyone else's menu. The
+  // handler checks the id independently — this only controls visibility.
+  for (const id of adminIds()) {
+    const res = await setMyCommands(
+      [...publicCommands, { command: "admin", description: "Bot status (admins only)" }],
+      { type: "chat", chat_id: id }
+    );
+    if (!res.ok) console.warn(`[telegram] could not publish admin commands for ${id}: ${res.description}`);
+  }
 
   await logAudit({ userId: admin.id, action: "telegramBot.setWebhook", entity: "telegramBot" });
   revalidate();
