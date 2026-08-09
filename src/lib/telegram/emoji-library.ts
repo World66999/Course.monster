@@ -84,6 +84,10 @@ export const SEMANTIC_EMOJI: Record<IconKey, string[]> = {
   dotPrimary: ["💙", "🩵"],
   dotSuccess: ["💚", "🍀"],
   dotDanger: ["❤️", "🩷", "🖤"],
+  donate: ["💎", "🎁", "💰"],
+  stars: ["⭐️", "✨", "🪙"],
+  refund: ["🔂", "💱", "💸"],
+  support: ["🩹", "🙏", "🤝"],
 };
 
 export interface LibraryEntry {

@@ -156,6 +156,8 @@ export async function registerWebhookAction(): Promise<ActionResult> {
     { command: "search", description: "Search for a course" },
     { command: "upcoming", description: "See what's coming next" },
     { command: "website", description: "Open courses.monster" },
+    { command: "donate", description: "Support the project with Telegram Stars" },
+    { command: "paysupport", description: "Help with a payment" },
     { command: "help", description: "How to use this bot" },
   ];
   await setMyCommands(publicCommands);

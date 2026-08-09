@@ -932,6 +932,7 @@ enum TelegramEventType {
   COURSE_VIEW
   UPCOMING_VIEW
   DOWNLOAD_REQUESTED
+  DONATION
   HELP
   BLOCKED
   ERROR
@@ -956,6 +957,11 @@ model TelegramUser {
   /// Telegram's 64-byte callback_data limit instead of carrying the query.
   lastSearch   String?
   lastSearchAt DateTime?
+
+  /// Set while the bot is waiting for this user to type a custom Star amount.
+  /// A plain flag rather than a state blob: the amount itself is never taken
+  /// from client state, only from the message that follows.
+  donateAwaitingAmount Boolean @default(false)
 
   /// Pending multi-step admin input, e.g. {"mode":"icon","key":"browse"}.
   /// Held in the database rather than process memory so a deploy cutover or a
@@ -1055,4 +1061,51 @@ model BroadcastRecipient {
   @@unique([broadcastId, userId])
   @@index([broadcastId, status])
   @@map("broadcast_recipients")
+}
+
+/// Telegram Stars donation lifecycle. A pre-checkout approval is NOT payment —
+/// only a successful_payment update moves a row to COMPLETED.
+enum DonationStatus {
+  PENDING
+  PRECHECKOUT
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model Donation {
+  id String @id @default(cuid())
+
+  /// Telegram user id as a string. Deliberately NOT a foreign key: a donation is
+  /// a financial record that must outlive the bot-user row, and a SET NULL
+  /// relation on this non-null column made deleting any donor impossible.
+  telegramUserId   String
+  /// Only if Telegram supplied one; never required.
+  telegramUsername String?
+
+  /// Whole Stars. Telegram bills XTR in whole units, so no minor-unit maths.
+  amountStars Int
+  currency    String @default("XTR")
+
+  status DonationStatus @default(PENDING)
+
+  /// Our own opaque reference, sent as the invoice payload and echoed back by
+  /// Telegram. Unique so a replayed update can be matched to one row.
+  invoicePayload String @unique
+
+  /// Telegram's charge id — the idempotency key for completion and refunds.
+  telegramPaymentChargeId String? @unique
+  providerPaymentChargeId String?
+
+  /// Short failure reason. Never contains a token or raw API payload.
+  failureReason String?
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+  refundedAt  DateTime?
+
+  @@index([telegramUserId, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("donations")
 }

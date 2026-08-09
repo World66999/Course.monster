@@ -29,6 +29,17 @@ import { getWebhookInfo, getLastCustomEmojiError } from "./api";
 import { esc } from "./render";
 import { validateCustomEmoji, customEmojiCapability } from "./custom-emoji";
 import { fetchLibrary, planAssignments, verifyConfigured } from "./emoji-library";
+import { getDonationStats, listDonations, refundDonation } from "./donations";
+import { logAudit } from "@/lib/audit";
+
+/** Re-renders the donations list after a mutation. */
+async function donationsScreenFallback(b: Branding): Promise<Screen> {
+  const stats = await getDonationStats();
+  return {
+    text: `${iconPlain(b, "donate")} <b>Donations</b>\n\n${iconPlain(b, "stars")} ${stats.totalStars} Stars from ${stats.totalCompleted} donations · refunded ${stats.refunded}`,
+    keyboard: [[{ text: `${iconPlain(b, "back")} Back`, callback_data: "a:dons:0" }]],
+  };
+}
 import { isBotAdmin, siteUrl } from "./config";
 
 /**
@@ -99,6 +110,7 @@ export type AdminCallback =
   | { k: "style" } | { k: "styleSet"; value: ButtonStyle }
   | { k: "resetAll" } | { k: "resetAllGo" }
   | { k: "autoAssign"; mode: "fill" | "replace" } | { k: "verifyLib" } | { k: "library" }
+  | { k: "donations"; page: number } | { k: "refund"; id: string } | { k: "refundGo"; id: string }
   | { k: "broadcast" } | { k: "broadcastGo" }
   | { k: "dm" }
   | { k: "top"; page: number } | { k: "users"; page: number } | { k: "userBlock"; id: string };
@@ -124,6 +136,9 @@ export function decodeAdmin(raw: string): AdminCallback | null {
     case "lib": return { k: "library" };
     case "auto": return arg === "fill" || arg === "replace" ? { k: "autoAssign", mode: arg } : null;
     case "ver": return { k: "verifyLib" };
+    case "dons": { const p = page(); return p === null ? null : { k: "donations", page: p }; }
+    case "rf": return arg && CUID_RE.test(arg) ? { k: "refund", id: arg } : null;
+    case "rfgo": return arg && CUID_RE.test(arg) ? { k: "refundGo", id: arg } : null;
     case "rago": return { k: "resetAllGo" };
     case "icons": { const p = page(); return p === null ? null : { k: "icons", page: p }; }
     case "labels": { const p = page(); return p === null ? null : { k: "labels", page: p }; }
@@ -175,6 +190,7 @@ async function homeScreen(snapshot?: Branding): Promise<Screen> {
       [{ text: `${I(b, "list")} Recent Users`, callback_data: "a:users:0" }, { text: `${I(b, "export")} Export Data`, callback_data: "a:exp" }],
       [{ text: `${I(b, "palette")} Icon Manager`, callback_data: "a:icons:0" }, { text: `${I(b, "buttons")} Button Labels`, callback_data: "a:labels:0" }],
       [{ text: `${I(b, "brush")} Button Style`, callback_data: "a:style" }],
+      [{ text: `${I(b, "donate")} Donations`, callback_data: "a:dons:0" }],
       [{ text: `${I(b, "premium")} Premium Emoji Library`, callback_data: "a:lib" }],
       [{ text: `${I(b, "reset")} Reset appearance`, callback_data: "a:ra" }],
       [{ text: `${I(b, "close")} Close`, callback_data: "a:close" }],
@@ -478,6 +494,59 @@ export async function handleAdminCallback(
       const saved = await saveBranding(brandingSchema.parse({ ...b, defaultStyle: cb.value }));
       toast = "Default colour updated";
       screen = await styleScreen(saved);
+      break;
+    }
+    case "donations": {
+      const [stats, listed] = await Promise.all([getDonationStats(), listDonations(cb.page + 1, 6)]);
+      const rows = listed.items.map((d) => {
+        const who = d.telegramUsername ? `@${d.telegramUsername}` : d.telegramUserId;
+        const mark =
+          d.status === "COMPLETED" ? I(b, "ok") : d.status === "REFUNDED" ? I(b, "refund") : I(b, "warn");
+        return `${mark} ${I(b, "stars")} <b>${d.amountStars}</b> · ${esc(who)} · <i>${d.status}</i>`;
+      });
+      screen = {
+        text:
+          `${I(b, "donate")} <b>Donations</b>\n\n` +
+          `${I(b, "stars")} Total received <b>${stats.totalStars}</b> Stars from <b>${stats.totalCompleted}</b> donations\n` +
+          `${I(b, "users")} Unique donors <b>${stats.uniqueDonors}</b> · avg <b>${stats.averageStars}</b> · largest <b>${stats.largestStars}</b>\n` +
+          `${I(b, "dashboard")} Today <b>${stats.today}</b> · week <b>${stats.week}</b> · month <b>${stats.month}</b>\n` +
+          `${I(b, "warn")} Pending <b>${stats.pending}</b> · failed <b>${stats.failed}</b> · refunded <b>${stats.refunded}</b>\n\n` +
+          (rows.length ? rows.join("\n") : "<i>No donations yet.</i>") +
+          `\n\n<i>Figures count completed payments only, never invoice attempts.</i>`,
+        keyboard: [
+          ...listed.items
+            .filter((d) => d.status === "COMPLETED")
+            .map((d) => [
+              { text: `${I(b, "refund")} Refund ${d.amountStars} · ${d.telegramUsername ?? d.telegramUserId}`.slice(0, 64), callback_data: `a:rf:${d.id}` },
+            ]),
+          ...pager(b, "a:dons", listed.page - 1, listed.totalPages),
+          ...back(b),
+        ],
+      };
+      break;
+    }
+    case "refund": {
+      const d = await db.donation.findUnique({ where: { id: cb.id }, select: { amountStars: true, status: true, telegramUsername: true, telegramUserId: true } });
+      if (!d || d.status !== "COMPLETED") { toast = "Not refundable"; screen = await homeScreen(b); break; }
+      screen = {
+        text:
+          `${I(b, "refund")} <b>Refund ${d.amountStars} Stars?</b>\n\n` +
+          `To ${esc(d.telegramUsername ? "@" + d.telegramUsername : d.telegramUserId)}.\n\n` +
+          `<i>This returns the Stars via Telegram and cannot be undone.</i>`,
+        keyboard: [
+          [{ text: `${I(b, "ok")} Yes, refund`, callback_data: `a:rfgo:${cb.id}` }],
+          [{ text: `${I(b, "back")} Cancel`, callback_data: "a:dons:0" }],
+        ],
+      };
+      break;
+    }
+    case "refundGo": {
+      // The charge id is read from our own row inside refundDonation, never
+      // taken from the callback.
+      const res = await refundDonation(cb.id);
+      toast = res.ok ? "Refunded" : (res.error ?? "Refund failed");
+      await logAudit({ action: res.ok ? "telegramDonation.refund" : "telegramDonation.refundFailed", entity: "donation", entityId: cb.id });
+      screen = await donationsScreenFallback(b);
       break;
     }
     case "library": {

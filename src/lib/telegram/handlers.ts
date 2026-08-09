@@ -13,9 +13,15 @@ import {
 } from "./catalog";
 import { siteUrl, isBotAdmin } from "./config";
 import { getBranding } from "./branding";
+import {
+  MAX_STARS, MIN_STARS, SUGGESTED_STARS,
+  completeDonation, createStarInvoice, handlePreCheckout, parseStarAmount,
+  type PreCheckout, type SuccessfulPayment,
+} from "./donations";
 import { iconPlain, type Branding } from "./branding-schema";
 import * as render from "./render";
 import { lastSearch, recordEvent, rememberSearch, touchUser, type TelegramFrom } from "./users";
+import { db } from "@/lib/db";
 import { adminHomeScreen, handleAdminCallback, handleAdminInput } from "./admin";
 
 
@@ -33,6 +39,7 @@ interface Message {
   from?: TelegramFrom;
   chat: { id: number };
   text?: string;
+  successful_payment?: SuccessfulPayment;
   /** Carries the custom_emoji id when a premium emoji is sent. */
   entities?: { type: string; offset: number; length: number; custom_emoji_id?: string }[];
 }
@@ -46,10 +53,37 @@ export interface Update {
   update_id: number;
   message?: Message;
   callback_query?: CallbackQuery;
+  pre_checkout_query?: PreCheckout;
 }
 
 const MAX_TEXT = 200;
 type Screen = { text: string; keyboard: InlineKeyboard };
+
+async function setDonateWaiting(userId: string, waiting: boolean): Promise<void> {
+  await db.telegramUser.update({ where: { id: userId }, data: { donateAwaitingAmount: waiting } });
+}
+async function isDonateWaiting(userId: string): Promise<boolean> {
+  const row = await db.telegramUser.findUnique({ where: { id: userId }, select: { donateAwaitingAmount: true } });
+  return row?.donateAwaitingAmount ?? false;
+}
+
+async function startInvoice(
+  chatId: string,
+  telegramId: string,
+  username: string | undefined,
+  amount: number,
+  b: Branding
+): Promise<void> {
+  const res = await createStarInvoice({
+    chatId,
+    telegramUserId: telegramId,
+    username: username ?? null,
+    amount,
+    title: "Support Courses Monster",
+    description: `Donate ${amount} Telegram Stars to support the project.`,
+  });
+  if (!res.ok) await sendMessage(chatId, `${iconPlain(b, "warn")} ${res.error}`);
+}
 
 /** Per-user throttles. Reuses the app's existing limiter — no second system. */
 function allow(telegramId: string, bucket: string, limit: number, windowMs: number): boolean {
@@ -127,6 +161,32 @@ async function handleCallback(q: CallbackQuery): Promise<void> {
   if (await handleAdminCallback(q, telegramId, user.id)) return;
 
   const branding = await getBranding();
+  if (q.data?.startsWith("dn:")) {
+    await answerCallbackQuery(q.id);
+    const branding = await getBranding();
+    const arg = q.data.slice(3);
+    if (arg === "menu") {
+      await setDonateWaiting(user.id, false);
+      await show(chatId, messageId, render.donatePrompt(branding, SUGGESTED_STARS));
+      return;
+    }
+    if (arg === "c") {
+      await setDonateWaiting(user.id, true);
+      await show(chatId, messageId, render.donateCustomPrompt(branding, MIN_STARS, MAX_STARS));
+      return;
+    }
+    // A suggested amount. The value is re-validated server-side and the invoice
+    // is built from the parsed integer, never from the callback string itself.
+    const check = parseStarAmount(arg);
+    if (!check.ok) return;
+    if (!allow(telegramId, "donate", 6, 60_000)) {
+      await sendMessage(chatId, `${iconPlain(branding, "warn")} Too many donation attempts. Please wait a moment.`);
+      return;
+    }
+    await startInvoice(chatId, telegramId, q.from.username, check.amount, branding);
+    return;
+  }
+
   const cb = q.data ? decode(q.data) : null;
   if (!cb) {
     // Malformed or tampered callback data: acknowledge and ignore.
@@ -175,12 +235,44 @@ async function handleMessage(m: Message): Promise<void> {
   if (user.blocked) return;
 
   const b = await getBranding();
+  if (m.successful_payment) {
+    const result = await completeDonation(m.successful_payment);
+    // A redelivered update must not thank the user twice.
+    if (result.outcome === "completed") {
+      await recordEvent(user.id, "DONATION");
+      await show(chatId, null, render.donationThanks(b, result.amount));
+    }
+    return;
+  }
+
   const text = (m.text ?? "").slice(0, MAX_TEXT).trim();
   if (!text) return;
 
   // A half-finished admin edit consumes the next message before anything else,
   // otherwise "send me the new label" would be treated as a course search.
   if (await handleAdminInput(telegramId, user.id, chatId, text, m.entities)) return;
+
+  // A pending custom-amount entry consumes the next plain message.
+  if (!text.startsWith("/") && (await isDonateWaiting(user.id))) {
+    const check = parseStarAmount(text);
+    if (!check.ok) {
+      // A typo must not consume the donation budget, or a few mistakes would
+      // lock someone out of donating. Malformed input is still bounded by the
+      // general per-user message limit above.
+      await sendMessage(chatId, `${iconPlain(b, "warn")} ${check.message}`);
+      return;
+    }
+    if (!allow(telegramId, "donate", 6, 60_000)) {
+      await sendMessage(chatId, `${iconPlain(b, "warn")} Too many donation attempts. Please wait a moment.`);
+      return;
+    }
+    await setDonateWaiting(user.id, false);
+    await startInvoice(chatId, telegramId, m.from.username, check.amount, b);
+    return;
+  }
+  if (text.startsWith("/") && (await isDonateWaiting(user.id))) {
+    await setDonateWaiting(user.id, false);
+  }
 
   if (text.startsWith("/")) {
     // Strip any @botusername suffix Telegram adds in groups.
@@ -225,6 +317,10 @@ async function handleMessage(m: Message): Promise<void> {
         const home = await adminHomeScreen();
         return void (await show(chatId, null, home));
       }
+      case "donate":
+        return void (await show(chatId, null, render.donatePrompt(b, SUGGESTED_STARS)));
+      case "paysupport":
+        return void (await show(chatId, null, render.paySupport(b, siteUrl())));
       case "help":
         await recordEvent(user.id, "HELP");
         return void (await show(chatId, null, render.help(b, siteUrl())));
@@ -244,6 +340,9 @@ async function handleMessage(m: Message): Promise<void> {
 }
 
 export async function handleUpdate(update: Update): Promise<void> {
+  // Telegram expects an answer within seconds, so this is handled first and
+  // never queued behind anything else.
+  if (update.pre_checkout_query) return handlePreCheckout(update.pre_checkout_query);
   if (update.callback_query) return handleCallback(update.callback_query);
   if (update.message) return handleMessage(update.message);
   // Any other update type is acknowledged and ignored.

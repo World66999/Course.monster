@@ -68,6 +68,12 @@ export const ICON_META = {
   dotPrimary: { default: "🔵", name: "Blue dot", where: "Admin: primary colour marker" },
   dotSuccess: { default: "🟢", name: "Green dot", where: "Admin: success colour marker" },
   dotDanger: { default: "🔴", name: "Red dot", where: "Admin: danger colour marker" },
+
+  // Donations.
+  donate: { default: "💫", name: "Donate / Support", where: "Donate screen, donation buttons" },
+  stars: { default: "⭐", name: "Telegram Stars", where: "Star amounts and invoices" },
+  refund: { default: "↩️", name: "Refund", where: "Admin: refunded donations" },
+  support: { default: "🛟", name: "Payment support", where: "/paysupport screen" },
 } as const satisfies Record<string, IconMeta>;
 
 export type IconKey = keyof typeof ICON_META;
@@ -91,6 +97,8 @@ export const LABEL_META = {
   btn_next: { default: "Next", where: "Pagination row" },
   btn_continue: { default: "Continue to download", where: "Download hand-off" },
   btn_retry: { default: "Try again", where: "Error screen" },
+  btn_donate: { default: "Donate", where: "Main menu, donate screen" },
+  btn_donate_custom: { default: "Custom amount", where: "Donate screen" },
 } as const satisfies Record<string, LabelMeta>;
 
 export type LabelKey = keyof typeof LABEL_META;

@@ -88,6 +88,7 @@ export function welcome(b: Branding, siteUrl: string): Screen {
       [btn(b, { label: "btn_search", icon: "search", callback: encode({ kind: "search", page: 1 }) })],
       [btn(b, { label: "btn_upcoming", icon: "upcoming", callback: encode({ kind: "upcoming", page: 1 }) })],
       [btn(b, { label: "btn_website", icon: "website", url: siteUrl })],
+      [btn(b, { label: "btn_donate", icon: "donate", callback: "dn:menu" })],
     ],
   };
 }
@@ -290,6 +291,63 @@ export function help(b: Branding, siteUrl: string): Screen {
     keyboard: [
       [btn(b, { label: "btn_browse", icon: "browse", callback: encode({ kind: "browse", page: 1 }) })],
       [btn(b, { label: "btn_website", icon: "website", url: siteUrl })],
+    ],
+  };
+}
+
+export function donatePrompt(b: Branding, suggested: readonly number[]): Screen {
+  const rows: InlineKeyboard = [];
+  for (let i = 0; i < suggested.length; i += 3) {
+    rows.push(
+      suggested.slice(i, i + 3).map((n) => ({
+        text: `${iconPlain(b, "stars")} ${n}`.slice(0, 64),
+        callback_data: `dn:${n}`,
+      }))
+    );
+  }
+  rows.push([btn(b, { label: "btn_donate_custom", icon: "edited", callback: "dn:c" })]);
+  rows.push([btn(b, { label: "btn_back", icon: "back", callback: encode({ kind: "home" }) })]);
+  return {
+    text:
+      `${iconHtml(b, "donate")} <b>Donate / Support</b>\n\n` +
+      "Support this project with Telegram Stars.\nChoose any amount you want to contribute.\n\n" +
+      "<i>Payments are handled entirely by Telegram. Use /paysupport if anything goes wrong.</i>",
+    keyboard: rows,
+  };
+}
+
+export function donateCustomPrompt(b: Branding, min: number, max: number): Screen {
+  return {
+    text:
+      `${iconHtml(b, "stars")} <b>Custom amount</b>\n\n` +
+      `Send the number of Stars you'd like to donate (${min}–${max.toLocaleString()}).\n` +
+      "<i>Whole numbers only. /cancel to abort.</i>",
+    keyboard: [[btn(b, { label: "btn_back", icon: "back", callback: "dn:menu" })]],
+  };
+}
+
+export function donationThanks(b: Branding, amount: number): Screen {
+  return {
+    text:
+      `${iconHtml(b, "donate")} <b>Donation received!</b>\n\n` +
+      "Thank you for supporting the project.\n\n" +
+      `Amount: ${iconHtml(b, "stars")} <b>${amount}</b> Stars\nTransaction recorded successfully.`,
+    keyboard: [[btn(b, { label: "btn_back", icon: "back", callback: encode({ kind: "home" }) })]],
+  };
+}
+
+export function paySupport(b: Branding, siteUrl: string): Screen {
+  return {
+    text:
+      `${iconHtml(b, "support")} <b>Payment support</b>\n\n` +
+      "Donations here are made with Telegram Stars and processed by Telegram.\n\n" +
+      "If a payment failed, was taken twice, or your donation isn't showing, " +
+      "reply to this chat describing what happened and roughly when. " +
+      "Include the amount — that's enough for us to find the transaction.\n\n" +
+      "Refunds are possible for completed Star payments. We'll confirm here once one is issued.",
+    keyboard: [
+      [btn(b, { label: "btn_website", icon: "website", url: siteUrl })],
+      [btn(b, { label: "btn_back", icon: "back", callback: encode({ kind: "home" }) })],
     ],
   };
 }

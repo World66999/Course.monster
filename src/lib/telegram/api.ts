@@ -243,7 +243,9 @@ export function setWebhook(url: string, secretToken: string) {
     url,
     secret_token: secretToken,
     // Only what the bot actually handles — fewer updates, less to validate.
-    allowed_updates: ["message", "callback_query"],
+    // pre_checkout_query is essential: without it Telegram never delivers the
+    // payment confirmation step and every Stars payment stalls silently.
+    allowed_updates: ["message", "callback_query", "pre_checkout_query"],
     max_connections: 40,
   });
 }
