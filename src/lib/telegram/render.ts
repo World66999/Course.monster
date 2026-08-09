@@ -6,6 +6,7 @@ import {
   iconHtml,
   iconPlain,
   labelText,
+  premiumIconId,
   type Branding,
   type IconKey,
   type LabelKey,
@@ -53,16 +54,26 @@ function btn(
   b: Branding,
   opts: { label: LabelKey; icon?: IconKey; callback?: string; url?: string }
 ): InlineButton {
-  const caption = opts.icon
-    ? `${iconPlain(b, opts.icon)} ${labelText(b, opts.label)}`.trim()
-    : labelText(b, opts.label);
+  const extras = buttonExtras(b, opts.label);
+  // A per-button icon id set on the label wins; otherwise a premium *icon*
+  // supplies one, which is what makes premium emoji show up on buttons at all.
+  const customEmojiId = extras.icon_custom_emoji_id ?? (opts.icon ? premiumIconId(b, opts.icon) : null);
+
+  // Telegram draws the custom emoji before the caption, so prefixing the plain
+  // fallback as well would render the glyph twice.
+  const caption =
+    opts.icon && !customEmojiId
+      ? `${iconPlain(b, opts.icon)} ${labelText(b, opts.label)}`.trim()
+      : labelText(b, opts.label);
+
   return {
     // Belt and braces: Telegram rejects a caption over 64 chars outright, and
     // icon + label can exceed it even when each part is individually valid.
     text: caption.slice(0, 64),
     ...(opts.callback ? { callback_data: opts.callback } : {}),
     ...(opts.url ? { url: opts.url } : {}),
-    ...buttonExtras(b, opts.label),
+    ...extras,
+    ...(customEmojiId ? { icon_custom_emoji_id: customEmojiId } : {}),
   };
 }
 

@@ -33,6 +33,8 @@ interface Message {
   from?: TelegramFrom;
   chat: { id: number };
   text?: string;
+  /** Carries the custom_emoji id when a premium emoji is sent. */
+  entities?: { type: string; offset: number; length: number; custom_emoji_id?: string }[];
 }
 interface CallbackQuery {
   id: string;
@@ -178,7 +180,7 @@ async function handleMessage(m: Message): Promise<void> {
 
   // A half-finished admin edit consumes the next message before anything else,
   // otherwise "send me the new label" would be treated as a course search.
-  if (await handleAdminInput(telegramId, user.id, chatId, text)) return;
+  if (await handleAdminInput(telegramId, user.id, chatId, text, m.entities)) return;
 
   if (text.startsWith("/")) {
     // Strip any @botusername suffix Telegram adds in groups.

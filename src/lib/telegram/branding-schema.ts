@@ -163,6 +163,18 @@ export function isPremiumIcon(branding: Branding, key: IconKey): boolean {
   return isPremium(branding.icons[key]);
 }
 
+/**
+ * Custom-emoji id for an icon, or null when it's a plain emoji.
+ *
+ * Button captions are plain text, so a `<tg-emoji>` tag would be shown
+ * literally there. The only way a premium icon can appear on a button is
+ * Telegram's `icon_custom_emoji_id` field — this is what feeds it.
+ */
+export function premiumIconId(branding: Branding, key: IconKey): string | null {
+  const value = branding.icons[key];
+  return isPremium(value) ? value.premiumId : null;
+}
+
 /** Button caption text, without any icon. */
 export function labelText(branding: Branding, key: LabelKey): string {
   const value = branding.labels[key];

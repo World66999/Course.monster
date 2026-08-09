@@ -482,11 +482,42 @@ export async function handleAdminCallback(
 }
 
 /** Consumes a pending admin text input. Returns true when it handled the message. */
+export interface MessageEntity {
+  type: string;
+  offset: number;
+  length: number;
+  custom_emoji_id?: string;
+}
+
+/**
+ * Pulls a premium emoji out of a message.
+ *
+ * When someone sends a custom emoji, Telegram delivers the *fallback* glyph in
+ * `text` plus a `custom_emoji` entity carrying the real id. Reading `text`
+ * alone silently downgrades every premium emoji to a plain one — which is
+ * exactly what used to happen here.
+ *
+ * Entity offsets are UTF-16 code units, which is also how JS indexes strings,
+ * so slicing directly is correct.
+ */
+function extractPremiumEmoji(
+  text: string,
+  entities: MessageEntity[] | undefined
+): { premiumId: string; char: string } | null {
+  const entity = entities?.find((e) => e.type === "custom_emoji" && e.custom_emoji_id);
+  if (!entity?.custom_emoji_id) return null;
+  const char = text.slice(entity.offset, entity.offset + entity.length).trim();
+  // Telegram requires a real emoji as the fallback; refuse to invent one.
+  if (!char) return null;
+  return { premiumId: entity.custom_emoji_id, char: char.slice(0, MAX_ICON_LENGTH) };
+}
+
 export async function handleAdminInput(
   telegramId: string,
   userId: string,
   chatId: string,
-  text: string
+  text: string,
+  entities?: MessageEntity[]
 ): Promise<boolean> {
   if (!isBotAdmin(telegramId)) return false;
   const row = await db.telegramUser.findUnique({ where: { id: userId }, select: { adminState: true } });
@@ -504,16 +535,21 @@ export async function handleAdminInput(
   switch (state.mode) {
     case "icon": {
       if (!(state.key in ICON_META)) { await setState(userId, null); return true; }
-      const value = text.trim();
-      if (!value || value.length > MAX_ICON_LENGTH) {
+      const premium = extractPremiumEmoji(text, entities);
+      const plain = text.trim();
+      if (!premium && (!plain || plain.length > MAX_ICON_LENGTH)) {
         await sendMessage(chatId, `⚠️ Send a single emoji (max ${MAX_ICON_LENGTH} characters).`, {});
         return true;
       }
+      const value = premium ?? plain;
       const b = await getBranding();
       await saveBranding(brandingSchema.parse({ ...b, icons: { ...b.icons, [state.key]: value } }));
       await setState(userId, null);
       const screen = await iconsScreen(0);
-      await sendMessage(chatId, `✅ <b>${esc(ICON_META[state.key as IconKey].name)}</b> is now ${value}`, {});
+      const shown = premium
+        ? `<tg-emoji emoji-id="${premium.premiumId}">${premium.char}</tg-emoji> ✨ (premium)`
+        : plain;
+      await sendMessage(chatId, `✅ <b>${esc(ICON_META[state.key as IconKey].name)}</b> is now ${shown}`, {});
       await sendMessage(chatId, screen.text, { replyMarkup: screen.keyboard });
       return true;
     }
@@ -526,8 +562,18 @@ export async function handleAdminInput(
       }
       const b = await getBranding();
       const existing = b.labels[state.key];
+      // A premium emoji typed alongside the label becomes that button's icon,
+      // and is stripped from the caption so it isn't shown twice.
+      const premium = extractPremiumEmoji(text, entities);
+      const cleaned = premium ? value.replace(premium.char, "").trim() || value : value;
       await saveBranding(
-        brandingSchema.parse({ ...b, labels: { ...b.labels, [state.key]: { ...existing, text: value } } })
+        brandingSchema.parse({
+          ...b,
+          labels: {
+            ...b.labels,
+            [state.key]: { ...existing, text: cleaned, ...(premium ? { iconId: premium.premiumId } : {}) },
+          },
+        })
       );
       await setState(userId, null);
       const screen = await labelsScreen(0);
