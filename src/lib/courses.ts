@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { Prisma, type SkillLevel } from "@prisma/client";
 import { db } from "@/lib/db";
 import type { ListCoursesQuery } from "@/lib/validation";
@@ -88,12 +89,13 @@ export async function listCourses(query: ListCoursesQuery): Promise<{
   return { items, nextCursor, total };
 }
 
-export async function getPublishedCourse(slug: string) {
+/** Cached per-request: generateMetadata() and the page component both call this for the same slug. */
+export const getPublishedCourse = cache(async (slug: string) => {
   return db.course.findFirst({
     where: { slug, published: true },
     include: { category: { select: { name: true, slug: true } } },
   });
-}
+});
 
 export async function getRelatedCourses(course: {
   id: string;
@@ -150,10 +152,7 @@ export async function getHomepageData() {
       orderBy: [{ createdAt: "desc" }],
       take: 8,
     }),
-    db.category.findMany({
-      orderBy: { order: "asc" },
-      include: { _count: { select: { courses: { where: { published: true } } } } },
-    }),
+    getAllCategories(),
     getSiteStats(),
   ]);
   return { featured, trending, mostDownloaded, recent, categories, stats };
@@ -185,6 +184,7 @@ export async function getCourseLanguages(): Promise<string[]> {
 
 export async function getAllCategories() {
   return db.category.findMany({
+    where: { courses: { some: { published: true } } },
     orderBy: { order: "asc" },
     include: { _count: { select: { courses: { where: { published: true } } } } },
   });

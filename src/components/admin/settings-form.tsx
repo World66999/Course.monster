@@ -25,12 +25,15 @@ import {
 } from "@/components/ui/select";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { cn } from "@/lib/utils";
+import { safeAction } from "@/lib/admin-action";
 
 const TABS = [
   { value: "general", label: "General" },
   { value: "announcement", label: "Announcement" },
   { value: "social", label: "Social" },
   { value: "seo", label: "SEO" },
+  { value: "comments", label: "Comments" },
+  { value: "chat", label: "Chat" },
   { value: "advanced", label: "Advanced" },
 ] as const;
 
@@ -47,7 +50,7 @@ export function SettingsForm({ defaultValues }: { defaultValues: SiteSettings })
   });
 
   async function onSubmit(values: SiteSettings) {
-    const result = await saveSettingsAction(values);
+    const result = await safeAction(() => saveSettingsAction(values));
     if (result.ok) {
       toast.success("Settings saved");
       router.refresh();
@@ -84,7 +87,7 @@ export function SettingsForm({ defaultValues }: { defaultValues: SiteSettings })
         <Tabs.Content value="general" className="space-y-6">
           <section className={sectionClass}>
             <h2 className="font-semibold">Identity</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="siteName">Website name</Label>
                 <Input id="siteName" {...register("siteName")} />
@@ -102,7 +105,7 @@ export function SettingsForm({ defaultValues }: { defaultValues: SiteSettings })
               <FieldHint>Shown in the hero and used as the default meta description.</FieldHint>
               <FieldError message={errors.description?.message} />
             </div>
-            <div className="grid gap-6 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <Controller
                 control={control}
                 name="logoUrl"
@@ -216,7 +219,7 @@ export function SettingsForm({ defaultValues }: { defaultValues: SiteSettings })
               />
               <FieldError message={errors.announcement?.text?.message} />
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="announcement-link">Link URL</Label>
                 <Input id="announcement-link" {...register("announcement.linkUrl")} placeholder="https://…" />
@@ -235,7 +238,7 @@ export function SettingsForm({ defaultValues }: { defaultValues: SiteSettings })
           <section className={sectionClass}>
             <h2 className="font-semibold">Social links</h2>
             <FieldHint>Shown in the footer. Leave empty to hide.</FieldHint>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {(["twitter", "youtube", "github", "instagram", "facebook", "discord"] as const).map(
                 (key) => (
                   <div key={key} className="space-y-1.5">
@@ -292,6 +295,254 @@ export function SettingsForm({ defaultValues }: { defaultValues: SiteSettings })
                 />
               )}
             />
+          </section>
+        </Tabs.Content>
+
+        {/* ---- Comments ---- */}
+        <Tabs.Content value="comments" className="space-y-6">
+          <section className={sectionClass}>
+            <h2 className="font-semibold">Comments & reviews</h2>
+            <label className="flex cursor-pointer items-center justify-between gap-2 text-sm font-medium">
+              Enable comments &amp; reviews
+              <Controller
+                control={control}
+                name="comments.enabled"
+                render={({ field }) => (
+                  <Switch checked={field.value} onCheckedChange={field.onChange} aria-label="Comments enabled" />
+                )}
+              />
+            </label>
+            <label className="flex cursor-pointer items-center justify-between gap-2 text-sm font-medium">
+              Profanity/spam filter
+              <Controller
+                control={control}
+                name="comments.profanityFilterEnabled"
+                render={({ field }) => (
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    aria-label="Profanity filter enabled"
+                  />
+                )}
+              />
+            </label>
+            <FieldHint>Flagged posts are hidden pending moderator review rather than rejected outright.</FieldHint>
+          </section>
+
+          <section className={sectionClass}>
+            <h2 className="font-semibold">Length limits</h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="comments-minLength">Comment min length</Label>
+                <Input
+                  id="comments-minLength"
+                  type="number"
+                  min="1"
+                  max="500"
+                  {...register("comments.minLength", { valueAsNumber: true })}
+                />
+                <FieldError message={errors.comments?.minLength?.message} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="comments-maxLength">Comment max length</Label>
+                <Input
+                  id="comments-maxLength"
+                  type="number"
+                  min="10"
+                  max="10000"
+                  {...register("comments.maxLength", { valueAsNumber: true })}
+                />
+                <FieldError message={errors.comments?.maxLength?.message} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="comments-reviewMaxLength">Review max length</Label>
+                <Input
+                  id="comments-reviewMaxLength"
+                  type="number"
+                  min="10"
+                  max="20000"
+                  {...register("comments.reviewMaxLength", { valueAsNumber: true })}
+                />
+                <FieldError message={errors.comments?.reviewMaxLength?.message} />
+              </div>
+            </div>
+          </section>
+
+          <section className={sectionClass}>
+            <h2 className="font-semibold">Anti-spam</h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="comments-rateLimitCount">Max posts per window</Label>
+                <Input
+                  id="comments-rateLimitCount"
+                  type="number"
+                  min="1"
+                  max="1000"
+                  {...register("comments.rateLimitCount", { valueAsNumber: true })}
+                />
+                <FieldError message={errors.comments?.rateLimitCount?.message} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="comments-rateLimitWindowMinutes">Window (minutes)</Label>
+                <Input
+                  id="comments-rateLimitWindowMinutes"
+                  type="number"
+                  min="1"
+                  max="1440"
+                  {...register("comments.rateLimitWindowMinutes", { valueAsNumber: true })}
+                />
+                <FieldError message={errors.comments?.rateLimitWindowMinutes?.message} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="comments-cooldownSeconds">Cooldown between posts (seconds)</Label>
+                <Input
+                  id="comments-cooldownSeconds"
+                  type="number"
+                  min="0"
+                  max="3600"
+                  {...register("comments.cooldownSeconds", { valueAsNumber: true })}
+                />
+                <FieldError message={errors.comments?.cooldownSeconds?.message} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="comments-duplicateWindowMinutes">Duplicate-post window (minutes)</Label>
+                <Input
+                  id="comments-duplicateWindowMinutes"
+                  type="number"
+                  min="1"
+                  max="1440"
+                  {...register("comments.duplicateWindowMinutes", { valueAsNumber: true })}
+                />
+                <FieldHint>Blocks the same user re-posting identical text within this window.</FieldHint>
+                <FieldError message={errors.comments?.duplicateWindowMinutes?.message} />
+              </div>
+            </div>
+          </section>
+        </Tabs.Content>
+
+        {/* ---- Chat ---- */}
+        <Tabs.Content value="chat" className="space-y-6">
+          <section className={sectionClass}>
+            <h2 className="font-semibold">Community chat</h2>
+            <label className="flex cursor-pointer items-center justify-between gap-2 text-sm font-medium">
+              Enable chat
+              <Controller
+                control={control}
+                name="chat.enabled"
+                render={({ field }) => (
+                  <Switch checked={field.value} onCheckedChange={field.onChange} aria-label="Chat enabled" />
+                )}
+              />
+            </label>
+            <label className="flex cursor-pointer items-center justify-between gap-2 text-sm font-medium">
+              Profanity/spam filter
+              <Controller
+                control={control}
+                name="chat.profanityFilterEnabled"
+                render={({ field }) => (
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    aria-label="Chat profanity filter enabled"
+                  />
+                )}
+              />
+            </label>
+            <FieldHint>
+              Flagged messages are hidden pending moderator review. Messages containing a link always require
+              admin approval before they&apos;re publicly visible, regardless of this filter.
+            </FieldHint>
+          </section>
+
+          <section className={sectionClass}>
+            <h2 className="font-semibold">Length &amp; polling</h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="chat-minLength">Message min length</Label>
+                <Input
+                  id="chat-minLength"
+                  type="number"
+                  min="0"
+                  max="500"
+                  {...register("chat.minLength", { valueAsNumber: true })}
+                />
+                <FieldError message={errors.chat?.minLength?.message} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="chat-maxLength">Message max length</Label>
+                <Input
+                  id="chat-maxLength"
+                  type="number"
+                  min="10"
+                  max="4000"
+                  {...register("chat.maxLength", { valueAsNumber: true })}
+                />
+                <FieldError message={errors.chat?.maxLength?.message} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="chat-pollIntervalSeconds">Poll interval (seconds)</Label>
+                <Input
+                  id="chat-pollIntervalSeconds"
+                  type="number"
+                  min="2"
+                  max="60"
+                  {...register("chat.pollIntervalSeconds", { valueAsNumber: true })}
+                />
+                <FieldHint>How often the browser checks for new messages while chat is open.</FieldHint>
+                <FieldError message={errors.chat?.pollIntervalSeconds?.message} />
+              </div>
+            </div>
+          </section>
+
+          <section className={sectionClass}>
+            <h2 className="font-semibold">Anti-spam</h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="chat-rateLimitCount">Max messages per window</Label>
+                <Input
+                  id="chat-rateLimitCount"
+                  type="number"
+                  min="1"
+                  max="2000"
+                  {...register("chat.rateLimitCount", { valueAsNumber: true })}
+                />
+                <FieldError message={errors.chat?.rateLimitCount?.message} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="chat-rateLimitWindowMinutes">Window (minutes)</Label>
+                <Input
+                  id="chat-rateLimitWindowMinutes"
+                  type="number"
+                  min="1"
+                  max="1440"
+                  {...register("chat.rateLimitWindowMinutes", { valueAsNumber: true })}
+                />
+                <FieldError message={errors.chat?.rateLimitWindowMinutes?.message} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="chat-cooldownSeconds">Cooldown between messages (seconds)</Label>
+                <Input
+                  id="chat-cooldownSeconds"
+                  type="number"
+                  min="0"
+                  max="3600"
+                  {...register("chat.cooldownSeconds", { valueAsNumber: true })}
+                />
+                <FieldError message={errors.chat?.cooldownSeconds?.message} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="chat-duplicateWindowMinutes">Duplicate-message window (minutes)</Label>
+                <Input
+                  id="chat-duplicateWindowMinutes"
+                  type="number"
+                  min="1"
+                  max="1440"
+                  {...register("chat.duplicateWindowMinutes", { valueAsNumber: true })}
+                />
+                <FieldHint>Blocks the same user re-posting identical text within this window.</FieldHint>
+                <FieldError message={errors.chat?.duplicateWindowMinutes?.message} />
+              </div>
+            </div>
           </section>
         </Tabs.Content>
 

@@ -30,6 +30,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
+const CATEGORY_GRID_LIMIT = 12;
+
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   code: Code2,
   palette: Palette,
@@ -139,10 +141,12 @@ export default async function HomePage() {
             <SectionHeading
               title="Browse by category"
               subtitle="Find courses in the field you want to master"
+              href={categories.length > CATEGORY_GRID_LIMIT ? "/courses" : undefined}
+              linkLabel="View all categories"
             />
           </Reveal>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            {categories.map((category, i) => {
+            {categories.slice(0, CATEGORY_GRID_LIMIT).map((category, i) => {
               const Icon = CATEGORY_ICONS[category.icon ?? ""] ?? BookOpen;
               return (
                 <Reveal key={category.id} delay={i * 0.05}>

@@ -15,6 +15,15 @@ interface TokenPayload {
   ipHash: string;
   nonce: string;
   exp: number;
+  /** Descriptive attribution only ("telegram"); never an authorization input. */
+  src?: string;
+  /** Telegram user id when `src` is "telegram". */
+  tgId?: string;
+}
+
+export interface DownloadAttribution {
+  source: string;
+  telegramUserId: string;
 }
 
 const usedNonces = new Map<string, number>();
@@ -29,19 +38,24 @@ function sign(data: string): string {
   return createHmac("sha256", secret()).update(data).digest("base64url");
 }
 
-export function createDownloadToken(courseId: string, ipHash: string): string {
+export function createDownloadToken(
+  courseId: string,
+  ipHash: string,
+  attribution?: DownloadAttribution
+): string {
   const payload: TokenPayload = {
     courseId,
     ipHash,
     nonce: randomBytes(12).toString("base64url"),
     exp: Date.now() + TOKEN_TTL_MS,
+    ...(attribution ? { src: attribution.source, tgId: attribution.telegramUserId } : {}),
   };
   const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return `${data}.${sign(data)}`;
 }
 
 export type TokenVerifyResult =
-  | { ok: true; courseId: string }
+  | { ok: true; courseId: string; attribution?: DownloadAttribution }
   | { ok: false; reason: "invalid" | "expired" | "used" | "ip_mismatch" };
 
 export function consumeDownloadToken(token: string, ipHash: string): TokenVerifyResult {
@@ -81,5 +95,11 @@ export function consumeDownloadToken(token: string, ipHash: string): TokenVerify
   }
   usedNonces.set(payload.nonce, payload.exp);
 
-  return { ok: true, courseId: payload.courseId };
+  return {
+    ok: true,
+    courseId: payload.courseId,
+    ...(typeof payload.src === "string" && typeof payload.tgId === "string"
+      ? { attribution: { source: payload.src, telegramUserId: payload.tgId } }
+      : {}),
+  };
 }

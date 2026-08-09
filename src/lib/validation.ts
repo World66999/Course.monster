@@ -66,6 +66,15 @@ export const courseFormSchema = z.object({
   learningOutcomes: z.string().max(4_000).optional().default(""),
   certificate: z.enum(["unset", "yes", "no"]).optional().default("unset"),
   lifetimeAccess: z.enum(["unset", "yes", "no"]).optional().default("unset"),
+  /**
+   * Announced availability date, surfaced by the Telegram bot's "Upcoming"
+   * section. Empty means "not upcoming" — nothing infers a date.
+   */
+  availableAt: z
+    .string()
+    .regex(/^(\d{4}-\d{2}-\d{2})?$/, "Use the date picker (YYYY-MM-DD)")
+    .optional()
+    .default(""),
   published: z.boolean().default(false),
   featured: z.boolean().default(false),
   trending: z.boolean().default(false),

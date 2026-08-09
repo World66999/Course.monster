@@ -2,18 +2,40 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { listCourses, getAllCategories, getCourseLanguages } from "@/lib/courses";
 import { listCoursesQuerySchema } from "@/lib/validation";
+import { db } from "@/lib/db";
+import { absoluteUrl } from "@/lib/utils";
 import { Section } from "@/components/site/section";
 import { FiltersBar } from "@/components/site/filters-bar";
 import { InfiniteCourseList } from "@/components/site/course-list";
 import { CourseGridSkeleton } from "@/components/ui/skeleton";
 
-export const metadata: Metadata = {
-  title: "All Courses",
-  description: "Browse and download every free course — filter by category, search and sort.",
-  alternates: { canonical: "/courses" },
-};
-
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}): Promise<Metadata> {
+  const { category: categorySlug } = await searchParams;
+  const slug = Array.isArray(categorySlug) ? categorySlug[0] : categorySlug;
+
+  const category = slug
+    ? await db.category.findUnique({ where: { slug }, select: { name: true, description: true } })
+    : null;
+
+  const title = category ? `${category.name} Courses` : "All Courses";
+  const description = category
+    ? category.description || `Browse and download free ${category.name} courses.`
+    : "Browse and download every free course — filter by category, search and sort.";
+  const canonical = category ? `/courses?category=${slug}` : "/courses";
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: { title, description, url: absoluteUrl(canonical) },
+  };
+}
 
 async function CourseResults({ searchParams }: { searchParams: SearchParams }) {
   const raw = await searchParams;

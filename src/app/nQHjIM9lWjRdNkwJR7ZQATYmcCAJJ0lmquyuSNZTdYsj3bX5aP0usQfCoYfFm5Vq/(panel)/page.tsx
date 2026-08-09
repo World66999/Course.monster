@@ -106,7 +106,7 @@ export default async function AdminDashboard() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map(({ label, value, sub, icon: Icon }) => (
           <div
             key={label}
@@ -124,7 +124,7 @@ export default async function AdminDashboard() {
         ))}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         {/* Downloads chart */}
         <div className="rounded-2xl border border-border bg-card p-5 shadow-soft xl:col-span-2">
           <div className="mb-6 flex items-center justify-between">
@@ -134,9 +134,9 @@ export default async function AdminDashboard() {
             </div>
             <TrendingUp className="h-5 w-5 text-primary" aria-hidden />
           </div>
-          <div className="flex h-44 items-end gap-1.5" role="img" aria-label="Bar chart of downloads per day for the last 14 days">
+          <div className="flex h-44 items-end gap-1 overflow-x-auto sm:gap-1.5" role="img" aria-label="Bar chart of downloads per day for the last 14 days">
             {chart.map((d) => (
-              <div key={d.label} className="group flex flex-1 flex-col items-center gap-1.5">
+              <div key={d.label} className="group flex min-w-0 flex-1 flex-col items-center gap-1.5">
                 <span className="text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
                   {d.count}
                 </span>
@@ -145,7 +145,7 @@ export default async function AdminDashboard() {
                   style={{ height: `${Math.max(3, (d.count / maxChart) * 130)}px` }}
                   title={`${d.label}: ${d.count} downloads`}
                 />
-                <span className="text-[10px] text-muted-foreground">{d.label}</span>
+                <span className="truncate text-[10px] text-muted-foreground">{d.label}</span>
               </div>
             ))}
           </div>
@@ -180,7 +180,7 @@ export default async function AdminDashboard() {
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         {/* Recent downloads */}
         <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
           <h2 className="mb-4 font-semibold">Recent downloads</h2>
@@ -197,7 +197,7 @@ export default async function AdminDashboard() {
                     <Download className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
                     <span className="truncate">{event.course.title}</span>
                   </span>
-                  <span className="shrink-0 text-xs text-muted-foreground">
+                  <span className="shrink-0 text-xs text-muted-foreground" suppressHydrationWarning>
                     {formatDistanceToNow(event.createdAt, { addSuffix: true })}
                   </span>
                 </li>
@@ -228,7 +228,7 @@ export default async function AdminDashboard() {
                     <span className="font-medium">{log.user?.name ?? "System"}</span>{" "}
                     <span className="text-muted-foreground">{log.action}</span>
                   </span>
-                  <span className="shrink-0 text-xs text-muted-foreground" title={formatDate(log.createdAt)}>
+                  <span className="shrink-0 text-xs text-muted-foreground" title={formatDate(log.createdAt)} suppressHydrationWarning>
                     {formatDistanceToNow(log.createdAt, { addSuffix: true })}
                   </span>
                 </li>

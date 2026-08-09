@@ -264,6 +264,7 @@ body {
 .markdown {
   line-height: 1.75;
   font-size: 1rem;
+  overflow-wrap: break-word;
 }
 .markdown > * + * {
   margin-top: 1em;

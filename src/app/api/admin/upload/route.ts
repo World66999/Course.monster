@@ -2,12 +2,28 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { saveImageUpload, UploadError, type UploadKind } from "@/lib/uploads";
 import { logAudit } from "@/lib/audit";
+import { isStaff } from "@/lib/roles";
+import { isTrustedOrigin } from "@/lib/ip";
 
-const KINDS = new Set<UploadKind>(["thumbnail", "banner", "logo", "meta"]);
+const KINDS = new Set<UploadKind>([
+  "thumbnail",
+  "banner",
+  "logo",
+  "meta",
+  "channelLogo",
+  "appIcon",
+  "appScreenshot",
+  "resourceThumbnail",
+]);
 
 export async function POST(request: NextRequest) {
+  const origin = request.headers.get("origin") ?? request.headers.get("referer");
+  if (!isTrustedOrigin(origin, request.nextUrl.origin)) {
+    return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
+  }
+
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!session?.user?.id || !isStaff(session.user.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

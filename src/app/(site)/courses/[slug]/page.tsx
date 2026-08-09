@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { after } from "next/server";
 import {
   BookOpenCheck,
   CalendarDays,
@@ -29,6 +28,8 @@ import { CourseImage } from "@/components/site/course-image";
 import { CourseCard } from "@/components/site/course-card";
 import { Markdown } from "@/components/site/markdown";
 import { Section, SectionHeading } from "@/components/site/section";
+import { ReviewsSection } from "@/components/site/reviews/reviews-section";
+import { CommentsSection } from "@/components/site/comments/comments-section";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -88,14 +89,29 @@ export default async function CoursePage({ params }: Props) {
   if (!course) notFound();
 
   // Count the view without delaying the response.
-  after(async () => {
-    await db.course
-      .update({ where: { id: course.id }, data: { views: { increment: 1 } } })
-      .catch(() => undefined);
-  });
+  //
+  // Deliberately NOT wrapped in `after()`: this page streams children
+  // (ReviewsSection/CommentsSection) that call auth() -> headers(), and those
+  // resolve while the after() callback's async context is still active, which
+  // makes Next.js throw `Route used "headers" inside "after(...)"` and render
+  // the error boundary instead of the page (seen in production with digests
+  // 1385834900 / 1233773012). Fire-and-forget matches what the request/
+  // channel/resource/app detail pages already do.
+  db.course
+    .update({ where: { id: course.id }, data: { views: { increment: 1 } } })
+    .catch(() => undefined);
 
   const related = await getRelatedCourses(course);
   const telegramUrl = course.telegramUrl || settings.telegramUrl;
+  // Deep link straight to this course in the bot. Uses the public slug (never a
+  // database id) and stays inside Telegram's 64-char start-parameter limit.
+  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT ?? "";
+  const botCourseUrl =
+    botUsername && /^[a-z0-9-]{1,64}$/.test(course.slug)
+      ? `https://t.me/${botUsername}?start=${course.slug}`
+      : botUsername
+        ? `https://t.me/${botUsername}`
+        : "";
 
   // Facts card rows — only facts that actually have data.
   const facts: { label: string; value: string }[] = [
@@ -159,6 +175,18 @@ export default async function CoursePage({ params }: Props) {
             ...(course.instructor
               ? { instructor: { "@type": "Person", name: course.instructor } }
               : {}),
+          },
+        }
+      : {}),
+    // Only ever emitted with real reviews behind it — no thin/fake structured data.
+    ...(course.reviewCount > 0 && course.avgRating
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: course.avgRating.toFixed(1),
+            reviewCount: course.reviewCount,
+            bestRating: 5,
+            worstRating: 1,
           },
         }
       : {}),
@@ -308,7 +336,7 @@ export default async function CoursePage({ params }: Props) {
                   <BookOpenCheck className="h-5 w-5 text-primary" aria-hidden />
                   What you&apos;ll learn
                 </h2>
-                <ul className="grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
+                <ul className="grid grid-cols-1 gap-x-6 gap-y-2.5 sm:grid-cols-2">
                   {course.learningOutcomes.map((outcome) => (
                     <li key={outcome} className="flex items-start gap-2.5 text-sm">
                       <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden />
@@ -370,6 +398,17 @@ export default async function CoursePage({ params }: Props) {
                     Get on Telegram
                   </a>
                 )}
+                {botCourseUrl && (
+                  <a
+                    href={botCourseUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={buttonClasses("ghost", "lg", "w-full")}
+                  >
+                    <Send className="h-4 w-4" aria-hidden />
+                    Open in Course Bot
+                  </a>
+                )}
                 <Link
                   href="/how-to-download"
                   className={buttonClasses("ghost", "md", "w-full text-muted-foreground")}
@@ -419,6 +458,13 @@ export default async function CoursePage({ params }: Props) {
           </div>
         )}
       </Section>
+
+      <div className="border-t border-border">
+        <ReviewsSection courseId={course.id} />
+      </div>
+      <div className="border-t border-border pb-28 lg:pb-0">
+        <CommentsSection courseId={course.id} />
+      </div>
 
       {/* Mobile sticky download bar — the sidebar CTA is below the fold on phones. */}
       <div className="glass fixed inset-x-0 bottom-0 z-30 border-x-0 border-b-0 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">

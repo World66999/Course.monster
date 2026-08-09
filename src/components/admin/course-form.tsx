@@ -9,7 +9,7 @@ import { ArrowLeft, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import type { z } from "zod";
 import { courseFormSchema, type CourseFormValues } from "@/lib/validation";
-import { saveCourseAction } from "@/server/actions/courses";
+import { saveCourseAction, deleteCourseImageAction, deleteUploadedFileAction } from "@/server/actions/courses";
 import { slugify } from "@/lib/utils";
 import { adminPath } from "@/lib/admin-path";
 import { Button, buttonClasses } from "@/components/ui/button";
@@ -23,8 +23,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { MarkdownEditor } from "@/components/admin/markdown-editor";
+import { safeAction } from "@/lib/admin-action";
 
 type FormInput = z.input<typeof courseFormSchema>;
 
@@ -80,6 +82,7 @@ export function CourseForm({
     control,
     handleSubmit,
     setValue,
+    getValues,
     watch,
     formState: { errors, isSubmitting },
   } = useForm<FormInput, unknown, CourseFormValues>({
@@ -94,8 +97,33 @@ export function CourseForm({
     }
   }, [title, setValue]);
 
+  /**
+   * Deletes the current server-stored image for a field, independent of the
+   * rest of the form: an existing course's image is cleared + its file
+   * removed immediately via deleteCourseImageAction; a brand-new course
+   * draft has no row yet, so a locally-uploaded file (not a pasted external
+   * URL) is removed via the standalone deleteUploadedFileAction instead.
+   */
+  async function deleteImageField(
+    field: "thumbnail" | "banner" | "metaImage"
+  ): Promise<{ ok: boolean; error?: string }> {
+    if (courseId) {
+      return safeAction(() => deleteCourseImageAction(courseId, field));
+    }
+    const current = getValues(field);
+    if (!current || !current.startsWith("/uploads/")) {
+      return { ok: true };
+    }
+    return safeAction(() => deleteUploadedFileAction(current));
+  }
+
+  /** Removes a file that was uploaded then cancelled before saving, so it doesn't linger as an orphan. */
+  async function discardUpload(path: string): Promise<void> {
+    await safeAction(() => deleteUploadedFileAction(path), "discard upload");
+  }
+
   async function onSubmit(values: CourseFormValues) {
-    const result = await saveCourseAction(courseId, values);
+    const result = await safeAction(() => saveCourseAction(courseId, values));
     if (result.ok) {
       toast.success(courseId ? "Course updated" : "Course created");
       router.push(adminPath("courses"));
@@ -137,7 +165,7 @@ export function CourseForm({
         </div>
       </div>
 
-      <div className="grid gap-8 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
         {/* Main column */}
         <div className="space-y-6 xl:col-span-2">
           <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
@@ -191,7 +219,7 @@ export function CourseForm({
             <p className="-mt-2 text-xs text-muted-foreground">
               All optional — only filled-in fields are shown on the public page.
             </p>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Skill level</Label>
                 <Controller
@@ -371,6 +399,8 @@ export function CourseForm({
                   kind="meta"
                   value={field.value ?? ""}
                   onChange={field.onChange}
+                  onDelete={() => deleteImageField("metaImage")}
+                  onDiscardUpload={discardUpload}
                   hint="1200×630 recommended. Defaults to the banner or thumbnail."
                 />
               )}
@@ -388,22 +418,17 @@ export function CourseForm({
                 control={control}
                 name="categoryId"
                 render={({ field }) => (
-                  <Select
+                  <Combobox
+                    aria-label="Category"
                     value={field.value || NONE}
-                    onValueChange={(v) => field.onChange(v === NONE ? "" : v)}
-                  >
-                    <SelectTrigger aria-label="Category">
-                      <SelectValue placeholder="No category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE}>No category</SelectItem>
-                      {categories.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={(v) => field.onChange(v === NONE ? "" : v)}
+                    placeholder="No category"
+                    searchPlaceholder="Search categories…"
+                    options={[
+                      { value: NONE, label: "No category" },
+                      ...categories.map((c) => ({ value: c.id, label: c.name })),
+                    ]}
+                  />
                 )}
               />
             </div>
@@ -411,6 +436,15 @@ export function CourseForm({
               <Label htmlFor="tags">Tags</Label>
               <Input id="tags" {...register("tags")} placeholder="react, typescript, nextjs" />
               <FieldHint>Comma-separated, up to 15.</FieldHint>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="availableAt">Expected availability date</Label>
+              <Input id="availableAt" type="date" {...register("availableAt")} />
+              <FieldHint>
+                Optional. Set a future date on an <strong>unpublished</strong> course to list it under
+                &ldquo;Upcoming&rdquo; in the Telegram bot. Leave empty if it isn&apos;t upcoming.
+              </FieldHint>
+              <FieldError message={errors.availableAt?.message} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
@@ -473,6 +507,8 @@ export function CourseForm({
                   kind="thumbnail"
                   value={field.value ?? ""}
                   onChange={field.onChange}
+                  onDelete={() => deleteImageField("thumbnail")}
+                  onDiscardUpload={discardUpload}
                   hint="16:9, shown on cards. A branded gradient is used if empty."
                 />
               )}
@@ -486,6 +522,8 @@ export function CourseForm({
                   kind="banner"
                   value={field.value ?? ""}
                   onChange={field.onChange}
+                  onDelete={() => deleteImageField("banner")}
+                  onDiscardUpload={discardUpload}
                   hint="Wide image for the course page header."
                 />
               )}

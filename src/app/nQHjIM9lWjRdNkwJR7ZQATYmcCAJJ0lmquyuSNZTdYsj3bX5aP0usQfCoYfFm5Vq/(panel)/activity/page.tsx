@@ -66,7 +66,7 @@ export default async function AdminActivityPage() {
                     </td>
                     <td className="p-3">{log.user?.name ?? "System"}</td>
                     <td className="max-w-64 truncate p-3 text-muted-foreground">{detail}</td>
-                    <td className="p-3 whitespace-nowrap text-muted-foreground">
+                    <td className="p-3 whitespace-nowrap text-muted-foreground" suppressHydrationWarning>
                       {formatDistanceToNow(log.createdAt, { addSuffix: true })}
                     </td>
                   </tr>

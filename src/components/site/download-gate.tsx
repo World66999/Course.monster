@@ -1,25 +1,45 @@
 "use client";
 
 import * as React from "react";
+import dynamic from "next/dynamic";
 import { Turnstile } from "@marsidev/react-turnstile";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Download, ExternalLink, Loader2, TimerReset } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
-type Phase = "counting" | "verify" | "ready" | "launching" | "redirected";
+// Code-split: the verification gateway (challenge mini-games, animations)
+// only ever renders after the user clicks "Get download link", so it should
+// never be part of this page's initial bundle.
+const VerificationGateway = dynamic(
+  () => import("@/components/site/verify/verification-gateway").then((m) => m.VerificationGateway),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex w-full items-center justify-center rounded-2xl border border-border bg-card py-12">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden />
+      </div>
+    ),
+  }
+);
+
+type Phase = "counting" | "verify" | "ready" | "gateway" | "launching" | "redirected";
 
 export function DownloadGate({
   slug,
   countdownSeconds,
   captchaSiteKey,
+  attribution = "",
 }: {
   slug: string;
   countdownSeconds: number;
   captchaSiteKey: string;
+  /** Opaque signed blob from a Telegram hand-off; forwarded verbatim, never parsed here. */
+  attribution?: string;
 }) {
   const { resolvedTheme } = useTheme();
+  const reduce = useReducedMotion();
   const captchaEnabled = captchaSiteKey.length > 0;
 
   const [secondsLeft, setSecondsLeft] = React.useState(countdownSeconds);
@@ -45,15 +65,20 @@ export function DownloadGate({
     if (phase === "verify" && canDownload) setPhase("ready");
   }, [phase, canDownload]);
 
-  async function startDownload() {
+  function openGateway() {
     if (!canDownload) return;
+    setError("");
+    setPhase("gateway");
+  }
+
+  async function startDownload(humanTicket: string) {
     setPhase("launching");
     setError("");
     try {
       const res = await fetch("/api/download/init", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, captchaToken }),
+        body: JSON.stringify({ slug, captchaToken, humanTicket, attribution }),
       });
       const data = (await res.json()) as { redirectUrl?: string; error?: string };
       if (!res.ok || !data.redirectUrl) {
@@ -65,6 +90,9 @@ export function DownloadGate({
       const message = err instanceof Error ? err.message : "Something went wrong.";
       setError(message);
       toast.error(message);
+      // The human-verification ticket is single-use regardless of outcome
+      // here, so a retry always goes through the gateway again for a fresh
+      // one rather than silently reusing a (now-consumed) ticket.
       setPhase(captchaEnabled ? "verify" : "ready");
       setCaptchaToken("");
     }
@@ -82,6 +110,7 @@ export function DownloadGate({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: reduce ? 0 : 0.3 }}
             className="flex flex-col items-center gap-4"
             aria-live="polite"
           >
@@ -111,11 +140,23 @@ export function DownloadGate({
             </div>
             <p className="text-sm text-muted-foreground">Preparing your download…</p>
           </motion.div>
+        ) : phase === "gateway" ? (
+          <motion.div
+            key="gateway"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: reduce ? 0 : 0.3 }}
+            className="w-full"
+          >
+            <VerificationGateway slug={slug} onVerified={(ticket) => void startDownload(ticket)} />
+          </motion.div>
         ) : (
           <motion.div
             key="gate"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: reduce ? 0 : 0.3 }}
             className="flex w-full flex-col items-center gap-5"
           >
             {captchaEnabled && (
@@ -141,7 +182,7 @@ export function DownloadGate({
               size="lg"
               className="w-full max-w-sm"
               disabled={!canDownload}
-              onClick={() => void startDownload()}
+              onClick={openGateway}
             >
               {phase === "launching" ? (
                 <>

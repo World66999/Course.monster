@@ -33,7 +33,7 @@ export function CourseImage({
     );
   }
 
-  const { from, to } = gradientFromString(title);
+  const { from, to, light } = gradientFromString(title);
   const initials = title
     .split(/\s+/)
     .filter((w) => /^[a-zA-Z0-9]/.test(w))
@@ -48,7 +48,12 @@ export function CourseImage({
       className={cn("flex h-full w-full items-center justify-center", className)}
       style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
     >
-      <span className="text-3xl font-bold tracking-tight text-white/90 select-none">
+      <span
+        className={cn(
+          "text-3xl font-bold tracking-tight select-none",
+          light ? "text-slate-900/85" : "text-white/90"
+        )}
+      >
         {initials}
       </span>
     </div>

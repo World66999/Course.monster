@@ -40,5 +40,13 @@ export function TabsContent({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>) {
-  return <TabsPrimitive.Content className={cn("mt-4 outline-none", className)} {...props} />;
+  return (
+    <TabsPrimitive.Content
+      className={cn(
+        "mt-4 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/15",
+        className
+      )}
+      {...props}
+    />
+  );
 }

@@ -11,9 +11,10 @@ import { DownloadGate } from "@/components/site/download-gate";
 
 interface Props {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ src?: string | string[] }>;
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params }: Pick<Props, "params">): Promise<Metadata> {
   const { slug } = await params;
   const course = await getPublishedCourse(slug);
   return {
@@ -22,8 +23,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function DownloadPage({ params }: Props) {
+export default async function DownloadPage({ params, searchParams }: Props) {
   const { slug } = await params;
+  // Opaque attribution blob from a Telegram hand-off. Passed through untouched
+  // and verified server-side in /api/download/init; it grants nothing.
+  const { src } = await searchParams;
+  const attribution = typeof src === "string" ? src.slice(0, 512) : "";
   const [course, settings] = await Promise.all([getPublishedCourse(slug), getSiteSettings()]);
   if (!course) notFound();
 
@@ -72,6 +77,7 @@ export default async function DownloadPage({ params }: Props) {
             slug={course.slug}
             countdownSeconds={settings.downloadCountdownSeconds}
             captchaSiteKey={captchaSiteKey}
+            attribution={attribution}
           />
 
           <div className="mt-8 flex items-start gap-3 rounded-xl bg-muted/60 p-4 text-sm text-muted-foreground">

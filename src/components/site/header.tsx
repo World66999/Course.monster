@@ -5,22 +5,24 @@ import { ThemeToggle } from "@/components/site/theme-toggle";
 import { SearchDialog } from "@/components/site/search-dialog";
 import { MobileNav } from "@/components/site/mobile-nav";
 import { NavLinks } from "@/components/site/nav-links";
+import { UserMenu } from "@/components/site/user-menu";
+import { NotificationBell } from "@/components/site/notification-bell";
 import { buttonClasses } from "@/components/ui/button";
 
 import { NAV_LINKS } from "@/lib/nav";
 
 export function SiteLogo({ settings, className }: { settings: SiteSettings; className?: string }) {
   return (
-    <Link href="/" className={`flex items-center gap-2 font-bold tracking-tight ${className ?? ""}`}>
+    <Link href="/" className={`flex min-w-0 items-center gap-2 font-bold tracking-tight ${className ?? ""}`}>
       {settings.logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={settings.logoUrl} alt="" className="h-7 w-auto" />
+        <img src={settings.logoUrl} alt="" className="h-7 w-auto shrink-0" />
       ) : (
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-primary text-white shadow-sm shadow-primary/30 inset-shadow-[0_1px_0_0_rgba(255,255,255,0.25)]">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-primary text-white shadow-sm shadow-primary/30 inset-shadow-[0_1px_0_0_rgba(255,255,255,0.25)]">
           <GraduationCap className="h-5 w-5" aria-hidden />
         </span>
       )}
-      <span className="text-lg">{settings.siteName}</span>
+      <span className="truncate text-lg">{settings.siteName}</span>
     </Link>
   );
 }
@@ -56,17 +58,21 @@ export function Header({ settings }: { settings: SiteSettings }) {
       </a>
       <AnnouncementBar settings={settings} />
       <header className="glass sticky top-0 z-40 border-x-0 border-t-0">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-8">
-            <SiteLogo settings={settings} />
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-3 sm:gap-4 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-8">
+            <SiteLogo settings={settings} className="min-w-0" />
             <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
               <NavLinks links={NAV_LINKS} />
             </nav>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-0.5 sm:gap-2">
             <SearchDialog />
+            <NotificationBell />
             <ThemeToggle />
+            <div className="hidden sm:block">
+              <UserMenu />
+            </div>
             {settings.telegramUrl && (
               <a
                 href={settings.telegramUrl}

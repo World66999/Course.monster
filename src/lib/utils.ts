@@ -53,7 +53,34 @@ export function safeJsonLd(value: unknown): string {
 }
 
 /** Deterministic gradient pair from a string, used for image placeholders. */
-export function gradientFromString(input: string): { from: string; to: string } {
+/**
+ * Some hues (yellows/limes especially) render much lighter than others at
+ * the same HSL lightness, since perceived brightness isn't linear across
+ * hue — white text on those fails WCAG contrast. This picks readable text
+ * color per-gradient instead of assuming white always works.
+ */
+function isLightHsl(h: number, s: number, l: number): boolean {
+  const hue2rgb = (p: number, q: number, t: number) => {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1 / 6) return p + (q - p) * 6 * t;
+    if (t < 1 / 2) return q;
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+    return p;
+  };
+  const hNorm = h / 360;
+  const sNorm = s / 100;
+  const lNorm = l / 100;
+  const q = lNorm < 0.5 ? lNorm * (1 + sNorm) : lNorm + sNorm - lNorm * sNorm;
+  const p = 2 * lNorm - q;
+  const r = hue2rgb(p, q, hNorm + 1 / 3) * 255;
+  const g = hue2rgb(p, q, hNorm) * 255;
+  const b = hue2rgb(p, q, hNorm - 1 / 3) * 255;
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq >= 140;
+}
+
+export function gradientFromString(input: string): { from: string; to: string; light: boolean } {
   let hash = 0;
   for (let i = 0; i < input.length; i++) {
     hash = (hash * 31 + input.charCodeAt(i)) >>> 0;
@@ -63,5 +90,6 @@ export function gradientFromString(input: string): { from: string; to: string } 
   return {
     from: `hsl(${hue} 70% 45%)`,
     to: `hsl(${hue2} 80% 35%)`,
+    light: isLightHsl(hue, 70, 45),
   };
 }

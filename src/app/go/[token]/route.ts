@@ -56,7 +56,13 @@ export async function GET(
   try {
     await db.$transaction([
       db.downloadEvent.create({
-        data: { courseId: course.id, ipHash: ipKey, userAgent },
+        data: {
+          courseId: course.id,
+          ipHash: ipKey,
+          userAgent,
+          source: result.attribution?.source ?? null,
+          telegramUserId: result.attribution?.telegramUserId ?? null,
+        },
       }),
       db.course.update({
         where: { id: course.id },

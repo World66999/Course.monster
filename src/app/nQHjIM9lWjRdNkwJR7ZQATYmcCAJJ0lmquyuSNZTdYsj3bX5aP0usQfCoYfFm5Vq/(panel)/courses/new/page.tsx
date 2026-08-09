@@ -27,6 +27,7 @@ export default async function NewCoursePage() {
           categoryId: "",
           tags: "",
           downloadUrl: "",
+          availableAt: "",
           telegramUrl: "",
           sizeLabel: "",
           lecturesCount: undefined,

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import { ThemeProvider } from "next-themes";
+import { SessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
 import { getSiteSettings } from "@/lib/settings";
 import { absoluteUrl } from "@/lib/utils";
@@ -57,8 +58,15 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <Toaster richColors position="bottom-right" />
+          {/* Deliberately NOT seeding this with a server-fetched session:
+              calling auth() here would make every page under this layout
+              opt out of static rendering (no PPR configured), regressing
+              the whole site to full per-request SSR just to avoid a brief
+              client-side loading flash. useSession() fetches on mount instead. */}
+          <SessionProvider>
+            {children}
+            <Toaster richColors position="bottom-right" />
+          </SessionProvider>
         </ThemeProvider>
         {gaId ? (
           <>

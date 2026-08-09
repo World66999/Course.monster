@@ -12,11 +12,44 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     orderBy: { createdAt: "desc" },
   });
 
-  const categories = await db.category.findMany({ select: { slug: true, updatedAt: true } });
+  const categories = await db.category.findMany({
+    where: { courses: { some: { published: true } } },
+    select: { slug: true, updatedAt: true },
+  });
+
+  const requests = await db.courseRequest.findMany({
+    where: { moderationStatus: "VISIBLE" },
+    select: { slug: true, updatedAt: true },
+    orderBy: { createdAt: "desc" },
+    take: 5000,
+  });
+
+  const channels = await db.codingChannel.findMany({
+    where: { published: true },
+    select: { slug: true, updatedAt: true },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const resources = await db.learningResource.findMany({
+    where: { published: true },
+    select: { slug: true, updatedAt: true },
+    orderBy: { createdAt: "desc" },
+    take: 5000,
+  });
+
+  const apps = await db.appListing.findMany({
+    where: { published: true },
+    select: { slug: true, updatedAt: true },
+    orderBy: { createdAt: "desc" },
+  });
 
   return [
     { url: absoluteUrl(), changeFrequency: "daily", priority: 1 },
     { url: absoluteUrl("/courses"), changeFrequency: "daily", priority: 0.9 },
+    { url: absoluteUrl("/requests"), changeFrequency: "daily", priority: 0.8 },
+    { url: absoluteUrl("/coding-channels"), changeFrequency: "weekly", priority: 0.7 },
+    { url: absoluteUrl("/learn"), changeFrequency: "daily", priority: 0.8 },
+    { url: absoluteUrl("/apps"), changeFrequency: "weekly", priority: 0.7 },
     { url: absoluteUrl("/how-to-download"), changeFrequency: "monthly", priority: 0.5 },
     ...GENERIC_PAGES.map((p) => ({
       url: absoluteUrl(p.path),
@@ -34,6 +67,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: c.updatedAt,
       changeFrequency: "weekly" as const,
       priority: 0.8,
+    })),
+    ...requests.map((r) => ({
+      url: absoluteUrl(`/requests/${r.slug}`),
+      lastModified: r.updatedAt,
+      changeFrequency: "weekly" as const,
+      priority: 0.5,
+    })),
+    ...channels.map((c) => ({
+      url: absoluteUrl(`/coding-channels/${c.slug}`),
+      lastModified: c.updatedAt,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
+    ...resources.map((r) => ({
+      url: absoluteUrl(`/learn/${r.slug}`),
+      lastModified: r.updatedAt,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
+    ...apps.map((a) => ({
+      url: absoluteUrl(`/apps/${a.slug}`),
+      lastModified: a.updatedAt,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
     })),
   ];
 }

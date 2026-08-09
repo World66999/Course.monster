@@ -28,6 +28,7 @@ const SORT_OPTIONS = [
 ] as const;
 
 const ALL = "__all__";
+const PILL_VISIBLE = 10;
 
 const LEVEL_OPTIONS = [
   { value: ALL, label: "All levels" },
@@ -71,6 +72,14 @@ export function FiltersBar({
 
   const [search, setSearch] = React.useState(currentQ);
   React.useEffect(() => setSearch(currentQ), [currentQ]);
+
+  const [categoriesExpanded, setCategoriesExpanded] = React.useState(false);
+  React.useEffect(() => {
+    const idx = categories.findIndex((c) => c.slug === currentCategory);
+    if (idx >= PILL_VISIBLE) setCategoriesExpanded(true);
+  }, [currentCategory, categories]);
+  const visibleCategories = categoriesExpanded ? categories : categories.slice(0, PILL_VISIBLE);
+  const hiddenCategoryCount = categories.length - visibleCategories.length;
 
   const update = React.useCallback(
     (patch: Record<string, string>) => {
@@ -227,7 +236,7 @@ export function FiltersBar({
         >
           All
         </button>
-        {categories.map((c) => (
+        {visibleCategories.map((c) => (
           <button
             key={c.slug}
             type="button"
@@ -244,6 +253,24 @@ export function FiltersBar({
             <span className="ml-1.5 text-xs tabular-nums">{c.count}</span>
           </button>
         ))}
+        {hiddenCategoryCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setCategoriesExpanded(true)}
+            className="cursor-pointer rounded-full border border-dashed border-border px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+          >
+            +{hiddenCategoryCount} more
+          </button>
+        )}
+        {categoriesExpanded && categories.length > PILL_VISIBLE && (
+          <button
+            type="button"
+            onClick={() => setCategoriesExpanded(false)}
+            className="cursor-pointer rounded-full border border-dashed border-border px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+          >
+            Show less
+          </button>
+        )}
       </div>
 
       {currentTag && (

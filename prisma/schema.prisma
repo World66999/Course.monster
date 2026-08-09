@@ -10,31 +10,140 @@ datasource db {
 enum Role {
   ADMIN
   EDITOR
+  USER
 }
 
 model User {
-  id           String     @id @default(cuid())
-  email        String     @unique
-  name         String
-  passwordHash String
-  role         Role       @default(ADMIN)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  auditLogs    AuditLog[]
+  id                        String                     @id @default(cuid())
+  email                     String                     @unique
+  name                      String
+  /// Set only at email/password signup — never required or editable afterward.
+  username                  String?                    @unique
+  /// Null for Google-only accounts — only Credentials (admin, or email-signup) accounts have one.
+  passwordHash              String?
+  image                     String?
+  emailVerified             DateTime?
+  /// Admin-controlled account suspension — blocked at sign-in for every provider (see auth.ts signIn callback).
+  disabled                  Boolean                    @default(false)
+  role                      Role                       @default(USER)
+  /// Dedicated, user-editable chat identity — deliberately separate from the
+  /// signup-only, immutable `username` above, so Google-only accounts (which
+  /// often have no `username`) can still choose one for chat.
+  chatDisplayName           String?                    @unique
+  /// Admin-controlled chat suspension — independent of `disabled`, which
+  /// blocks the whole account.
+  chatBanned                Boolean                    @default(false)
+  chatMutedUntil            DateTime?
+  /// Admin-controlled Course Requests suspension — same scoped-ban pattern
+  /// as chatBanned, independent of `disabled`.
+  requestBanned             Boolean                    @default(false)
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  auditLogs                 AuditLog[]
+  accounts                  Account[]
+  comments                  Comment[]
+  commentLikes              CommentLike[]
+  reviews                   Review[]
+  reports                   Report[]
+  otpTokens                 OtpToken[]
+  chatMessages              ChatMessage[]
+  chatReactions             ChatReaction[]
+  courseRequests            CourseRequest[]
+  requestVotes              RequestVote[]
+  requestBookmarks          RequestBookmark[]
+  requestFollows            RequestFollow[]
+  requestComments           RequestComment[]
+  requestCommentReactions   RequestCommentReaction[]
+  notifications             Notification[]             @relation("NotificationRecipient")
+  notificationsTriggered    Notification[]             @relation("NotificationActor")
+  codingChannelBookmarks    CodingChannelBookmark[]
+  learningResourceBookmarks LearningResourceBookmark[]
+  broadcasts                Broadcast[]
 
+  /// Covers the admin Users page's default sort (createdAt desc).
+  @@index([createdAt(sort: Desc)])
   @@map("users")
 }
 
+/// Holds an email/password signup attempt until its OTP is verified.
+/// Deliberately not a `User` row — otherwise submitting (without ever
+/// verifying) would permanently squat a username/email via the unique
+/// constraints below, a real abuse vector.
+model PendingSignup {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  email        String   @unique
+  name         String
+  passwordHash String
+  otpHash      String
+  otpExpiresAt DateTime
+  attempts     Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@map("pending_signups")
+}
+
+enum OtpPurpose {
+  PASSWORD_RESET
+  EMAIL_CHANGE
+}
+
+/// OTPs for flows where the account already exists (unlike signup, see
+/// PendingSignup). A fresh request for the same purpose invalidates any
+/// prior unconsumed token for that user (checked in the server action, not
+/// enforced by the schema).
+model OtpToken {
+  id         String     @id @default(cuid())
+  userId     String
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Target email (the *new* address for EMAIL_CHANGE, the account's current one for PASSWORD_RESET).
+  email      String
+  purpose    OtpPurpose
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  attempts   Int        @default(0)
+  createdAt  DateTime   @default(now())
+
+  @@index([userId, purpose, consumedAt])
+  @@map("otp_tokens")
+}
+
+/// Standard Auth.js/@auth/prisma-adapter shape — links OAuth identities
+/// (Google) to a User. No Session/VerificationToken tables: sessions stay
+/// JWT (see auth.config.ts) and there's no Email/magic-link provider.
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
 model Category {
-  id          String   @id @default(cuid())
-  slug        String   @unique
-  name        String
-  description String?
-  icon        String?
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  courses     Course[]
+  id                String             @id @default(cuid())
+  slug              String             @unique
+  name              String
+  description       String?
+  icon              String?
+  order             Int                @default(0)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  courses           Course[]
+  courseRequests    CourseRequest[]
+  learningResources LearningResource[]
 
   @@index([order])
   @@map("categories")
@@ -72,6 +181,11 @@ model Course {
   certificate      Boolean?
   lifetimeAccess   Boolean?
   published        Boolean         @default(false)
+  /// Announced availability date for the bot's "Upcoming" section. Null means
+  /// "not upcoming"; a future date on an unpublished course is what makes it
+  /// upcoming. Deliberately separate from `published` so nothing about the
+  /// website's publish gate changes.
+  availableAt      DateTime?
   featured         Boolean         @default(false)
   trending         Boolean         @default(false)
   popular          Boolean         @default(false)
@@ -86,12 +200,24 @@ model Course {
   updatedAt        DateTime        @updatedAt
   shortLinks       ShortLink[]
   downloadEvents   DownloadEvent[]
+  reviews          Review[]
+  comments         Comment[]
+  telegramEvents   TelegramEvent[]
+  /// Denormalized from Review — recomputed transactionally on review
+  /// create/update/delete so course cards/listing pages never aggregate
+  /// reviews on read.
+  avgRating        Float?          @default(0)
+  reviewCount      Int             @default(0)
 
   @@index([published, createdAt(sort: Desc)])
+  @@index([published, availableAt])
   @@index([published, featured])
   @@index([published, trending])
   @@index([published, popular])
   @@index([published, downloads(sort: Desc)])
+  @@index([published, avgRating(sort: Desc)])
+  @@index([published, skillLevel])
+  @@index([published, language])
   @@index([categoryId])
   @@index([order])
   @@map("courses")
@@ -110,16 +236,169 @@ model ShortLink {
 }
 
 model DownloadEvent {
-  id        String   @id @default(cuid())
-  courseId  String
-  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  ipHash    String
-  userAgent String?
-  createdAt DateTime @default(now())
+  id             String   @id @default(cuid())
+  courseId       String
+  course         Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  ipHash         String
+  userAgent      String?
+  /// Where the download was started from ("telegram"), proven by a signed,
+  /// short-lived attribution token carried through the normal download flow.
+  /// Purely descriptive: it never grants access and never skips a check.
+  source         String?
+  /// Telegram user id when `source` is "telegram", so the bot funnel can end
+  /// at a genuinely completed download rather than a delivered link.
+  telegramUserId String?
+  createdAt      DateTime @default(now())
 
+  @@index([source, createdAt])
   @@index([courseId, createdAt])
   @@index([createdAt])
   @@map("download_events")
+}
+
+enum ModerationStatus {
+  VISIBLE
+  /// Admin-suppressed, pending review — reversible via "restore".
+  HIDDEN
+  /// Soft-deleted (by the author or an admin) — content retained, reversible
+  /// via "restore", never rendered publicly. Nothing in this feature does a
+  /// hard delete.
+  DELETED
+}
+
+model Review {
+  id        String           @id @default(cuid())
+  courseId  String
+  course    Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating    Int
+  title     String?
+  body      String
+  status    ModerationStatus @default(VISIBLE)
+  /// Anonymized abuse-detection signal only — never a raw IP. See hashIp().
+  ipHash    String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  reports   Report[]
+
+  /// One review per user per course — enforced at the DB level, not just app logic.
+  @@unique([courseId, userId])
+  @@index([courseId, status, createdAt(sort: Desc)])
+  /// Covers the admin moderation "all reviews" listing, which filters by
+  /// status only (no courseId) — the composite index above doesn't help there.
+  @@index([status, createdAt(sort: Desc)])
+  @@index([userId])
+  @@map("reviews")
+}
+
+model Comment {
+  id        String           @id @default(cuid())
+  courseId  String
+  course    Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    Comment?         @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[]        @relation("CommentReplies")
+  body      String
+  status    ModerationStatus @default(VISIBLE)
+  /// Denormalized count, kept in sync with CommentLike in a transaction —
+  /// avoids aggregating likes on every "most helpful" sort at scale.
+  likeCount Int              @default(0)
+  ipHash    String?
+  userAgent String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  editedAt  DateTime?
+  likes     CommentLike[]
+  reports   Report[]
+
+  @@index([courseId, parentId, status, createdAt(sort: Desc)])
+  @@index([courseId, parentId, status, likeCount(sort: Desc)])
+  @@index([parentId])
+  @@index([userId, courseId, createdAt(sort: Desc)])
+  /// Covers the admin moderation "all comments" listing, which filters by
+  /// status only (no courseId) — the composite indexes above don't help there.
+  @@index([status, createdAt(sort: Desc)])
+  @@map("comments")
+}
+
+model CommentLike {
+  id        String   @id @default(cuid())
+  commentId String
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([commentId, userId])
+  @@index([userId])
+  @@map("comment_likes")
+}
+
+enum ReportReason {
+  SPAM
+  ABUSE
+  HARASSMENT
+  OFF_TOPIC
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+/// Polymorphic via two nullable FKs (exactly one set) rather than a
+/// stringly-typed target — keeps real foreign keys and cascade deletes.
+model Report {
+  id                 String            @id @default(cuid())
+  commentId          String?
+  comment            Comment?          @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  reviewId           String?
+  review             Review?           @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  chatMessageId      String?
+  chatMessage        ChatMessage?      @relation(fields: [chatMessageId], references: [id], onDelete: Cascade)
+  courseRequestId    String?
+  courseRequest      CourseRequest?    @relation(fields: [courseRequestId], references: [id], onDelete: Cascade)
+  requestCommentId   String?
+  requestComment     RequestComment?   @relation(fields: [requestCommentId], references: [id], onDelete: Cascade)
+  codingChannelId    String?
+  codingChannel      CodingChannel?    @relation(fields: [codingChannelId], references: [id], onDelete: Cascade)
+  learningResourceId String?
+  learningResource   LearningResource? @relation(fields: [learningResourceId], references: [id], onDelete: Cascade)
+  appListingId       String?
+  appListing         AppListing?       @relation(fields: [appListingId], references: [id], onDelete: Cascade)
+  reporterId         String
+  reporter           User              @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  reason             ReportReason
+  note               String?
+  status             ReportStatus      @default(OPEN)
+  createdAt          DateTime          @default(now())
+  resolvedAt         DateTime?
+
+  /// Stop the same user double-reporting the same item (NULLs on the other
+  /// columns don't collide, so a comment-report row, a review-report row and
+  /// a chat-report row from the same reporter never conflict with each other).
+  @@unique([commentId, reporterId])
+  @@unique([reviewId, reporterId])
+  @@unique([chatMessageId, reporterId])
+  @@unique([courseRequestId, reporterId])
+  @@unique([requestCommentId, reporterId])
+  @@unique([codingChannelId, reporterId])
+  @@unique([learningResourceId, reporterId])
+  @@unique([appListingId, reporterId])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([reviewId])
+  @@index([chatMessageId])
+  @@index([courseRequestId])
+  @@index([requestCommentId])
+  @@index([codingChannelId])
+  @@index([learningResourceId])
+  @@index([appListingId])
+  @@map("reports")
 }
 
 model Setting {
@@ -159,4 +438,616 @@ model NewsletterSubscriber {
   createdAt DateTime @default(now())
 
   @@map("newsletter_subscribers")
+}
+
+/// Single global chat room. Mirrors Comment/CommentReplies for one-level
+/// threading and reuses ModerationStatus for hide/restore/delete.
+model ChatMessage {
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentId      String?
+  parent        ChatMessage?     @relation("ChatReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies       ChatMessage[]    @relation("ChatReplies")
+  body          String
+  imageUrl      String?
+  /// Small variant for the message-list view; imageUrl is the full-size
+  /// lightbox version. Both come from the same upload (src/lib/uploads.ts).
+  imageThumbUrl String?
+  status        ModerationStatus @default(VISIBLE)
+  /// True only while a message containing a URL awaits admin approval —
+  /// distinct from HIDDEN (profanity/spam autoflag). Never publicly visible
+  /// while true, regardless of `status`.
+  linkPending   Boolean          @default(false)
+  /// Anonymized abuse-detection signal only — never a raw IP. See hashIp().
+  ipHash        String?
+  userAgent     String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  editedAt      DateTime?
+  reactions     ChatReaction[]
+  reports       Report[]
+
+  /// Public feed + link-approval queue (both filter on status/linkPending together).
+  @@index([status, linkPending, createdAt(sort: Desc)])
+  /// Covers the admin moderation "all messages" listing, which filters by
+  /// status only — the composite index above doesn't help there.
+  @@index([status, createdAt(sort: Desc)])
+  @@index([parentId])
+  @@index([userId, createdAt(sort: Desc)])
+  /// Backs the polling client's "what changed since my last poll" query —
+  /// lets an admin hide/restore/delete a message and have it disappear (or
+  /// reappear) for everyone already viewing chat, not just new fetches.
+  @@index([updatedAt])
+  @@map("chat_messages")
+}
+
+model ChatReaction {
+  id        String      @id @default(cuid())
+  messageId String
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Validated server-side against a curated allowlist (see CHAT_EMOJI) — not DB-enforced.
+  emoji     String      @db.VarChar(8)
+  createdAt DateTime    @default(now())
+
+  /// A user may react with several different emoji, but only once each, per message.
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+  @@index([userId])
+  @@map("chat_reactions")
+}
+
+/// Workflow state, admin-controlled. "Popular"/"Trending" are deliberately
+/// NOT states here — they're computed badges (see popularity scoring in
+/// src/lib/course-requests.ts) shown alongside whichever real status is set,
+/// since a request can be both "Requested" and popular at the same time.
+enum RequestStatus {
+  REQUESTED
+  IN_PROGRESS
+  AVAILABLE
+  RESOLVED
+  CLOSED
+  REJECTED
+}
+
+/// A request for a course that doesn't exist yet, or a recommendation for
+/// one that's already publicly available elsewhere — the two purposes this
+/// community feature exists for, modeled explicitly rather than left
+/// implicit in whether sourceProvider/referenceUrl happen to be filled in.
+enum RequestKind {
+  REQUEST
+  RECOMMENDATION
+}
+
+/// A user-submitted request for a course, or a shared recommendation for
+/// one that already exists publicly elsewhere. Mirrors Course/Comment/
+/// ChatMessage conventions (ModerationStatus reuse, denormalized counters
+/// recomputed transactionally, cuid ids) rather than introducing new ones.
+model CourseRequest {
+  id               String            @id @default(cuid())
+  userId           String
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind             RequestKind       @default(REQUEST)
+  title            String
+  /// Auto-generated from title + a short random suffix at creation time
+  /// (never user-typed) — see slugify() + createCourseRequestAction.
+  slug             String            @unique
+  categoryId       String?
+  category         Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  subject          String
+  description      String
+  /// "Why they want this course" — kept separate from `description` so the
+  /// UI can render them as distinct labeled sections.
+  motivation       String
+  skillLevel       SkillLevel?
+  instructor       String?
+  sourceProvider   String?
+  referenceUrl     String?
+  tags             String[]          @default([])
+  imageUrl         String?
+  imageThumbUrl    String?
+  /// Author identity is hidden from public rendering when true — the row
+  /// still has a real userId (for the author's own edit/delete rights and
+  /// abuse tracing), it's just never shown or resolved to a name/avatar.
+  anonymous        Boolean           @default(false)
+  status           RequestStatus     @default(REQUESTED)
+  moderationStatus ModerationStatus  @default(VISIBLE)
+  pinned           Boolean           @default(false)
+  featured         Boolean           @default(false)
+  commentsLocked   Boolean           @default(false)
+  views            Int               @default(0)
+  /// Denormalized counters, kept in sync with their own tables in a
+  /// transaction — avoids aggregating on every list/sort at scale (same
+  /// rationale as Comment.likeCount / Course.avgRating+reviewCount).
+  voteCount        Int               @default(0)
+  bookmarkCount    Int               @default(0)
+  commentCount     Int               @default(0)
+  /// Set by an admin merging a duplicate request into this one. The
+  /// duplicate stays in place (never deleted) so its own votes/comments
+  /// remain visible in context; the UI banners it as merged and links here.
+  mergedIntoId     String?
+  mergedInto       CourseRequest?    @relation("RequestMerge", fields: [mergedIntoId], references: [id], onDelete: SetNull)
+  duplicates       CourseRequest[]   @relation("RequestMerge")
+  /// Anonymized abuse-detection signal only — never a raw IP. See hashIp().
+  ipHash           String?
+  userAgent        String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  /// Bumped on any new vote/comment — backs the "Recently Updated" sort and
+  /// the "Trending" window, independent of `updatedAt` (which also changes
+  /// on pure admin edits that shouldn't count as community activity).
+  lastActivityAt   DateTime          @default(now())
+  votes            RequestVote[]
+  bookmarks        RequestBookmark[]
+  followers        RequestFollow[]
+  comments         RequestComment[]
+  reports          Report[]
+  notifications    Notification[]
+
+  @@index([moderationStatus, status, createdAt(sort: Desc)])
+  @@index([moderationStatus, status, voteCount(sort: Desc)])
+  @@index([moderationStatus, status, lastActivityAt(sort: Desc)])
+  @@index([moderationStatus, pinned, createdAt(sort: Desc)])
+  @@index([moderationStatus, kind, createdAt(sort: Desc)])
+  /// Covers the admin moderation "all requests" listing, which filters by
+  /// moderationStatus only (no status) — the composite indexes above don't help there.
+  @@index([moderationStatus, createdAt(sort: Desc)])
+  @@index([categoryId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([mergedIntoId])
+  @@map("course_requests")
+}
+
+model RequestVote {
+  id        String        @id @default(cuid())
+  requestId String
+  request   CourseRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+
+  @@unique([requestId, userId])
+  @@index([userId])
+  @@map("request_votes")
+}
+
+model RequestBookmark {
+  id        String        @id @default(cuid())
+  requestId String
+  request   CourseRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+
+  @@unique([requestId, userId])
+  @@index([userId])
+  @@map("request_bookmarks")
+}
+
+/// Distinct from RequestBookmark: bookmarking is private curation ("save
+/// for later"), following opts into notifications for a request's activity
+/// (new comments, status changes, admin responses) — see notifyFollowers()
+/// in src/lib/notifications.ts.
+model RequestFollow {
+  id        String        @id @default(cuid())
+  requestId String
+  request   CourseRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+
+  @@unique([requestId, userId])
+  @@index([userId])
+  @@map("request_follows")
+}
+
+/// Mirrors Comment/ChatMessage's one-level-threading shape. A separate model
+/// (like ChatMessage is separate from Comment) rather than making the
+/// existing Comment model polymorphic — keeps this new surface fully
+/// isolated from the already-battle-tested course-comments code path.
+model RequestComment {
+  id            String                   @id @default(cuid())
+  requestId     String
+  request       CourseRequest            @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentId      String?
+  parent        RequestComment?          @relation("RequestCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies       RequestComment[]         @relation("RequestCommentReplies")
+  body          String
+  status        ModerationStatus         @default(VISIBLE)
+  ipHash        String?
+  userAgent     String?
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  editedAt      DateTime?
+  reactions     RequestCommentReaction[]
+  reports       Report[]
+  notifications Notification[]
+
+  @@index([requestId, parentId, status, createdAt(sort: Desc)])
+  @@index([parentId])
+  @@index([userId, createdAt(sort: Desc)])
+  /// Covers the admin moderation "all request comments" listing, which
+  /// filters by status only (no requestId).
+  @@index([status, createdAt(sort: Desc)])
+  @@map("request_comments")
+}
+
+/// Mirrors ChatReaction exactly — same curated emoji allowlist (CHAT_EMOJI),
+/// validated server-side, not DB-enforced.
+model RequestCommentReaction {
+  id        String         @id @default(cuid())
+  commentId String
+  comment   RequestComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emoji     String         @db.VarChar(8)
+  createdAt DateTime       @default(now())
+
+  @@unique([commentId, userId, emoji])
+  @@index([commentId])
+  @@index([userId])
+  @@map("request_comment_reactions")
+}
+
+enum NotificationType {
+  REQUEST_COMMENT
+  REQUEST_REPLY
+  REQUEST_MENTION
+  REQUEST_STATUS_CHANGE
+  ADMIN_RESPONSE
+}
+
+/// In-app only (no email) — see src/lib/notifications.ts. `message` is
+/// precomputed at creation time so a later edit/delete of the source
+/// comment/request never changes what a historical notification says.
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  requestId String?
+  request   CourseRequest?   @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  commentId String?
+  comment   RequestComment?  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  actorId   String?
+  actor     User?            @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  message   String
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, read, createdAt(sort: Desc)])
+  @@index([requestId])
+  @@map("notifications")
+}
+
+/// Deliberately its own enum, not a reuse of the Course/CourseRequest
+/// SkillLevel — those two already have narrower zod schemas assuming
+/// exactly 3 values across existing forms, and this feature's "All Levels"
+/// filter option isn't meaningful for Course/CourseRequest. Isolating it
+/// here avoids touching any existing, working code.
+enum LearningLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  ALL_LEVELS
+}
+
+/// Admin-curated directory of programming-focused YouTube channels. Unlike
+/// CourseRequest this is never user-submitted — only admins create/edit rows
+/// — so there's no moderationStatus/ipHash/rate-limit shape here, just the
+/// same published/featured/order conventions as Course.
+model CodingChannel {
+  id               String                  @id @default(cuid())
+  slug             String                  @unique
+  name             String
+  url              String
+  logo             String?
+  shortDescription String?
+  description      String?
+  /// Freeform topics/programming languages (e.g. "javascript", "dsa") — the
+  /// brief's "Topics" list is seeded as UI suggestions, not a rigid enum.
+  tags             String[]                @default([])
+  spokenLanguage   String?
+  skillLevel       LearningLevel?
+  bestSuitedFor    String?
+  featured         Boolean                 @default(false)
+  /// Independent trust/quality badge, distinct from `featured` (promotional
+  /// visibility) — mirrors Course having featured/trending/popular as
+  /// separate independent flags rather than one signal.
+  verified         Boolean                 @default(true)
+  published        Boolean                 @default(false)
+  order            Int                     @default(0)
+  views            Int                     @default(0)
+  /// Denormalized, kept in sync with CodingChannelBookmark in a transaction
+  /// — same rationale as CourseRequest.bookmarkCount.
+  bookmarkCount    Int                     @default(0)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  bookmarks        CodingChannelBookmark[]
+  reports          Report[]
+
+  @@index([published, createdAt(sort: Desc)])
+  @@index([published, featured])
+  @@index([published, order])
+  @@map("coding_channels")
+}
+
+model CodingChannelBookmark {
+  id        String        @id @default(cuid())
+  channelId String
+  channel   CodingChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+
+  @@unique([channelId, userId])
+  @@index([userId])
+  @@map("coding_channel_bookmarks")
+}
+
+enum LearningResourceType {
+  VIDEO
+  PLAYLIST
+}
+
+/// Admin-curated free YouTube video/playlist directory. Same admin-only
+/// creation model as CodingChannel — see that model's comment.
+model LearningResource {
+  id              String                     @id @default(cuid())
+  slug            String                     @unique
+  title           String
+  description     String?
+  url             String
+  videoId         String?
+  playlistId      String?
+  /// oEmbed-fetched thumbnail URL, or an admin-uploaded override.
+  thumbnail       String?
+  resourceType    LearningResourceType
+  creatorName     String?
+  categoryId      String?
+  category        Category?                  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags            String[]                   @default([])
+  skillLevel      LearningLevel?
+  spokenLanguage  String?
+  durationMinutes Int?
+  featured        Boolean                    @default(false)
+  published       Boolean                    @default(false)
+  order           Int                        @default(0)
+  views           Int                        @default(0)
+  bookmarkCount   Int                        @default(0)
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+  bookmarks       LearningResourceBookmark[]
+  reports         Report[]
+
+  @@index([published, createdAt(sort: Desc)])
+  @@index([published, featured])
+  @@index([published, resourceType])
+  @@index([categoryId])
+  @@map("learning_resources")
+}
+
+model LearningResourceBookmark {
+  id         String           @id @default(cuid())
+  resourceId String
+  resource   LearningResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime         @default(now())
+
+  @@unique([resourceId, userId])
+  @@index([userId])
+  @@map("learning_resource_bookmarks")
+}
+
+/// Deliberately its own small closed enum rather than reusing the shared
+/// Category model — app-store-style categories are a different taxonomy
+/// than course subjects, and mixing them would pollute the course-admin's
+/// category dropdown with irrelevant entries. See schema-design notes.
+enum AppCategory {
+  DEVELOPER_TOOLS
+  PROGRAMMING
+  EDUCATION
+  PRODUCTIVITY
+  UTILITIES
+  OPEN_SOURCE
+  MEDIA_TOOLS
+  FILE_MANAGEMENT
+  PRIVACY_TOOLS
+  NETWORKING
+  OTHER
+}
+
+enum AppPlatform {
+  ANDROID
+  WINDOWS
+  MACOS
+  LINUX
+  WEB
+  IOS
+  CROSS_PLATFORM
+}
+
+/// Link-out software directory — deliberately has no field for an
+/// admin-uploaded binary. downloadUrl/projectUrl/sourceUrl always point at
+/// an external, official source; this app never proxies or hosts a file.
+model AppListing {
+  id                String      @id @default(cuid())
+  slug              String      @unique
+  name              String
+  icon              String?
+  screenshots       String[]    @default([])
+  shortDescription  String?
+  description       String?
+  developer         String?
+  projectUrl        String?
+  sourceUrl         String?
+  downloadUrl       String
+  platform          AppPlatform
+  category          AppCategory
+  version           String?
+  /// The app's own last-updated date, admin-entered — distinct from
+  /// `updatedAt`, which tracks when *our* record was last edited.
+  appUpdatedAt      DateTime?
+  license           String?
+  isOpenSource      Boolean     @default(false)
+  minAndroidVersion String?
+  architecture      String?
+  /// Display only ("12 MB") — we never verify a hosted file since we don't host one.
+  fileSizeLabel     String?
+  tags              String[]    @default([])
+  featured          Boolean     @default(false)
+  published         Boolean     @default(false)
+  order             Int         @default(0)
+  views             Int         @default(0)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  reports           Report[]
+
+  @@index([published, createdAt(sort: Desc)])
+  @@index([published, featured])
+  @@index([published, category])
+  @@index([published, platform])
+  @@map("app_listings")
+}
+
+// ============================================================================
+// Telegram bot
+//
+// The bot is a *view* onto the existing catalog: there is deliberately no
+// Telegram-side copy of a course. Everything below stores bot-specific state
+// only (who the Telegram users are, what they did, and broadcast delivery),
+// and every course lookup goes through the same published-course queries the
+// website uses, so publish/unpublish/edit/delete take effect immediately.
+// ============================================================================
+
+enum TelegramEventType {
+  START
+  BROWSE
+  SEARCH
+  COURSE_VIEW
+  UPCOMING_VIEW
+  DOWNLOAD_REQUESTED
+  HELP
+  BLOCKED
+  ERROR
+}
+
+model TelegramUser {
+  id         String  @id @default(cuid())
+  /// Telegram's numeric user id, stored as a string: it is an opaque
+  /// identifier we never do arithmetic on, and a Prisma BigInt cannot cross
+  /// the server->client component boundary that the admin tables rely on.
+  telegramId String  @unique
+  username   String?
+  firstName  String?
+  lastName   String?
+  /// Admin-imposed block — this user's updates are acknowledged and dropped.
+  blocked    Boolean @default(false)
+  /// Set when Telegram reports the *user* blocked the *bot* (403). Broadcasts
+  /// skip these instead of retrying them forever.
+  botBlocked Boolean @default(false)
+
+  /// Last search text, kept server-side so paging callbacks stay well inside
+  /// Telegram's 64-byte callback_data limit instead of carrying the query.
+  lastSearch   String?
+  lastSearchAt DateTime?
+
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  events              TelegramEvent[]
+  broadcastRecipients BroadcastRecipient[]
+
+  @@index([lastSeenAt(sort: Desc)])
+  @@index([firstSeenAt(sort: Desc)])
+  @@index([blocked])
+  @@map("telegram_users")
+}
+
+model TelegramEvent {
+  id       String            @id @default(cuid())
+  userId   String
+  user     TelegramUser      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type     TelegramEventType
+  /// Nullable + SetNull: analytics rows must survive a course being deleted.
+  courseId String?
+  course   Course?           @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  /// Truncated search text for the "most searched" report. Never anything else.
+  query    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([type, createdAt(sort: Desc)])
+  @@index([courseId, type])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("telegram_events")
+}
+
+enum BroadcastStatus {
+  DRAFT
+  QUEUED
+  SENDING
+  PAUSED
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+model Broadcast {
+  id     String          @id @default(cuid())
+  body   String
+  status BroadcastStatus @default(DRAFT)
+
+  /// Denormalized delivery counters so the admin page never aggregates over
+  /// the whole recipient table on every render.
+  totalCount   Int @default(0)
+  sentCount    Int @default(0)
+  failedCount  Int @default(0)
+  skippedCount Int @default(0)
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  recipients BroadcastRecipient[]
+
+  @@index([status, createdAt(sort: Desc)])
+  @@map("broadcasts")
+}
+
+enum BroadcastDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+model BroadcastRecipient {
+  id          String       @id @default(cuid())
+  broadcastId String
+  broadcast   Broadcast    @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+  userId      String
+  user        TelegramUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  status   BroadcastDeliveryStatus @default(PENDING)
+  attempts Int                     @default(0)
+  /// Telegram's error description, truncated. Never contains the bot token.
+  error    String?
+  sentAt   DateTime?
+
+  /// One row per (broadcast, user) is what makes retries idempotent: a resumed
+  /// broadcast only picks up PENDING rows, so nobody is messaged twice.
+  @@unique([broadcastId, userId])
+  @@index([broadcastId, status])
+  @@map("broadcast_recipients")
 }

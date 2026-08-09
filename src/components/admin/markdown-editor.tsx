@@ -1,10 +1,17 @@
 "use client";
 
 import * as React from "react";
+import dynamic from "next/dynamic";
 import * as Tabs from "@radix-ui/react-tabs";
-import { Markdown } from "@/components/site/markdown";
 import { Textarea } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+
+// Code-split: react-markdown + remark-gfm only ever matter once an admin
+// clicks the "preview" tab, so they shouldn't ship in every editor's
+// initial bundle (course form, page editor, settings).
+const Markdown = dynamic(() => import("@/components/site/markdown").then((m) => m.Markdown), {
+  loading: () => <p className="text-sm text-muted-foreground">Loading preview…</p>,
+});
 
 export function MarkdownEditor({
   value,

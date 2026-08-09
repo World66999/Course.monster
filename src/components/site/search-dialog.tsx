@@ -112,7 +112,7 @@ export function SearchDialog() {
             }}
             placeholder="Search courses…"
             aria-label="Search query"
-            className="h-13 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            className="h-13 w-full rounded bg-transparent text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
           />
         </div>
         <div className="max-h-80 overflow-y-auto p-2">

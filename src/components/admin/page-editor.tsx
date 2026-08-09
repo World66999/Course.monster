@@ -9,6 +9,7 @@ import { savePageAction } from "@/server/actions/pages";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { MarkdownEditor } from "@/components/admin/markdown-editor";
+import { safeAction } from "@/lib/admin-action";
 
 export function PageEditor({
   slug,
@@ -30,7 +31,7 @@ export function PageEditor({
     if (saving) return;
     setSaving(true);
     try {
-      const result = await savePageAction(slug, { title, content });
+      const result = await safeAction(() => savePageAction(slug, { title, content }));
       if (result.ok) {
         toast.success("Page saved");
         router.refresh();

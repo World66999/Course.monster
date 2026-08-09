@@ -49,6 +49,7 @@ export default async function EditCoursePage({
             course.certificate == null ? "unset" : course.certificate ? "yes" : "no",
           lifetimeAccess:
             course.lifetimeAccess == null ? "unset" : course.lifetimeAccess ? "yes" : "no",
+          availableAt: course.availableAt ? course.availableAt.toISOString().slice(0, 10) : "",
           published: course.published,
           featured: course.featured,
           trending: course.trending,

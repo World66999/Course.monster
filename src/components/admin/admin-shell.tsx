@@ -10,10 +10,18 @@ import {
   FileText,
   FolderOpen,
   LayoutDashboard,
+  Lightbulb,
   LogOut,
   Mail,
+  MessageCircle,
+  MessageSquare,
   Menu,
+  PackageSearch,
+  PlayCircle,
+  Radio,
+  Send,
   Settings,
+  Users,
   X,
 } from "lucide-react";
 import { logoutAction } from "@/server/actions/auth";
@@ -26,8 +34,16 @@ const NAV = [
   { href: ADMIN_BASE, label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: adminPath("courses"), label: "Courses", icon: BookOpen },
   { href: adminPath("categories"), label: "Categories", icon: FolderOpen },
+  { href: adminPath("moderation"), label: "Moderation", icon: MessageSquare },
+  { href: adminPath("chat"), label: "Chat", icon: MessageCircle },
+  { href: adminPath("requests"), label: "Requests", icon: Lightbulb },
+  { href: adminPath("coding-channels"), label: "Coding Channels", icon: Radio },
+  { href: adminPath("learning-resources"), label: "Learning Resources", icon: PlayCircle },
+  { href: adminPath("apps"), label: "Apps Hub", icon: PackageSearch },
+  { href: adminPath("users"), label: "Users", icon: Users },
   { href: adminPath("pages"), label: "Pages", icon: FileText },
   { href: adminPath("subscribers"), label: "Subscribers", icon: Mail },
+  { href: adminPath("telegram"), label: "Telegram Bot", icon: Send },
   { href: adminPath("activity"), label: "Activity", icon: Activity },
   { href: adminPath("settings"), label: "Settings", icon: Settings },
 ];
@@ -110,7 +126,7 @@ export function AdminShell({
             onClick={() => setSidebarOpen(false)}
             aria-hidden
           />
-          <aside className="absolute top-0 left-0 flex h-full w-64 flex-col border-r border-border bg-card">
+          <aside className="absolute top-0 left-0 flex h-full w-64 flex-col overflow-y-auto border-r border-border bg-card pb-[env(safe-area-inset-bottom)]">
             <div className="flex h-16 items-center justify-between border-b border-border px-4">
               <span className="font-bold">{siteName}</span>
               <Button

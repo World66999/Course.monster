@@ -50,12 +50,12 @@ export function CourseCard({ course, priority = false }: { course: CourseCardDat
         {(course.category || course.skillLevel) && (
           <span className="flex items-center justify-between gap-2">
             {course.category && (
-              <span className="text-xs font-semibold tracking-wider text-primary uppercase">
+              <span className="min-w-0 truncate text-xs font-semibold tracking-wider text-primary uppercase">
                 {course.category.name}
               </span>
             )}
             {course.skillLevel && (
-              <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <span className="ml-auto flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
                 <BarChart3 className="h-3.5 w-3.5" aria-hidden />
                 {SKILL_LABELS[course.skillLevel]}
               </span>
@@ -92,7 +92,7 @@ export function CourseCard({ course, priority = false }: { course: CourseCardDat
             <Download className="h-3.5 w-3.5" aria-hidden />
             {formatNumber(course.downloads)}
           </span>
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center gap-1" suppressHydrationWarning>
             <Clock3 className="h-3.5 w-3.5" aria-hidden />
             {formatDistanceToNow(course.contentUpdatedAt, { addSuffix: true })}
           </span>
