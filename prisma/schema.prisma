@@ -957,6 +957,11 @@ model TelegramUser {
   lastSearch   String?
   lastSearchAt DateTime?
 
+  /// Pending multi-step admin input, e.g. {"mode":"icon","key":"browse"}.
+  /// Held in the database rather than process memory so a deploy cutover or a
+  /// crash can't strand an admin midway through an edit.
+  adminState Json?
+
   firstSeenAt DateTime @default(now())
   lastSeenAt  DateTime @default(now())
 

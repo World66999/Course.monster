@@ -16,28 +16,8 @@ import { getBranding } from "./branding";
 import type { Branding } from "./branding-schema";
 import * as render from "./render";
 import { lastSearch, recordEvent, rememberSearch, touchUser, type TelegramFrom } from "./users";
-import { db } from "@/lib/db";
-import { getOverview } from "./analytics";
-import { getWebhookInfo } from "./api";
+import { adminHomeScreen, handleAdminCallback, handleAdminInput } from "./admin";
 
-/** Gathered only for an authenticated admin, never on a normal user's path. */
-async function adminStats(): Promise<render.AdminStats> {
-  const [overview, publishedCourses, webhook] = await Promise.all([
-    getOverview(),
-    db.course.count({ where: { published: true } }),
-    getWebhookInfo(),
-  ]);
-  return {
-    totalUsers: overview.totalUsers,
-    activeUsers: overview.activeUsers,
-    newToday: overview.newToday,
-    publishedCourses,
-    downloadRequests: overview.downloadRequests,
-    completedDownloads: overview.completedDownloads,
-    pendingUpdates: webhook.ok ? webhook.result.pending_update_count : null,
-    lastWebhookError: webhook.ok ? (webhook.result.last_error_message ?? null) : null,
-  };
-}
 
 /**
  * Update dispatcher.
@@ -141,6 +121,9 @@ async function handleCallback(q: CallbackQuery): Promise<void> {
     return;
   }
 
+  // Admin callbacks live in their own namespace and re-check the id themselves.
+  if (await handleAdminCallback(q, telegramId, user.id)) return;
+
   const branding = await getBranding();
   const cb = q.data ? decode(q.data) : null;
   if (!cb) {
@@ -193,6 +176,10 @@ async function handleMessage(m: Message): Promise<void> {
   const text = (m.text ?? "").slice(0, MAX_TEXT).trim();
   if (!text) return;
 
+  // A half-finished admin edit consumes the next message before anything else,
+  // otherwise "send me the new label" would be treated as a course search.
+  if (await handleAdminInput(telegramId, user.id, chatId, text)) return;
+
   if (text.startsWith("/")) {
     // Strip any @botusername suffix Telegram adds in groups.
     const parts = text.split(/\s+/);
@@ -233,8 +220,8 @@ async function handleMessage(m: Message): Promise<void> {
         if (!isBotAdmin(telegramId)) {
           return void (await show(chatId, null, render.help(b, siteUrl())));
         }
-        const stats = await adminStats();
-        return void (await show(chatId, null, render.adminPanel(b, stats, siteUrl())));
+        const home = await adminHomeScreen();
+        return void (await show(chatId, null, home));
       }
       case "help":
         await recordEvent(user.id, "HELP");
