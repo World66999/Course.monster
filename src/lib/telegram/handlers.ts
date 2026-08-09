@@ -13,7 +13,7 @@ import {
 } from "./catalog";
 import { siteUrl, isBotAdmin } from "./config";
 import { getBranding } from "./branding";
-import type { Branding } from "./branding-schema";
+import { iconPlain, type Branding } from "./branding-schema";
 import * as render from "./render";
 import { lastSearch, recordEvent, rememberSearch, touchUser, type TelegramFrom } from "./users";
 import { adminHomeScreen, handleAdminCallback, handleAdminInput } from "./admin";
@@ -235,7 +235,7 @@ async function handleMessage(m: Message): Promise<void> {
 
   // Plain text is treated as a search.
   if (!allow(telegramId, "search", 12, 60_000)) {
-    await sendMessage(chatId, "🔎 That's a lot of searching — please wait a moment and try again.");
+    await sendMessage(chatId, `${iconPlain(b, "search")} That's a lot of searching — please wait a moment and try again.`);
     return;
   }
   await rememberSearch(user.id, text);

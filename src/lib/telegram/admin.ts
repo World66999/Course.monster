@@ -15,6 +15,7 @@ import {
   brandingSchema,
   buttonStyleOf,
   iconPlain,
+  type Branding,
   isIconCustomised,
   isLabelCustomised,
   labelText,
@@ -43,6 +44,13 @@ import { isBotAdmin, siteUrl } from "./config";
 
 const PAGE = 8;
 type Screen = { text: string; keyboard: InlineKeyboard };
+
+/**
+ * Plain icon accessor. Every emoji the admin panel prints goes through here so
+ * the Icon Manager governs the whole bot, admin screens included — there is no
+ * literal emoji left in this file's output.
+ */
+const I = (b: Branding, key: IconKey): string => iconPlain(b, key);
 
 /** Pending multi-step input, persisted on the TelegramUser row. */
 export type AdminState =
@@ -130,66 +138,70 @@ export function decodeAdmin(raw: string): AdminCallback | null {
   }
 }
 
-const back = (to = "a:home"): InlineKeyboard => [[{ text: "◀️ Back", callback_data: to }]];
+const back = (b: Branding, to = "a:home"): InlineKeyboard => [[{ text: `${I(b, "back")} Back`, callback_data: to }]];
 
-function pager(prefix: string, page: number, totalPages: number): InlineKeyboard {
+function pager(b: Branding, prefix: string, page: number, totalPages: number): InlineKeyboard {
   if (totalPages <= 1) return [];
   const row = [];
-  if (page > 0) row.push({ text: "◀️", callback_data: `${prefix}:${page - 1}` });
+  if (page > 0) row.push({ text: I(b, "back"), callback_data: `${prefix}:${page - 1}` });
   row.push({ text: `${page + 1}/${totalPages}`, callback_data: "a:noop" });
-  if (page < totalPages - 1) row.push({ text: "▶️", callback_data: `${prefix}:${page + 1}` });
+  if (page < totalPages - 1) row.push({ text: I(b, "next"), callback_data: `${prefix}:${page + 1}` });
   return [row];
 }
 
 // ── screens ────────────────────────────────────────────────────────────
 
 async function homeScreen(): Promise<Screen> {
-  const [users, courses] = await Promise.all([
+  const [b, users, courses] = await Promise.all([
+    getBranding(),
     db.telegramUser.count(),
     db.course.count({ where: { published: true } }),
   ]);
   return {
     text:
-      `👮 <b>Admin Panel</b>\n\n` +
-      `👥 Users: <code>${users}</code>\n` +
-      `📚 Published courses: <code>${courses}</code>\n\n` +
+      `${I(b, "admin")} <b>Admin Panel</b>\n\n` +
+      `${I(b, "users")} Users: <code>${users}</code>\n` +
+      `${I(b, "browse")} Published courses: <code>${courses}</code>\n\n` +
       `Select an action:`,
     keyboard: [
-      [{ text: "📊 Dashboard", callback_data: "a:stats" }, { text: "📡 Broadcast", callback_data: "a:bc" }],
-      [{ text: "✉️ DM User", callback_data: "a:dm" }, { text: "🏆 Top Courses", callback_data: "a:top:0" }],
-      [{ text: "📋 Recent Users", callback_data: "a:users:0" }, { text: "📤 Export Data", callback_data: "a:exp" }],
-      [{ text: "🎨 Icon Manager", callback_data: "a:icons:0" }, { text: "🔘 Button Labels", callback_data: "a:labels:0" }],
-      [{ text: "🖌️ Button Style", callback_data: "a:style" }],
-      [{ text: "♻️ Reset appearance", callback_data: "a:ra" }],
-      [{ text: "❌ Close", callback_data: "a:close" }],
+      [{ text: `${I(b, "dashboard")} Dashboard`, callback_data: "a:stats" }, { text: `${I(b, "broadcast")} Broadcast`, callback_data: "a:bc" }],
+      [{ text: `${I(b, "dm")} DM User`, callback_data: "a:dm" }, { text: `${I(b, "trophy")} Top Courses`, callback_data: "a:top:0" }],
+      [{ text: `${I(b, "list")} Recent Users`, callback_data: "a:users:0" }, { text: `${I(b, "export")} Export Data`, callback_data: "a:exp" }],
+      [{ text: `${I(b, "palette")} Icon Manager`, callback_data: "a:icons:0" }, { text: `${I(b, "buttons")} Button Labels`, callback_data: "a:labels:0" }],
+      [{ text: `${I(b, "brush")} Button Style`, callback_data: "a:style" }],
+      [{ text: `${I(b, "reset")} Reset appearance`, callback_data: "a:ra" }],
+      [{ text: `${I(b, "close")} Close`, callback_data: "a:close" }],
     ],
   };
 }
 
 async function statsScreen(): Promise<Screen> {
-  const [o, courses, webhook] = await Promise.all([
+  const [b, o, courses, webhook] = await Promise.all([
+    getBranding(),
     getOverview(),
     db.course.count({ where: { published: true } }),
     getWebhookInfo(),
   ]);
   const lines = [
-    "📊 <b>Dashboard</b>",
+    `${I(b, "dashboard")} <b>Dashboard</b>`,
     "",
-    `👥 Users <b>${o.totalUsers}</b> · active 7d <b>${o.activeUsers}</b>`,
-    `🆕 New today <b>${o.newToday}</b> · this week <b>${o.newThisWeek}</b>`,
-    `🚫 Blocked <b>${o.blockedUsers}</b>`,
+    `${I(b, "users")} Users <b>${o.totalUsers}</b> · active 7d <b>${o.activeUsers}</b>`,
+    `${I(b, "newBadge")} New today <b>${o.newToday}</b> · this week <b>${o.newThisWeek}</b>`,
+    `${I(b, "blocked")} Blocked <b>${o.blockedUsers}</b>`,
     "",
-    `📚 Published courses <b>${courses}</b>`,
-    `👁 Course views <b>${o.courseViews}</b> · searches <b>${o.searches}</b>`,
-    `⬇️ Requested <b>${o.downloadRequests}</b> · completed <b>${o.completedDownloads}</b>`,
-    `📈 View→request <b>${o.viewToRequestRate}%</b> · request→done <b>${o.requestToDownloadRate}%</b>`,
+    `${I(b, "browse")} Published courses <b>${courses}</b>`,
+    `${I(b, "views")} Course views <b>${o.courseViews}</b> · searches <b>${o.searches}</b>`,
+    `${I(b, "download")} Requested <b>${o.downloadRequests}</b> · completed <b>${o.completedDownloads}</b>`,
+    `${I(b, "trend")} View→request <b>${o.viewToRequestRate}%</b> · request→done <b>${o.requestToDownloadRate}%</b>`,
     "",
     webhook.ok
-      ? `🔌 Webhook queue <b>${webhook.result.pending_update_count}</b>` +
-        (webhook.result.last_error_message ? `\n⚠️ ${esc(webhook.result.last_error_message.slice(0, 100))}` : "\n✅ No webhook errors")
-      : "⚠️ Telegram unreachable",
+      ? `${I(b, "webhook")} Webhook queue <b>${webhook.result.pending_update_count}</b>` +
+        (webhook.result.last_error_message
+          ? `\n${I(b, "warn")} ${esc(webhook.result.last_error_message.slice(0, 100))}`
+          : `\n${I(b, "ok")} No webhook errors`)
+      : `${I(b, "warn")} Telegram unreachable`,
   ];
-  return { text: lines.join("\n"), keyboard: back() };
+  return { text: lines.join("\n"), keyboard: back(b) };
 }
 
 async function iconsScreen(page: number): Promise<Screen> {
@@ -200,18 +212,18 @@ async function iconsScreen(page: number): Promise<Screen> {
   const custom = ICON_KEYS.filter((k) => isIconCustomised(b, k)).length;
   return {
     text:
-      `🎨 <b>Icon Manager</b>\n\n` +
+      `${I(b, "palette")} <b>Icon Manager</b>\n\n` +
       `Total <b>${ICON_KEYS.length}</b> · customised <b>${custom}</b>\n\n` +
       `Tap an icon to change it. Send a normal or premium emoji after tapping.`,
     keyboard: [
       ...slice.map((k) => [
         {
-          text: `${iconPlain(b, k)}  ${ICON_META[k].name}${isIconCustomised(b, k) ? " ✏️" : ""}`.slice(0, 64),
+          text: `${iconPlain(b, k)}  ${ICON_META[k].name}${isIconCustomised(b, k) ? " " + I(b, "edited") : ""}`.slice(0, 64),
           callback_data: `a:ic:${k}`,
         },
       ]),
-      ...pager("a:icons", safe, totalPages),
-      ...back(),
+      ...pager(b, "a:icons", safe, totalPages),
+      ...back(b),
     ],
   };
 }
@@ -221,13 +233,13 @@ async function iconEditScreen(key: IconKey): Promise<Screen> {
   const meta = ICON_META[key];
   return {
     text:
-      `🎨 <b>${esc(meta.name)}</b>\n\n` +
+      `${I(b, "palette")} <b>${esc(meta.name)}</b>\n\n` +
       `Current: ${iconPlain(b, key)}\nDefault: ${meta.default}\n` +
       `<i>Used in: ${esc(meta.where)}</i>\n\n` +
-      `📤 Send a new emoji now (max ${MAX_ICON_LENGTH} chars).\n<i>/cancel to abort.</i>`,
+      `${I(b, "export")} Send a new emoji now (max ${MAX_ICON_LENGTH} chars).\n<i>/cancel to abort.</i>`,
     keyboard: [
-      ...(isIconCustomised(b, key) ? [[{ text: "♻️ Reset to default", callback_data: `a:icr:${key}` }]] : []),
-      [{ text: "◀️ Back to icons", callback_data: "a:icons:0" }],
+      ...(isIconCustomised(b, key) ? [[{ text: `${I(b, "reset")} Reset to default`, callback_data: `a:icr:${key}` }]] : []),
+      [{ text: `${I(b, "back")} Back to icons`, callback_data: "a:icons:0" }],
     ],
   };
 }
@@ -237,18 +249,23 @@ async function labelsScreen(page: number): Promise<Screen> {
   const totalPages = Math.ceil(LABEL_KEYS.length / PAGE);
   const safe = Math.min(page, totalPages - 1);
   const slice = LABEL_KEYS.slice(safe * PAGE, safe * PAGE + PAGE);
-  const dot: Record<ButtonStyle, string> = { none: "", primary: " 🔵", success: " 🟢", danger: " 🔴" };
+  const dot: Record<ButtonStyle, string> = {
+    none: "",
+    primary: " " + I(b, "dotPrimary"),
+    success: " " + I(b, "dotSuccess"),
+    danger: " " + I(b, "dotDanger"),
+  };
   return {
-    text: `🔘 <b>Button Labels</b>\n\nTap a button to change its text or colour.\n<i>Max ${MAX_LABEL_LENGTH} characters.</i>`,
+    text: `${I(b, "buttons")} <b>Button Labels</b>\n\nTap a button to change its text or colour.\n<i>Max ${MAX_LABEL_LENGTH} characters.</i>`,
     keyboard: [
       ...slice.map((k) => [
         {
-          text: `${labelText(b, k)}${dot[buttonStyleOf(b, k)]}${isLabelCustomised(b, k) ? " ✏️" : ""}`.slice(0, 64),
+          text: `${labelText(b, k)}${dot[buttonStyleOf(b, k)]}${isLabelCustomised(b, k) ? " " + I(b, "edited") : ""}`.slice(0, 64),
           callback_data: `a:bt:${k}`,
         },
       ]),
-      ...pager("a:labels", safe, totalPages),
-      ...back(),
+      ...pager(b, "a:labels", safe, totalPages),
+      ...back(b),
     ],
   };
 }
@@ -260,21 +277,21 @@ async function labelEditScreen(key: LabelKey, flash = ""): Promise<Screen> {
   return {
     text:
       (flash ? `${flash}\n\n` : "") +
-      `🔘 <b>${esc(meta.where)}</b>\n\n` +
+      `${I(b, "buttons")} <b>${esc(meta.where)}</b>\n\n` +
       `Label: <code>${esc(labelText(b, key))}</code>\nDefault: <code>${esc(meta.default)}</code>\n` +
       `Colour: <b>${BUTTON_STYLES[current]}</b>\n\n` +
-      `📤 Send new text (max ${MAX_LABEL_LENGTH}), or pick a colour below.\n<i>/cancel to abort.</i>`,
+      `${I(b, "export")} Send new text (max ${MAX_LABEL_LENGTH}), or pick a colour below.\n<i>/cancel to abort.</i>`,
     keyboard: [
       BUTTON_STYLE_KEYS.slice(0, 2).map((s) => ({
-        text: `${s === current ? "◀ " : ""}${BUTTON_STYLES[s]}`.slice(0, 64),
+        text: `${s === current ? I(b, "back") + " " : ""}${BUTTON_STYLES[s]}`.slice(0, 64),
         callback_data: `a:btc:${key}:${s}`,
       })),
       BUTTON_STYLE_KEYS.slice(2).map((s) => ({
-        text: `${s === current ? "◀ " : ""}${BUTTON_STYLES[s]}`.slice(0, 64),
+        text: `${s === current ? I(b, "back") + " " : ""}${BUTTON_STYLES[s]}`.slice(0, 64),
         callback_data: `a:btc:${key}:${s}`,
       })),
-      ...(isLabelCustomised(b, key) ? [[{ text: "♻️ Reset to default", callback_data: `a:btr:${key}` }]] : []),
-      [{ text: "◀️ Back to buttons", callback_data: "a:labels:0" }],
+      ...(isLabelCustomised(b, key) ? [[{ text: `${I(b, "reset")} Reset to default`, callback_data: `a:btr:${key}` }]] : []),
+      [{ text: `${I(b, "back")} Back to buttons`, callback_data: "a:labels:0" }],
     ],
   };
 }
@@ -283,29 +300,33 @@ async function styleScreen(): Promise<Screen> {
   const b = await getBranding();
   return {
     text:
-      `🖌️ <b>Global Default Button Colour</b>\n\n` +
+      `${I(b, "brush")} <b>Global Default Button Colour</b>\n\n` +
       `Applies to buttons without their own colour.\n\n` +
       `Current: <b>${BUTTON_STYLES[b.defaultStyle]}</b>`,
     keyboard: [
       ...BUTTON_STYLE_KEYS.map((s) => [
-        { text: `${BUTTON_STYLES[s]}${s === b.defaultStyle ? "  ◀ active" : ""}`, callback_data: `a:sty:${s}` },
+        { text: `${BUTTON_STYLES[s]}${s === b.defaultStyle ? `  ${I(b, "back")} active` : ""}`, callback_data: `a:sty:${s}` },
       ]),
-      ...back(),
+      ...back(b),
     ],
   };
 }
 
 async function topScreen(): Promise<Screen> {
-  const [requested, downloaded] = await Promise.all([getMostRequestedCourses(5), getMostDownloadedCourses(5)]);
+  const [b, requested, downloaded] = await Promise.all([getBranding(), getMostRequestedCourses(5), getMostDownloadedCourses(5)]);
   const fmt = (rows: { title: string; count: number }[]) =>
     rows.length ? rows.map((r, i) => `${i + 1}. ${esc(r.title.slice(0, 40))} — <b>${r.count}</b>`).join("\n") : "<i>No data yet</i>";
   return {
-    text: `🏆 <b>Top Courses</b>\n\n📈 <b>Most requested</b>\n${fmt(requested)}\n\n📊 <b>Most downloaded</b>\n${fmt(downloaded)}`,
-    keyboard: back(),
+    text:
+      `${I(b, "trophy")} <b>Top Courses</b>\n\n` +
+      `${I(b, "trend")} <b>Most requested</b>\n${fmt(requested)}\n\n` +
+      `${I(b, "dashboard")} <b>Most downloaded</b>\n${fmt(downloaded)}`,
+    keyboard: back(b),
   };
 }
 
 async function usersScreen(page: number): Promise<Screen> {
+  const b = await getBranding();
   const total = await db.telegramUser.count();
   const totalPages = Math.max(1, Math.ceil(total / PAGE));
   const safe = Math.min(page, totalPages - 1);
@@ -317,22 +338,23 @@ async function usersScreen(page: number): Promise<Screen> {
   });
   return {
     text:
-      `📋 <b>Recent Users</b>\n\nTotal <b>${total}</b>. Tap a user to block or unblock them.\n` +
-      `<i>✅ active · 🚫 blocked · 💤 blocked the bot</i>`,
+      `${I(b, "list")} <b>Recent Users</b>\n\nTotal <b>${total}</b>. Tap a user to block or unblock them.\n` +
+      `<i>${I(b, "ok")} active · ${I(b, "blocked")} blocked · ${I(b, "sleeping")} dormant</i>`,
     keyboard: [
       ...rows.map((u) => [
         {
-          text: `${u.blocked ? "🚫" : u.botBlocked ? "💤" : "✅"} ${u.username ? "@" + u.username : u.firstName || u.telegramId}`.slice(0, 64),
+          text: `${u.blocked ? I(b, "blocked") : u.botBlocked ? I(b, "sleeping") : I(b, "ok")} ${u.username ? "@" + u.username : u.firstName || u.telegramId}`.slice(0, 64),
           callback_data: `a:ub:${u.id}`,
         },
       ]),
-      ...pager("a:users", safe, totalPages),
-      ...back(),
+      ...pager(b, "a:users", safe, totalPages),
+      ...back(b),
     ],
   };
 }
 
 async function broadcastScreen(): Promise<Screen> {
+  const b = await getBranding();
   const audience = await db.telegramUser.count({ where: { blocked: false, botBlocked: false } });
   const recent = await db.broadcast.findFirst({
     orderBy: { createdAt: "desc" },
@@ -340,12 +362,12 @@ async function broadcastScreen(): Promise<Screen> {
   });
   return {
     text:
-      `📡 <b>Broadcast</b>\n\nAudience: <b>${audience}</b> user${audience === 1 ? "" : "s"}\n\n` +
+      `${I(b, "broadcast")} <b>Broadcast</b>\n\nAudience: <b>${audience}</b> user${audience === 1 ? "" : "s"}\n\n` +
       (recent
         ? `Last: <b>${recent.status}</b> — sent ${recent.sentCount}/${recent.totalCount}, failed ${recent.failedCount}, skipped ${recent.skippedCount}\n\n`
         : "") +
-      `📤 Send the message text now.\n<i>Delivery is paced to Telegram's limits. /cancel to abort.</i>`,
-    keyboard: back(),
+      `${I(b, "export")} Send the message text now.\n<i>Delivery is paced to Telegram's limits. /cancel to abort.</i>`,
+    keyboard: back(b),
   };
 }
 
@@ -372,6 +394,7 @@ export async function handleAdminCallback(
     await answerCallbackQuery(q.id);
     return true;
   }
+  const b = await getBranding();
 
   const chatId = q.message ? String(q.message.chat.id) : telegramId;
   const messageId = q.message?.message_id ?? null;
@@ -383,11 +406,11 @@ export async function handleAdminCallback(
     case "stats": screen = await statsScreen(); break;
     case "close":
       await answerCallbackQuery(q.id);
-      if (messageId !== null) await editMessageText(chatId, messageId, "👮 Panel closed.", {});
+      if (messageId !== null) await editMessageText(chatId, messageId, `${I(await getBranding(), "admin")} Panel closed.`, {});
       return true;
     case "export": {
       await answerCallbackQuery(q.id, "Preparing export…");
-      await sendExport(chatId);
+      await sendExport(chatId, await getBranding());
       return true;
     }
     case "icons": await setState(userId, null); screen = await iconsScreen(cb.page); break;
@@ -421,7 +444,7 @@ export async function handleAdminCallback(
       delete labels[cb.key];
       await saveBranding(brandingSchema.parse({ ...b, labels }));
       toast = "Reset to default";
-      screen = await labelEditScreen(cb.key as LabelKey, "♻️ Reset to default");
+      screen = await labelEditScreen(cb.key as LabelKey, `${I(b, "reset")} Reset to default`);
       break;
     }
     case "labelColor": {
@@ -431,7 +454,7 @@ export async function handleAdminCallback(
       const next = { ...existing, ...(cb.color === "none" ? { style: undefined } : { style: cb.color }) };
       await saveBranding(brandingSchema.parse({ ...b, labels: { ...b.labels, [cb.key]: next } }));
       toast = "Colour updated";
-      screen = await labelEditScreen(cb.key as LabelKey, "✅ Colour updated");
+      screen = await labelEditScreen(cb.key as LabelKey, `${I(b, "ok")} Colour updated`);
       break;
     }
     case "style": screen = await styleScreen(); break;
@@ -444,8 +467,8 @@ export async function handleAdminCallback(
     }
     case "resetAll":
       screen = {
-        text: "♻️ <b>Reset appearance?</b>\n\nEvery icon, label and colour returns to its default.\nCourses and users are not affected.",
-        keyboard: [[{ text: "✅ Yes, reset", callback_data: "a:rago" }], [{ text: "◀️ Cancel", callback_data: "a:home" }]],
+        text: `${I(b, "reset")} <b>Reset appearance?</b>\n\nEvery icon, label and colour returns to its default.\nCourses and users are not affected.`,
+        keyboard: [[{ text: `${I(b, "ok")} Yes, reset`, callback_data: "a:rago" }], [{ text: `${I(b, "back")} Cancel`, callback_data: "a:home" }]],
       };
       break;
     case "resetAllGo":
@@ -456,7 +479,10 @@ export async function handleAdminCallback(
     case "broadcast": await setState(userId, { mode: "broadcast" }); screen = await broadcastScreen(); break;
     case "broadcastGo": screen = await homeScreen(); break;
     case "dm": await setState(userId, { mode: "dm-id" });
-      screen = { text: "✉️ <b>DM a user</b>\n\n📤 Send the Telegram user id to message.\n<i>/cancel to abort.</i>", keyboard: back() };
+      screen = {
+        text: `${I(b, "dm")} <b>DM a user</b>\n\n${I(b, "export")} Send the Telegram user id to message.\n<i>/cancel to abort.</i>`,
+        keyboard: back(b),
+      };
       break;
     case "top": screen = await topScreen(); break;
     case "users": screen = await usersScreen(cb.page); break;
@@ -524,10 +550,11 @@ export async function handleAdminInput(
   const state = parseAdminState(row?.adminState);
   if (!state) return false;
 
+  const b = await getBranding();
   if (text.trim().toLowerCase() === "/cancel") {
     await setState(userId, null);
     const home = await homeScreen();
-    await sendMessage(chatId, "❌ Cancelled.", {});
+    await sendMessage(chatId, `${I(b, "close")} Cancelled.`, {});
     await sendMessage(chatId, home.text, { replyMarkup: home.keyboard });
     return true;
   }
@@ -538,18 +565,18 @@ export async function handleAdminInput(
       const premium = extractPremiumEmoji(text, entities);
       const plain = text.trim();
       if (!premium && (!plain || plain.length > MAX_ICON_LENGTH)) {
-        await sendMessage(chatId, `⚠️ Send a single emoji (max ${MAX_ICON_LENGTH} characters).`, {});
+        await sendMessage(chatId, `${I(b, "warn")} Send a single emoji (max ${MAX_ICON_LENGTH} characters).`, {});
         return true;
       }
       const value = premium ?? plain;
-      const b = await getBranding();
-      await saveBranding(brandingSchema.parse({ ...b, icons: { ...b.icons, [state.key]: value } }));
+      const current = await getBranding();
+      await saveBranding(brandingSchema.parse({ ...current, icons: { ...current.icons, [state.key]: value } }));
       await setState(userId, null);
       const screen = await iconsScreen(0);
       const shown = premium
-        ? `<tg-emoji emoji-id="${premium.premiumId}">${premium.char}</tg-emoji> ✨ (premium)`
+        ? `<tg-emoji emoji-id="${premium.premiumId}">${premium.char}</tg-emoji> ${I(b, "premium")} (premium)`
         : plain;
-      await sendMessage(chatId, `✅ <b>${esc(ICON_META[state.key as IconKey].name)}</b> is now ${shown}`, {});
+      await sendMessage(chatId, `${I(b, "ok")} <b>${esc(ICON_META[state.key as IconKey].name)}</b> is now ${shown}`, {});
       await sendMessage(chatId, screen.text, { replyMarkup: screen.keyboard });
       return true;
     }
@@ -557,40 +584,40 @@ export async function handleAdminInput(
       if (!(state.key in LABEL_META)) { await setState(userId, null); return true; }
       const value = text.trim();
       if (!value || value.length > MAX_LABEL_LENGTH) {
-        await sendMessage(chatId, `⚠️ Label must be 1–${MAX_LABEL_LENGTH} characters.`, {});
+        await sendMessage(chatId, `${I(b, "warn")} Label must be 1–${MAX_LABEL_LENGTH} characters.`, {});
         return true;
       }
-      const b = await getBranding();
-      const existing = b.labels[state.key];
+      const current = await getBranding();
+      const existing = current.labels[state.key];
       // A premium emoji typed alongside the label becomes that button's icon,
       // and is stripped from the caption so it isn't shown twice.
       const premium = extractPremiumEmoji(text, entities);
       const cleaned = premium ? value.replace(premium.char, "").trim() || value : value;
       await saveBranding(
         brandingSchema.parse({
-          ...b,
+          ...current,
           labels: {
-            ...b.labels,
+            ...current.labels,
             [state.key]: { ...existing, text: cleaned, ...(premium ? { iconId: premium.premiumId } : {}) },
           },
         })
       );
       await setState(userId, null);
       const screen = await labelsScreen(0);
-      await sendMessage(chatId, `✅ Button is now <code>${esc(value)}</code>`, {});
+      await sendMessage(chatId, `${I(b, "ok")} Button is now <code>${esc(value)}</code>`, {});
       await sendMessage(chatId, screen.text, { replyMarkup: screen.keyboard });
       return true;
     }
     case "broadcast": {
       const body = text.trim();
       if (!body || body.length > 3500) {
-        await sendMessage(chatId, "⚠️ Message must be 1–3500 characters.", {});
+        await sendMessage(chatId, `${I(b, "warn")} Message must be 1–3500 characters.`, {});
         return true;
       }
       await setState(userId, null);
       const broadcast = await db.broadcast.create({ data: { body } });
       const total = await queueBroadcast(broadcast.id);
-      await sendMessage(chatId, `📡 Broadcast queued for <b>${total}</b> user${total === 1 ? "" : "s"}.\nDelivery is paced; progress is on the website.`, {});
+      await sendMessage(chatId, `${I(b, "broadcast")} Broadcast queued for <b>${total}</b> user${total === 1 ? "" : "s"}.\nDelivery is paced; progress is on the website.`, {});
       // Same engine as the web panel; the cron pump continues it if it outlives this request.
       void runBroadcast(broadcast.id).catch((err) => console.error("[telegram] admin broadcast failed:", err));
       return true;
@@ -598,24 +625,24 @@ export async function handleAdminInput(
     case "dm-id": {
       const id = text.trim();
       if (!/^\d{1,20}$/.test(id)) {
-        await sendMessage(chatId, "⚠️ Send a numeric Telegram user id.", {});
+        await sendMessage(chatId, `${I(b, "warn")} Send a numeric Telegram user id.`, {});
         return true;
       }
       await setState(userId, { mode: "dm-text", target: id });
-      await sendMessage(chatId, `🎯 Target locked: <code>${esc(id)}</code>\n\n📤 Now send the message text.\n<i>/cancel to abort.</i>`, {});
+      await sendMessage(chatId, `${I(b, "target")} Target locked: <code>${esc(id)}</code>\n\n${I(b, "export")} Now send the message text.\n<i>/cancel to abort.</i>`, {});
       return true;
     }
     case "dm-text": {
       const body = text.trim();
       if (!body || body.length > 3500) {
-        await sendMessage(chatId, "⚠️ Message must be 1–3500 characters.", {});
+        await sendMessage(chatId, `${I(b, "warn")} Message must be 1–3500 characters.`, {});
         return true;
       }
       await setState(userId, null);
       const res = await sendMessage(state.target, body);
       await sendMessage(
         chatId,
-        res.ok ? "✅ Message delivered." : `⚠️ Couldn't deliver: ${esc(res.description.slice(0, 120))}`,
+        res.ok ? `${I(b, "ok")} Message delivered.` : `${I(b, "warn")} Couldn't deliver: ${esc(res.description.slice(0, 120))}`,
         {}
       );
       return true;
@@ -624,7 +651,7 @@ export async function handleAdminInput(
 }
 
 /** JSON snapshot of bot-side data, sent as a document. Never includes secrets. */
-async function sendExport(chatId: string): Promise<void> {
+async function sendExport(chatId: string, b: Branding): Promise<void> {
   const [users, events, broadcasts] = await Promise.all([
     db.telegramUser.findMany({
       select: { telegramId: true, username: true, firstName: true, blocked: true, botBlocked: true, firstSeenAt: true, lastSeenAt: true },
@@ -646,7 +673,7 @@ async function sendExport(chatId: string): Promise<void> {
   // sendDocument needs multipart, so it is built here rather than in the JSON client.
   const form = new FormData();
   form.append("chat_id", chatId);
-  form.append("caption", `📤 Bot data export — ${users.length} users`);
+  form.append("caption", `${I(b, "export")} Bot data export — ${users.length} users`);
   form.append("document", new Blob([payload], { type: "application/json" }), `bot-export-${Date.now()}.json`);
   try {
     const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -658,11 +685,11 @@ async function sendExport(chatId: string): Promise<void> {
     });
     if (!res.ok) {
       console.error("[telegram] export upload failed with status", res.status);
-      await sendMessage(chatId, "⚠️ Couldn't send the export file.", {});
+      await sendMessage(chatId, `${I(b, "warn")} Couldn't send the export file.`, {});
     }
   } catch (err) {
     console.error("[telegram] export failed:", err);
-    await sendMessage(chatId, "⚠️ Couldn't build the export.", {});
+    await sendMessage(chatId, `${I(b, "warn")} Couldn't build the export.`, {});
   }
 }
 
