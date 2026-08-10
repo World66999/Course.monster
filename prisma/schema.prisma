@@ -59,6 +59,7 @@ model User {
   codingChannelBookmarks    CodingChannelBookmark[]
   learningResourceBookmarks LearningResourceBookmark[]
   broadcasts                Broadcast[]
+  socialDownloads           SocialDownloadJob[]
 
   /// Covers the admin Users page's default sort (createdAt desc).
   @@index([createdAt(sort: Desc)])
@@ -1108,4 +1109,48 @@ model Donation {
   @@index([status, createdAt(sort: Desc)])
   @@index([createdAt(sort: Desc)])
   @@map("donations")
+}
+
+/// Website-side record of a social download. The Bot9 service owns the actual
+/// artefact and its in-flight state; this row exists so ownership survives a
+/// service restart and so the admin panel has history to report on. The source
+/// URL is stored only as a hash — enough to spot duplicates, never enough to
+/// reconstruct what someone downloaded.
+enum SocialJobStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  EXPIRED
+  CANCELLED
+}
+
+model SocialDownloadJob {
+  id String @id @default(cuid())
+
+  /// Job id inside the Bot9 service.
+  remoteId String @unique
+
+  /// Owning website account. Downloads are signed-in only, so this is required.
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  platform  String
+  /// SHA-256 of the normalized URL. Never the URL itself.
+  urlHash   String
+  status    SocialJobStatus @default(QUEUED)
+  title     String?
+  fileName  String?
+  fileSize  Int             @default(0)
+  /// Safe category only (UNSUPPORTED_URL, PRIVATE_CONTENT, TOO_LARGE, …).
+  errorCode String?
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([platform, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("social_download_jobs")
 }

@@ -11,6 +11,7 @@ export const NAV_LINKS = [
   },
   { href: "/requests", label: "Requests" },
   { href: "/apps", label: "Apps" },
+  { href: "/downloader", label: "Downloader" },
   { href: "/chat", label: "Chat" },
   { href: "/how-to-download", label: "How to Download" },
 ] as const;
