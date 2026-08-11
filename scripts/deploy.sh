@@ -95,6 +95,26 @@ cp -al "$APP/node_modules" "$STAGE/node_modules"
 log "6/9 Assembling the standalone bundle"
 cd "$STAGE"
 cp -r .next/static .next/standalone/.next/static
+
+# Carry the outgoing build's static assets forward.
+#
+# Every build produces new content-hashed chunk names, and only ~60% of them
+# collide with the previous build. A browser tab opened before the cutover — or
+# any cached HTML document — still references the *old* hashes, and the old slot
+# is deleted on the next deploy. Those requests then 404: the page returns 200
+# but its JS/CSS is missing, so it "opens but not properly". Measured in the
+# production access log: 55 such /_next/static 404s, clustered in the hours this
+# was deployed repeatedly, for chunks present in neither slot.
+#
+# -n never overwrites, so the new build always wins on a collision; this only
+# adds back hashes the new build does not have. Cheap (a few MB) and bounded:
+# each deploy carries forward one generation, so it does not grow without limit.
+if [ -d "$RELEASES/$LIVE/standalone/.next/static" ]; then
+  cp -rn "$RELEASES/$LIVE/standalone/.next/static/." \
+         .next/standalone/.next/static/ 2>/dev/null || true
+  echo "    carried forward $(find "$RELEASES/$LIVE/standalone/.next/static" -type f | wc -l) assets from the $LIVE slot"
+fi
+
 cp -r public .next/standalone/public
 cp .env .next/standalone/.env
 mkdir -p .next/standalone/.next/cache
