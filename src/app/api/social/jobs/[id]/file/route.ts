@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { fetchRemoteFile } from "@/lib/social-download";
+import { contentDisposition } from "@/lib/content-disposition";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -29,12 +30,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "That download has expired. Please try again." }, { status: 410 });
   }
 
-  // Quote and strip: a filename can contain a quote, and an unescaped one would
-  // let the header be split.
-  const safeName = (job.fileName ?? "download").replace(/["\\\r\n]/g, "").slice(0, 120) || "download";
   const headers = new Headers({
     "Content-Type": "application/octet-stream",
-    "Content-Disposition": `attachment; filename="${safeName}"`,
+    "Content-Disposition": contentDisposition(job.fileName),
     "Cache-Control": "no-store",
     "X-Content-Type-Options": "nosniff",
   });

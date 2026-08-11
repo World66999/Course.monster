@@ -4,8 +4,7 @@ import { db } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getClientIp, hashIp } from "@/lib/ip";
 import {
-  createRemoteJob, detectPlatform, hashUrl, safeMessage, PLATFORMS,
-} from "@/lib/social-download";
+  createRemoteJob, detectPlatform, hashUrl, safeMessage, PLATFORMS, STALE_JOB_MS } from "@/lib/social-download";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -58,7 +57,21 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // One in-flight job per user keeps a single account from filling the queue.
+  // Retire this member's abandoned rows before counting. A row only reaches a
+  // terminal state when something polls it, so closing the tab leaves a job at
+  // PROCESSING indefinitely — and the guard below then reads those ghosts as
+  // real work and locks the member out of their own downloader. Observed in
+  // production: a row stuck PROCESSING for nearly three hours.
+  await db.socialDownloadJob.updateMany({
+    where: {
+      userId,
+      status: { in: ["QUEUED", "PROCESSING"] },
+      createdAt: { lt: new Date(Date.now() - STALE_JOB_MS) },
+    },
+    data: { status: "EXPIRED", errorCode: "UNAVAILABLE", completedAt: new Date() },
+  });
+
+  // Two concurrent jobs per user keeps a single account from filling the queue.
   const active = await db.socialDownloadJob.count({
     where: { userId, status: { in: ["QUEUED", "PROCESSING"] } },
   });

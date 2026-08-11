@@ -82,6 +82,20 @@ gtag('config', '${gaId}');`}
             </Script>
           </>
         ) : null}
+        {/* Monetag MultiTag. `beforeInteractive` is what puts this in the
+            server-rendered <head>, which is where Monetag's instructions place
+            it and what makes it verifiable in the HTML; `afterInteractive`
+            would inject it only after hydration. Placement inside the root
+            layout is the App Router's supported location for that strategy.
+            data-cfasync="false" is carried over from the vendor snippet so
+            Cloudflare Rocket Loader leaves the tag alone. */}
+        <Script
+          src="https://quge5.com/88/tag.min.js"
+          data-zone="269101"
+          data-cfasync="false"
+          strategy="beforeInteractive"
+          async
+        />
       </body>
     </html>
   );

@@ -20,6 +20,7 @@ import {
   PlayCircle,
   Radio,
   Send,
+  CloudDownload,
   Settings,
   Users,
   X,
@@ -44,6 +45,7 @@ const NAV = [
   { href: adminPath("pages"), label: "Pages", icon: FileText },
   { href: adminPath("subscribers"), label: "Subscribers", icon: Mail },
   { href: adminPath("telegram"), label: "Telegram Bot", icon: Send },
+  { href: adminPath("social-downloader"), label: "Social Downloader", icon: CloudDownload },
   { href: adminPath("activity"), label: "Activity", icon: Activity },
   { href: adminPath("settings"), label: "Settings", icon: Settings },
 ];

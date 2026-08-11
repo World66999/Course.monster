@@ -29,6 +29,24 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const remote = await fetchRemoteJob(job.remoteId, userId);
   if (!remote.ok) {
+    // NOT_FOUND is conclusive: the service registers a job before returning its
+    // id, so if it no longer knows the job it was restarted or has swept it, and
+    // this job can never finish. Left alone the row stayed QUEUED forever — the
+    // browser polled indefinitely and the admin panel counted it as in flight.
+    // UNAVAILABLE is different: the service is merely unreachable right now and
+    // may come back holding the job, so that stays untouched.
+    if (remote.code === "NOT_FOUND") {
+      await db.socialDownloadJob.update({
+        where: { id: job.id },
+        data: { status: "EXPIRED", errorCode: "UNAVAILABLE", completedAt: new Date() },
+      }).catch(() => undefined);
+      return NextResponse.json({
+        id: job.id,
+        status: "EXPIRED",
+        percent: null,
+        error: safeMessage("UNAVAILABLE"),
+      });
+    }
     return NextResponse.json({ id: job.id, status: job.status, percent: null, error: null });
   }
 

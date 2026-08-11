@@ -51,6 +51,12 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
   const [error, setError] = React.useState("");
   const pollRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
   const linkRef = React.useRef<HTMLAnchorElement | null>(null);
+  // Each finished job may auto-start its download exactly once, and repeated
+  // taps are ignored for a moment afterwards. Without this a double-tap — or the
+  // auto-start landing on top of the user's own tap — pulls the whole file twice,
+  // which on a phone means paying for the same 27 MB video two or three times.
+  const autoStartedRef = React.useRef<string | null>(null);
+  const lastClickRef = React.useRef(0);
 
   React.useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
 
@@ -97,9 +103,16 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
         if (data.status === "COMPLETED") {
           stopPolling();
           setPhase("ready");
-          // Browsers permit a programmatic click on a user-initiated flow; if
-          // policy blocks it the button below is still there.
-          setTimeout(() => linkRef.current?.click(), 150);
+          // Fire the convenience auto-start once per job. Mobile browsers may
+          // refuse a programmatic click with no user gesture behind it, which is
+          // exactly why the visible button below is never conditional on this.
+          if (autoStartedRef.current !== data.id) {
+            autoStartedRef.current = data.id;
+            // The timestamp is deliberately NOT stamped here: this click travels
+            // through the same onClick guard below, and pre-stamping it made the
+            // guard cancel the very first download it was meant to protect.
+            setTimeout(() => linkRef.current?.click(), 150);
+          }
         } else if (data.status === "FAILED" || data.status === "EXPIRED" || data.status === "CANCELLED") {
           stopPolling();
           setError(data.error ?? "That download couldn't be completed.");
@@ -219,6 +232,17 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
           <a
             ref={linkRef}
             href={`/api/social/jobs/${job.id}/file`}
+            // Same-origin, so the browser saves rather than navigating; the
+            // server's Content-Disposition still decides the final name.
+            download={job.fileName ?? ""}
+            onClick={(e) => {
+              const now = Date.now();
+              if (now - lastClickRef.current < 1500) {
+                e.preventDefault();
+                return;
+              }
+              lastClickRef.current = now;
+            }}
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
           >
             <Download className="h-4 w-4" aria-hidden />

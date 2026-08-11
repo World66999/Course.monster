@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { Section } from "@/components/site/section";
 import { SocialDownloader } from "@/components/site/social-downloader";
+import { DownloaderTelegramCta } from "@/components/site/downloader-telegram-cta";
+import { downloaderBotHandle, downloaderBotUrl } from "@/lib/downloader-bot";
 
 export const metadata: Metadata = {
   title: "Social Media Downloader",
@@ -24,6 +26,8 @@ export default async function DownloaderPage() {
       <div className="rounded-3xl border border-border bg-card p-6 shadow-soft sm:p-8">
         <SocialDownloader signedIn={Boolean(session?.user?.id)} />
       </div>
+      {/* Alternative, never a dependency: the downloader above stands alone. */}
+      <DownloaderTelegramCta handle={downloaderBotHandle()} url={downloaderBotUrl()} />
     </Section>
   );
 }
