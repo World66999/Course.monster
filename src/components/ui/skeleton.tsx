@@ -132,3 +132,37 @@ export function AppGridSkeleton({ count = 8 }: { count?: number }) {
     </div>
   );
 }
+
+/**
+ * Loading placeholder for the Free Resources / Free AI Platforms cards.
+ * One skeleton serves both because the two cards share a layout (square
+ * thumb + title + host line + description + badge row).
+ */
+export function DirectoryCardSkeleton() {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4">
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-3 w-1/2" />
+        </div>
+      </div>
+      <Skeleton className="mt-3 h-3 w-full" />
+      <div className="mt-3 flex gap-1.5">
+        <Skeleton className="h-5 w-16 rounded-full" />
+        <Skeleton className="h-5 w-20 rounded-full" />
+      </div>
+    </div>
+  );
+}
+
+export function DirectoryGridSkeleton({ count = 8 }: { count?: number }) {
+  return (
+    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {Array.from({ length: count }, (_, i) => (
+        <DirectoryCardSkeleton key={i} />
+      ))}
+    </div>
+  );
+}

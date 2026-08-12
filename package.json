@@ -14,7 +14,7 @@
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
-    "test": "node --test tests/*.test.ts"
+    "test": "node --import tsx --test tests/*.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

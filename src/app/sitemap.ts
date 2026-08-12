@@ -50,6 +50,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl("/coding-channels"), changeFrequency: "weekly", priority: 0.7 },
     { url: absoluteUrl("/learn"), changeFrequency: "daily", priority: 0.8 },
     { url: absoluteUrl("/apps"), changeFrequency: "weekly", priority: 0.7 },
+    /**
+     * Section index only. Free Resources and Free AI Platforms have no
+     * per-row detail pages by design (see the schema comment), so there is
+     * nothing else here to enumerate — and filter permutations deliberately
+     * stay out, since they all share the section's canonical URL.
+     */
+    { url: absoluteUrl("/free-resources"), changeFrequency: "weekly", priority: 0.8 },
+    { url: absoluteUrl("/ai-platforms"), changeFrequency: "weekly", priority: 0.8 },
     { url: absoluteUrl("/how-to-download"), changeFrequency: "monthly", priority: 0.5 },
     ...GENERIC_PAGES.map((p) => ({
       url: absoluteUrl(p.path),

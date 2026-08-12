@@ -1154,3 +1154,136 @@ model SocialDownloadJob {
   @@index([createdAt(sort: Desc)])
   @@map("social_download_jobs")
 }
+
+// ============================================================================
+// Free Resources + Free AI Platforms
+//
+// Two admin-curated, link-out-only directories. Same shape as CodingChannel /
+// AppListing (admin-only creation, so no moderationStatus/ipHash/rate-limit
+// fields), with two deliberate departures:
+//
+//   * No `slug` and no per-row detail page. The whole point of both sections
+//     is to hand the visitor an outbound link, so a detail page would be an
+//     interstitial between the user and the thing they asked for, and would
+//     add thousands of thin, near-duplicate indexable URLs. Cards link
+//     straight out with rel="noopener noreferrer".
+//   * No `views`. Without a detail page there is no server render to count
+//     on, and a click-tracking endpoint would be new unauthenticated write
+//     surface for a number nothing depends on.
+//
+// `url` is unique on both so re-adding an existing entry fails cleanly (P2002)
+// instead of silently duplicating it. Values are stored normalized — see
+// src/lib/external-resource.ts.
+// ============================================================================
+
+/// Where a resource physically lives. ALWAYS derived from the URL's hostname
+/// server-side (see detectSourceType), never from admin free-text: this badge
+/// is what a visitor judges an outbound link by, so a row must not be able to
+/// claim "MEGA" while pointing elsewhere. WEBSITE is the honest fallback for
+/// any host we don't positively recognize.
+enum ResourceSourceType {
+  MEGA
+  TELEGRAM
+  GOOGLE_DRIVE
+  GITHUB
+  DROPBOX
+  ONEDRIVE
+  YOUTUBE
+  ARCHIVE_ORG
+  WEBSITE
+}
+
+/// What the resource *is* — an editorial judgement, so admin-chosen. Kept
+/// separate from ResourceSourceType (where it lives, machine-verified) so the
+/// two can never be confused for one another. Its own enum rather than the
+/// shared Category model for the same reason AppCategory is: course subjects
+/// and resource kinds are different taxonomies.
+enum ResourceCategory {
+  DOCUMENTATION
+  COURSE
+  EBOOK
+  TOOL
+  DATASET
+  CHEATSHEET
+  COMMUNITY
+  OTHER
+}
+
+model FreeResource {
+  id          String             @id @default(cuid())
+  title       String
+  description String?
+  url         String             @unique
+  sourceType  ResourceSourceType
+  category    ResourceCategory
+  thumbnail   String?
+  tags        String[]           @default([])
+  featured    Boolean            @default(false)
+  published   Boolean            @default(false)
+  order       Int                @default(0)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([published, createdAt(sort: Desc)])
+  @@index([published, featured])
+  @@index([published, category])
+  @@index([published, sourceType])
+  @@index([published, order])
+  @@map("free_resources")
+}
+
+enum AiPlatformCategory {
+  CHAT
+  CODING
+  IMAGE
+  VIDEO
+  WRITING
+  RESEARCH
+  EDUCATION
+  PRODUCTIVITY
+  PRESENTATIONS
+  DESIGN
+  AUDIO
+  OTHER
+}
+
+/// How the platform is free, stated precisely.
+///
+/// Students plan around these claims, so there is deliberately no "free
+/// forever" value: nothing here can verify a vendor's future pricing, and a
+/// badge that says so would be a claim this codebase cannot back. Each value
+/// maps to one label in AI_PRICING_LABELS — the frontend never hardcodes
+/// pricing wording, so correcting a claim is a data edit, not a deploy.
+enum AiPricingType {
+  FREE
+  FREE_TIER
+  FREE_PLAN_LIMITED
+  FREE_TRIAL
+  OPEN_SOURCE
+}
+
+model AiPlatform {
+  id           String             @id @default(cuid())
+  name         String
+  description  String?
+  url          String             @unique
+  category     AiPlatformCategory
+  pricingType  AiPricingType
+  /// The specific limit in the admin's own words ("20 messages/day"), shown
+  /// verbatim as text. Never HTML, never rendered with dangerouslySetInnerHTML.
+  freeTierNote String?
+  logo         String?
+  tags         String[]           @default([])
+  featured     Boolean            @default(false)
+  published    Boolean            @default(false)
+  order        Int                @default(0)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([published, createdAt(sort: Desc)])
+  @@index([published, featured])
+  @@index([published, category])
+  @@index([published, pricingType])
+  @@index([published, order])
+  @@map("ai_platforms")
+}

@@ -9,8 +9,15 @@ export const NAV_LINKS = [
       { href: "/learn", label: "Free Learning" },
     ],
   },
+  {
+    label: "Free Stuff",
+    children: [
+      { href: "/free-resources", label: "Free Resources" },
+      { href: "/ai-platforms", label: "Free AI Platforms" },
+      { href: "/apps", label: "Apps" },
+    ],
+  },
   { href: "/requests", label: "Requests" },
-  { href: "/apps", label: "Apps" },
   { href: "/downloader", label: "Downloader" },
   { href: "/chat", label: "Chat" },
   { href: "/how-to-download", label: "How to Download" },

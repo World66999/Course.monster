@@ -29,7 +29,9 @@ export function Footer({ settings }: { settings: SiteSettings }) {
 
   return (
     <footer className="mt-24 border-t border-border bg-card/50">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
+      {/* 5 columns on desktop: the brand block spans 2, then Explore /
+          Free stuff / newsletter take one each. */}
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:grid-cols-2 sm:px-6 lg:grid-cols-5 lg:px-8">
         <div className="space-y-4 lg:col-span-2">
           <SiteLogo settings={settings} />
           <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
@@ -85,6 +87,44 @@ export function Footer({ settings }: { settings: SiteSettings }) {
             <li>
               <Link href="/how-to-download" className="transition-colors hover:text-primary">
                 How to Download
+              </Link>
+            </li>
+          </ul>
+        </nav>
+
+        {/*
+          These five live in header dropdowns, whose contents Radix only mounts
+          once opened — so none of them had a server-rendered internal link
+          anywhere on the site, and a crawler could reach them only via the
+          sitemap. Listing them here gives every section a real <a> in the
+          initial HTML, on every page.
+        */}
+        <nav aria-label="Free sections">
+          <h3 className="mb-4 text-sm font-semibold tracking-wide uppercase">Free stuff</h3>
+          <ul className="space-y-2.5 text-sm text-muted-foreground">
+            <li>
+              <Link href="/free-resources" className="transition-colors hover:text-primary">
+                Free Resources
+              </Link>
+            </li>
+            <li>
+              <Link href="/ai-platforms" className="transition-colors hover:text-primary">
+                Free AI Platforms
+              </Link>
+            </li>
+            <li>
+              <Link href="/apps" className="transition-colors hover:text-primary">
+                Apps Hub
+              </Link>
+            </li>
+            <li>
+              <Link href="/learn" className="transition-colors hover:text-primary">
+                Free Learning
+              </Link>
+            </li>
+            <li>
+              <Link href="/coding-channels" className="transition-colors hover:text-primary">
+                Coding Channels
               </Link>
             </li>
           </ul>

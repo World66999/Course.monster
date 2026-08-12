@@ -158,7 +158,8 @@ fi
 # and 0.09s warm, and the session call is mounted on every page. Warm the routes
 # here, while the old slot is still the one taking traffic.
 echo "    warming $TARGET before the cutover"
-for path in / /courses /coding-channels /learn /apps /requests /chat /how-to-download \
+for path in / /courses /coding-channels /learn /apps /free-resources /ai-platforms \
+            /requests /chat /how-to-download \
             /api/auth/session /login /sitemap.xml; do
   curl -s -o /dev/null --max-time 30 "http://127.0.0.1:$TARGET_PORT$path" || true
 done
@@ -189,7 +190,7 @@ systemctl enable "coursevault@$TARGET" >/dev/null 2>&1 || true
 systemctl disable "coursevault@$LIVE" >/dev/null 2>&1 || true
 
 log "Post-switch verification"
-for path in / /courses /apps; do
+for path in / /courses /apps /free-resources /ai-platforms; do
   code=$(curl -s -o /dev/null -w '%{http_code}' "https://courses.monster$path" || true)
   echo "    $code  $path"
   [ "$code" = "200" ] || fail "post-switch check failed for $path (roll back with: scripts/deploy.sh after repointing $UPSTREAM_CONF to :$CURRENT_PORT)"

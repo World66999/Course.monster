@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { isYoutubeUrl } from "@/lib/youtube";
 import { isSafeExternalUrl, SAFE_URL_MESSAGE } from "@/lib/safe-url";
+import {
+  EXTERNAL_URL_MESSAGE,
+  isStorableExternalUrl,
+  normalizeExternalUrl,
+} from "@/lib/external-resource";
 
 /**
  * Every URL field here ends up as an `href`, an `src`, or a redirect target,
@@ -24,6 +29,22 @@ const youtubeUrlSchema = z
   .max(500)
   .refine(isSafeExternalUrl, SAFE_URL_MESSAGE)
   .refine((v) => isYoutubeUrl(v), "Must be a YouTube video, playlist or channel URL");
+
+/**
+ * A query-string boolean.
+ *
+ * NOT `z.coerce.boolean()`, which is `Boolean(value)` — every non-empty string
+ * is truthy there, so `?bookmarked=false` and `?openSource=0` both parsed as
+ * TRUE and silently inverted the filter (the user asked to turn a filter off
+ * and got it turned on). The site's own controls drop the parameter instead of
+ * writing `=false`, which is why this stayed hidden, but hand-edited, shared
+ * and bookmarked URLs do carry it.
+ *
+ * Only the explicit true spellings are true; "false"/"0"/"no"/"" are false.
+ */
+const booleanFlag = z
+  .union([z.boolean(), z.string()])
+  .transform((v) => (typeof v === "boolean" ? v : ["true", "1", "yes", "on"].includes(v.trim().toLowerCase())));
 
 /** Local upload path (/uploads/...) or absolute URL. */
 const imageRef = z.union([
@@ -272,9 +293,9 @@ export const listCourseRequestsQuerySchema = z.object({
   status: requestStatusEnum.optional(),
   kind: requestKindEnum.optional(),
   sort: z.enum(["trending", "newest", "popular", "updated"]).optional().default("newest"),
-  mine: z.coerce.boolean().optional(),
-  bookmarked: z.coerce.boolean().optional(),
-  following: z.coerce.boolean().optional(),
+  mine: booleanFlag.optional(),
+  bookmarked: booleanFlag.optional(),
+  following: booleanFlag.optional(),
   cursor: z.string().max(64).optional(),
   limit: z.coerce.number().int().min(1).max(48).optional().default(12),
 });
@@ -317,7 +338,7 @@ export const listCodingChannelsQuerySchema = z.object({
   level: learningLevelEnum.optional(),
   lang: z.string().max(40).optional(),
   flag: z.enum(["featured", "verified"]).optional(),
-  bookmarked: z.coerce.boolean().optional(),
+  bookmarked: booleanFlag.optional(),
   sort: z.enum(["newest", "popular", "az"]).optional().default("newest"),
   cursor: z.string().max(64).optional(),
   limit: z.coerce.number().int().min(1).max(48).optional().default(12),
@@ -356,7 +377,7 @@ export const listLearningResourcesQuerySchema = z.object({
   lang: z.string().max(40).optional(),
   type: learningResourceTypeEnum.optional(),
   flag: z.enum(["featured"]).optional(),
-  bookmarked: z.coerce.boolean().optional(),
+  bookmarked: booleanFlag.optional(),
   sort: z.enum(["newest", "popular"]).optional().default("newest"),
   cursor: z.string().max(64).optional(),
   limit: z.coerce.number().int().min(1).max(48).optional().default(12),
@@ -426,7 +447,7 @@ export const listAppListingsQuerySchema = z.object({
   q: z.string().max(120).optional(),
   category: appCategoryEnum.optional(),
   platform: appPlatformEnum.optional(),
-  openSource: z.coerce.boolean().optional(),
+  openSource: booleanFlag.optional(),
   flag: z.enum(["featured"]).optional(),
   sort: z.enum(["newest", "popular", "az"]).optional().default("newest"),
   cursor: z.string().max(64).optional(),
@@ -437,6 +458,131 @@ export type ListAppListingsQuery = z.infer<typeof listAppListingsQuerySchema>;
 export const fetchYoutubeMetaSchema = z.object({
   url: youtubeUrlSchema,
 });
+
+// --- Free Resources + Free AI Platforms (admin-curated, link-out only) ---
+
+/**
+ * Outbound URL for both new sections: https only, no credentials, and
+ * canonicalized before it is ever stored. Stricter than `urlOrEmpty` above,
+ * which still permits http — see src/lib/external-resource.ts for why.
+ *
+ * `.transform` runs after the refinement, so the value that reaches the server
+ * action is already normalized; the action never has to remember to do it.
+ */
+const externalResourceUrl = z
+  .string()
+  .trim()
+  .min(1, "A URL is required")
+  .max(2000)
+  .refine(isStorableExternalUrl, EXTERNAL_URL_MESSAGE)
+  .transform((v) => normalizeExternalUrl(v)!);
+
+export const resourceCategoryEnum = z.enum([
+  "DOCUMENTATION",
+  "COURSE",
+  "EBOOK",
+  "TOOL",
+  "DATASET",
+  "CHEATSHEET",
+  "COMMUNITY",
+  "OTHER",
+]);
+
+/**
+ * Note there is no `sourceType` here: it is derived from the URL's hostname
+ * server-side and is deliberately not accepted from the client, so a form
+ * post cannot make a row claim a platform it does not belong to.
+ */
+export const freeResourceFormSchema = z.object({
+  title: z.string().trim().min(2, "Title is required").max(160),
+  description: z.string().trim().max(2_000).optional().default(""),
+  url: externalResourceUrl,
+  category: resourceCategoryEnum,
+  thumbnail: imageRef.optional().default(""),
+  tags: z.string().max(500).optional().default(""),
+  featured: z.boolean().default(false),
+  published: z.boolean().default(false),
+  order: z.coerce.number().int().min(0).max(100_000).optional().default(0),
+});
+export type FreeResourceFormValues = z.infer<typeof freeResourceFormSchema>;
+
+export const resourceSourceTypeEnum = z.enum([
+  "MEGA",
+  "TELEGRAM",
+  "GOOGLE_DRIVE",
+  "GITHUB",
+  "DROPBOX",
+  "ONEDRIVE",
+  "YOUTUBE",
+  "ARCHIVE_ORG",
+  "WEBSITE",
+]);
+
+export const listFreeResourcesQuerySchema = z.object({
+  q: z.string().max(120).optional(),
+  category: resourceCategoryEnum.optional(),
+  source: resourceSourceTypeEnum.optional(),
+  tag: z.string().max(64).optional(),
+  flag: z.enum(["featured"]).optional(),
+  sort: z.enum(["newest", "az", "curated"]).optional().default("curated"),
+  cursor: z.string().max(64).optional(),
+  limit: z.coerce.number().int().min(1).max(48).optional().default(12),
+});
+export type ListFreeResourcesQuery = z.infer<typeof listFreeResourcesQuerySchema>;
+
+export const aiPlatformCategoryEnum = z.enum([
+  "CHAT",
+  "CODING",
+  "IMAGE",
+  "VIDEO",
+  "WRITING",
+  "RESEARCH",
+  "EDUCATION",
+  "PRODUCTIVITY",
+  "PRESENTATIONS",
+  "DESIGN",
+  "AUDIO",
+  "OTHER",
+]);
+
+export const aiPricingTypeEnum = z.enum([
+  "FREE",
+  "FREE_TIER",
+  "FREE_PLAN_LIMITED",
+  "FREE_TRIAL",
+  "OPEN_SOURCE",
+]);
+
+export const aiPlatformFormSchema = z.object({
+  name: z.string().trim().min(2, "Name is required").max(120),
+  description: z.string().trim().max(2_000).optional().default(""),
+  url: externalResourceUrl,
+  category: aiPlatformCategoryEnum,
+  pricingType: aiPricingTypeEnum,
+  /**
+   * Plain text, shown verbatim next to the pricing badge. Capped short so it
+   * stays a factual note ("20 messages/day") rather than marketing copy.
+   */
+  freeTierNote: z.string().trim().max(200).optional().default(""),
+  logo: imageRef.optional().default(""),
+  tags: z.string().max(500).optional().default(""),
+  featured: z.boolean().default(false),
+  published: z.boolean().default(false),
+  order: z.coerce.number().int().min(0).max(100_000).optional().default(0),
+});
+export type AiPlatformFormValues = z.infer<typeof aiPlatformFormSchema>;
+
+export const listAiPlatformsQuerySchema = z.object({
+  q: z.string().max(120).optional(),
+  category: aiPlatformCategoryEnum.optional(),
+  pricing: aiPricingTypeEnum.optional(),
+  tag: z.string().max(64).optional(),
+  flag: z.enum(["featured"]).optional(),
+  sort: z.enum(["newest", "az", "curated"]).optional().default("curated"),
+  cursor: z.string().max(64).optional(),
+  limit: z.coerce.number().int().min(1).max(48).optional().default(12),
+});
+export type ListAiPlatformsQuery = z.infer<typeof listAiPlatformsQuerySchema>;
 
 // --- Auth (email/password + profile) ---
 
