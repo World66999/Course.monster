@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { fetchRemoteJob, safeMessage } from "@/lib/social-download";
+import { cancelRemoteJob, fetchRemoteJob, safeMessage } from "@/lib/social-download";
 import type { SocialJobStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -76,4 +76,52 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     fileSize: remote.data.fileSize,
     error: remote.data.errorCode ? safeMessage(remote.data.errorCode) : null,
   });
+}
+
+/**
+ * Cancel a job the caller owns.
+ *
+ * The engine has supported cancellation all along (POST /jobs/{id}/cancel, and
+ * `cancelRemoteJob` here), but it was only reachable from the admin panel — a
+ * user who started a long download had no way to stop it and simply held one of
+ * the two website workers until it finished or timed out.
+ *
+ * Ownership comes from the same `where: { id, userId }` query the GET uses, so
+ * an id belonging to somebody else is a 404 rather than a cancellation. The
+ * remote call is made with the job's own owner id, never the caller's, so the
+ * service applies its own ownership check to the same identity it was given at
+ * creation.
+ */
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await params;
+  const job = await db.socialDownloadJob.findFirst({
+    where: { id, userId },
+    select: { id: true, remoteId: true, userId: true, status: true },
+  });
+  if (!job) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Already finished is not an error worth surfacing as a failure — the user's
+  // intent (this job should not still be running) is satisfied either way.
+  if (job.status !== "QUEUED" && job.status !== "PROCESSING") {
+    return NextResponse.json({ id: job.id, status: job.status, cancelled: false });
+  }
+
+  const cancelled = await cancelRemoteJob(job.remoteId, job.userId);
+  if (!cancelled) {
+    return NextResponse.json(
+      { error: "The downloader didn't accept the cancellation. Please try again." },
+      { status: 502 }
+    );
+  }
+
+  await db.socialDownloadJob.update({
+    where: { id: job.id },
+    data: { status: "CANCELLED", completedAt: new Date() },
+  }).catch(() => undefined);
+
+  return NextResponse.json({ id: job.id, status: "CANCELLED", cancelled: true });
 }

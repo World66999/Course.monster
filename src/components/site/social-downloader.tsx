@@ -57,12 +57,42 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
   // which on a phone means paying for the same 27 MB video two or three times.
   const autoStartedRef = React.useRef<string | null>(null);
   const lastClickRef = React.useRef(0);
+  const [cancelling, setCancelling] = React.useState(false);
 
   React.useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
 
   function stopPolling() {
     if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = null;
+  }
+
+  /**
+   * Stop a job that is still queued or running.
+   *
+   * The engine has always supported this; until now nothing in the browser
+   * could reach it, so a user who pasted the wrong link had to wait out the
+   * whole download while it held one of the two website workers.
+   *
+   * Polling is stopped first: the DELETE settles the row as CANCELLED, and a
+   * poll landing in between would otherwise repaint the job as still working.
+   */
+  async function cancel() {
+    if (!job?.id || cancelling) return;
+    setCancelling(true);
+    stopPolling();
+    try {
+      const res = await fetch(`/api/social/jobs/${job.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(String(res.status));
+      setPhase("idle");
+      setJob(null);
+    } catch {
+      // Couldn't stop it — say so plainly and resume polling rather than
+      // leaving the UI stuck on a state that no longer updates.
+      setError("Couldn't cancel that download. It may already have finished.");
+      setPhase("error");
+    } finally {
+      setCancelling(false);
+    }
   }
 
   async function start(e: React.FormEvent) {
@@ -202,7 +232,10 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
       </form>
 
       {busy && (
-        <div className="space-y-2 rounded-2xl border border-border bg-card p-4">
+        // aria-live so a screen reader hears "Fetching media…" / "Processing…"
+        // as the job moves on; the text changes without any focus change, which
+        // is otherwise silent.
+        <div className="space-y-2 rounded-2xl border border-border bg-card p-4" aria-live="polite">
           <div className="flex items-center gap-2 text-sm font-medium">
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
             {statusLabel}
@@ -210,11 +243,30 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
           {/* Only shown when the downloader genuinely reports progress. */}
           {typeof job?.percent === "number" && (
             <>
-              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-1.5 overflow-hidden rounded-full bg-muted"
+                role="progressbar"
+                aria-valuenow={job.percent}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Download progress"
+              >
                 <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${job.percent}%` }} />
               </div>
               <p className="text-xs text-muted-foreground">{job.percent}%</p>
             </>
+          )}
+          {/* Only offered once the job exists — there is nothing to cancel
+              during the brief "starting" phase before the id comes back. */}
+          {job?.id && (
+            <button
+              type="button"
+              onClick={() => void cancel()}
+              disabled={cancelling}
+              className="cursor-pointer text-xs font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {cancelling ? "Cancelling…" : "Cancel download"}
+            </button>
           )}
         </div>
       )}
