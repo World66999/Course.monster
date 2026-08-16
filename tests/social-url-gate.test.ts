@@ -38,6 +38,9 @@ const ACCEPTED: [string, string][] = [
   ["https://www.tiktok.com/@user/video/7300000000000000000", "tiktok"],
   ["https://pin.it/abc-def", "pinterest"],
   ["https://www.pinterest.co.uk/pin/1477812373602736/", "pinterest"],
+  ["https://pinterest.de/pin/1/", "pinterest"],
+  ["https://br.pinterest.com/pin/1/", "pinterest"],
+  ["https://www.pinterest.com.br/pin/1/", "pinterest"],
   // Case and a trailing root dot are normalised, not rejected.
   ["https://WWW.YouTube.com/watch?v=abc", "youtube"],
   ["https://www.youtube.com./watch?v=abc", "youtube"],
@@ -66,6 +69,14 @@ const REJECTED: [string, string][] = [
   ["https://youtube.com.evil.com/x", "suffix lookalike"],
   ["https://notyoutube.com/x", "prefix lookalike"],
   ["https://pinterest.com.attacker.net/pin/1", "pinterest suffix lookalike"],
+  // The old pattern was pinterest\.[a-z.]{2,8} -- not an allowlist. It matched
+  // any registerable TLD, and because the class contained a dot it also matched
+  // a subdomain of an attacker's own domain.
+  ["https://pinterest.evil.com/pin/1", "pinterest on an attacker-owned domain"],
+  ["https://pinterest.tk/pin/1", "attacker-registerable ccTLD"],
+  ["https://pinterest.ml/pin/1", "attacker-registerable ccTLD"],
+  ["https://pinterest.zz/pin/1", "non-existent TLD"],
+  ["https://pinterest.a.b.c/pin/1", "dotted TLD class abuse"],
   ["https://evil.example/x", "unknown host"],
   // Whitespace and C0 control characters (CRLF / null-byte injection)
   ["https://www.youtube.com/watch?v=a b", "space"],
@@ -118,4 +129,21 @@ test("warnings are looked up, never echoed, and absent by default", () => {
   assert.equal(safeWarning("SOMETHING_NEW"), null);
   const note = safeWarning("NO_AUDIO");
   assert.ok(note && /no sound/i.test(note), "NO_AUDIO must explain the silence in plain words");
+});
+
+test("a host-level platform refusal reads as terminal, not as 'retry later'", () => {
+  // TikTok blocks this server's address for every URL. Telling the user to
+  // retry into a permanent refusal wastes their time and a worker each time.
+  const msg = safeMessage("PLATFORM_UNAVAILABLE");
+  assert.ok(!/try again/i.test(msg), "must not invite a retry that cannot succeed");
+  assert.ok(/won't help|will not help/i.test(msg), "must say plainly that retrying is futile");
+  assert.ok(!msg.includes("PLATFORM_UNAVAILABLE"), "must not echo the internal code");
+  // It must stay distinct from the generic per-video failure, which DOES
+  // legitimately suggest retrying.
+  assert.notEqual(msg, safeMessage("PLATFORM_ERROR"));
+  assert.ok(/try again later/i.test(safeMessage("PLATFORM_ERROR")));
+});
+
+test("a blocked platform never implies the others are broken", () => {
+  assert.ok(/other platforms are unaffected/i.test(safeMessage("PLATFORM_UNAVAILABLE")));
 });

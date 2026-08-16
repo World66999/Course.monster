@@ -38,6 +38,32 @@ const HOSTS: Record<Platform, string[]> = {
 const HOST_TO_PLATFORM = new Map<string, Platform>();
 for (const p of PLATFORMS) for (const h of HOSTS[p]) HOST_TO_PLATFORM.set(h, p);
 
+/**
+ * Pinterest's country domains, as a fixed list — mirroring Bot9's
+ * `links._PINTEREST_TLDS` exactly.
+ *
+ * This was previously `pinterest\.[a-z.]{2,8}`, which is not an allowlist at
+ * all: it matches any TLD an attacker can register (`pinterest.tk`,
+ * `pinterest.ml`) and, because the class includes a dot, it also matches
+ * `pinterest.evil.com` — a host anyone owning evil.com can point at
+ * 127.0.0.1 or a metadata endpoint. Bot9's own gate rejected every one of
+ * those, so nothing was ever exploitable end to end, but this file is
+ * documented as mirroring that gate and it did not.
+ *
+ * A fixed TLD list can never match an attacker-chosen host, which is the
+ * property the loose pattern was missing.
+ */
+const PINTEREST_TLDS = [
+  "com", "co.uk", "com.au", "com.mx", "co.kr", "ca", "de", "fr", "es", "it",
+  "jp", "ch", "at", "nz", "ie", "se", "dk", "ph", "pt", "ru", "cl", "info",
+  "nl", "be", "pl", "hu", "th", "vn", "id", "com.br",
+] as const;
+
+/** Optional 2-letter language prefix, optional www, then an allowlisted TLD. */
+const PINTEREST_HOST = new RegExp(
+  `^(?:[a-z]{2}\\.)?(?:www\\.)?pinterest\\.(?:${PINTEREST_TLDS.map((t) => t.replace(/\./g, "\\.")).join("|")})$`
+);
+
 const MAX_URL_LENGTH = 2048;
 
 /**
@@ -68,8 +94,7 @@ export function detectPlatform(raw: string): Platform | null {
   // Reject IP literals outright — they can only be an attempt to reach us.
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(":") || host.startsWith("[")) return null;
 
-  // Pinterest runs many country domains (pinterest.co.uk, pinterest.de …).
-  if (/^([a-z0-9-]+\.)?pinterest\.[a-z.]{2,8}$/.test(host)) return "pinterest";
+  if (PINTEREST_HOST.test(host)) return "pinterest";
   return HOST_TO_PLATFORM.get(host) ?? null;
 }
 
@@ -81,7 +106,7 @@ export function hashUrl(url: string): string {
 export type SocialErrorCode =
   | "UNSUPPORTED_URL" | "PLATFORM_MISMATCH" | "PRIVATE_CONTENT" | "NOT_FOUND"
   | "RATE_LIMITED" | "TOO_LARGE" | "TIMEOUT" | "NO_CAPACITY"
-  | "PLATFORM_ERROR" | "UNAVAILABLE";
+  | "PLATFORM_ERROR" | "PLATFORM_UNAVAILABLE" | "UNAVAILABLE";
 
 /** User-facing copy. Never a stack trace, path, command line or internal host. */
 export const ERROR_MESSAGES: Record<SocialErrorCode, string> = {
@@ -94,6 +119,12 @@ export const ERROR_MESSAGES: Record<SocialErrorCode, string> = {
   TIMEOUT: "That took too long to prepare. Please try again.",
   NO_CAPACITY: "The downloader is busy right now. Please try again in a moment.",
   PLATFORM_ERROR: "The platform didn't return the media. Please try again later.",
+  // Deliberately does NOT say "try again later". The platform is refusing this
+  // server, not failing on one video, so a retry reaches the same answer and
+  // only holds a worker on the way. Telling someone to retry into a wall is
+  // worse than telling them it will not work.
+  PLATFORM_UNAVAILABLE:
+    "That platform is currently blocking downloads from this server. It's a restriction on their side, so retrying won't help — the other platforms are unaffected.",
   UNAVAILABLE: "Video downloading is temporarily unavailable. Please try again later.",
 };
 

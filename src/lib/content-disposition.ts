@@ -28,6 +28,12 @@ export function contentDisposition(rawName: string | null | undefined): string {
   const asciiBase = base
     .replace(/[^\x20-\x7E]/g, "")
     .replace(/[;]/g, "")
+    // RFC 6266: the filename is a bare name and "MUST NOT contain any path
+    // information". Bot9's own `_safe_name` already strips separators, so this
+    // is unreachable through the download route today — but this helper is a
+    // general utility, and a filename that still reads as a path is wrong on
+    // its own terms rather than only when someone finds a way to reach it.
+    .replace(/[/\\]+/g, " ")
     .replace(/\s+/g, " ")
     .trim()
     .replace(/^[.\s]+/, "");

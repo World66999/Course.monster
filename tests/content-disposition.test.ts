@@ -89,3 +89,38 @@ test("every stored production filename yields a legal header", () => {
   ];
   for (const name of realNames) assertLegalHeader(contentDisposition(name));
 });
+
+test("the ascii filename never carries path information", () => {
+  // RFC 6266: the filename is a bare name, not a path. Bot9's _safe_name
+  // already strips separators before this is ever called, so these inputs are
+  // unreachable through the download route -- the helper is hardened on its own
+  // terms so it stays correct if it is ever reused somewhere less careful.
+  for (const evil of [
+    "../../../etc/passwd",
+    "..\\..\\windows\\system32\\cmd.exe",
+    "/absolute/path/video.mp4",
+    "dir/sub/clip.mp4",
+  ]) {
+    const header = contentDisposition(evil);
+    const ascii = /filename="([^"]*)"/.exec(header)?.[1] ?? "";
+    assert.ok(!ascii.includes("/"), `forward slash survived: ${ascii}`);
+    assert.ok(!ascii.includes("\\"), `backslash survived: ${ascii}`);
+    assert.ok(ascii.length > 0, "must still yield a usable name");
+  }
+});
+
+test("no input can split the header or add a second directive", () => {
+  for (const evil of [
+    'a";\r\nSet-Cookie: evil=1\r\n\r\n.mp4',
+    'a"; filename="pwned.exe',
+    "a\r\nX-Injected: 1.mp4",
+    "a\u0000evil.mp4",
+    "\u202Egnp.exe.mp4",
+  ]) {
+    const header = contentDisposition(evil);
+    assert.ok(!/[\r\n]/.test(header), "header must never contain CR or LF");
+    // Exactly one of each directive, and every byte must be header-legal.
+    assert.equal((header.match(/filename\*=/g) ?? []).length, 1);
+    assert.doesNotThrow(() => new Headers({ "Content-Disposition": header }));
+  }
+});
