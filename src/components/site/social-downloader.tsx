@@ -34,7 +34,19 @@ interface JobState {
   fileName?: string | null;
   fileSize?: number;
   error?: string | null;
+  /** Non-fatal note about a finished file (e.g. the source had no audio). */
+  warning?: string | null;
 }
+
+/**
+ * How long the browser will keep asking about one job.
+ *
+ * The service's own watchdog gives up at 10 minutes, so past this nothing can
+ * still be running — but the status route answers from the stored row whenever
+ * the downloader is unreachable, so without a deadline here the spinner ran for
+ * ever on a wedged service and quietly burned a phone's battery and data.
+ */
+const POLL_DEADLINE_MS = 12 * 60_000;
 
 function humanSize(bytes: number): string {
   if (!bytes) return "";
@@ -124,7 +136,14 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
 
   function poll(id: string) {
     stopPolling();
+    const giveUpAt = Date.now() + POLL_DEADLINE_MS;
     pollRef.current = setInterval(async () => {
+      if (Date.now() > giveUpAt) {
+        stopPolling();
+        setError("This is taking longer than expected. Please try again.");
+        setPhase("error");
+        return;
+      }
       try {
         const res = await fetch(`/api/social/jobs/${id}`, { cache: "no-store" });
         if (!res.ok) return;
@@ -281,6 +300,15 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
               {job.fileSize ? <p className="text-xs text-muted-foreground">{humanSize(job.fileSize)}</p> : null}
             </div>
           </div>
+          {/* The download still succeeded — this explains something about the
+              file rather than replacing the result, so it sits inside the
+              success panel and never blocks the download button. */}
+          {job.warning && (
+            <p className="flex items-start gap-2 rounded-xl bg-warning/10 p-3 text-sm text-muted-foreground">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden />
+              <span>{job.warning}</span>
+            </p>
+          )}
           <a
             ref={linkRef}
             href={`/api/social/jobs/${job.id}/file`}

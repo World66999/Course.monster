@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { cancelRemoteJob, fetchRemoteJob, safeMessage } from "@/lib/social-download";
+import {
+  cancelRemoteJob, fetchRemoteJob, safeMessage, safeWarning, STALE_JOB_MS } from "@/lib/social-download";
 import type { SocialJobStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -34,8 +35,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     // this job can never finish. Left alone the row stayed QUEUED forever — the
     // browser polled indefinitely and the admin panel counted it as in flight.
     // UNAVAILABLE is different: the service is merely unreachable right now and
-    // may come back holding the job, so that stays untouched.
-    if (remote.code === "NOT_FOUND") {
+    // may come back holding the job — but only for as long as the job could
+    // still plausibly be running. Past that the row is settled here too, on the
+    // same rule the create route already applies, because otherwise an
+    // unreachable service left the row non-terminal for ever: the browser
+    // polled every 2s with no end, the member kept burning one of their two
+    // concurrent slots, and the admin panel counted a ghost as in flight.
+    const stale = Date.now() - job.createdAt.getTime() > STALE_JOB_MS;
+    if (remote.code === "NOT_FOUND" || stale) {
       await db.socialDownloadJob.update({
         where: { id: job.id },
         data: { status: "EXPIRED", errorCode: "UNAVAILABLE", completedAt: new Date() },
@@ -75,6 +82,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     fileName: remote.data.fileName,
     fileSize: remote.data.fileSize,
     error: remote.data.errorCode ? safeMessage(remote.data.errorCode) : null,
+    // Only present on the live-remote read, which is the poll that carries a
+    // job into COMPLETED — the terminal branch above answers from our own row
+    // and the note is deliberately not persisted (it would need a migration to
+    // record something that only matters at the moment of delivery).
+    warning: safeWarning(remote.data.warning),
   });
 }
 
