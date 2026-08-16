@@ -46,6 +46,30 @@ export function gateEnabled(): boolean {
 const TTL_MS = 45_000;
 const cache = new Map<string, number>();
 
+/**
+ * An entry is normally dropped when it is next read after expiry — but a user
+ * who checks once and never comes back is never read again, so the map only
+ * ever grew. It is swept whenever it gets large instead: expired entries first,
+ * and if that is not enough (every entry still live) the oldest are evicted, so
+ * the map has a hard ceiling. Evicting early is safe — the only cost is one
+ * extra getChatMember call, and dropping an entry can never grant access.
+ */
+const MAX_ENTRIES = 5_000;
+
+function sweep(now: number): void {
+  for (const [id, until] of cache) {
+    if (now > until) cache.delete(id);
+  }
+  if (cache.size <= MAX_ENTRIES) return;
+  // Map preserves insertion order, so the head is the least recently written.
+  const excess = cache.size - MAX_ENTRIES;
+  let dropped = 0;
+  for (const id of cache.keys()) {
+    cache.delete(id);
+    if (++dropped >= excess) break;
+  }
+}
+
 export function invalidateMembership(telegramId: string): void {
   cache.delete(telegramId);
 }
@@ -105,8 +129,11 @@ export async function checkMembership(
     status === "member" ||
     (status === "restricted" && res.result.is_member === true);
 
-  if (joined) cache.set(telegramId, Date.now() + TTL_MS);
-  else invalidateMembership(telegramId);
+  if (joined) {
+    const now = Date.now();
+    if (cache.size >= MAX_ENTRIES) sweep(now);
+    cache.set(telegramId, now + TTL_MS);
+  } else invalidateMembership(telegramId);
 
   return { state: joined ? "member" : "not-member", status };
 }

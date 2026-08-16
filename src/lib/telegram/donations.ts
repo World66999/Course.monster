@@ -175,7 +175,20 @@ export type CompletionResult =
  * unique in the schema: a redelivered update hits the constraint, is recognised
  * as a duplicate, and neither double-counts nor re-notifies.
  */
-export async function completeDonation(p: SuccessfulPayment): Promise<CompletionResult> {
+export async function completeDonation(
+  p: SuccessfulPayment,
+  /**
+   * Who actually paid, from the `successful_payment` message's own `from`.
+   *
+   * An invoice is a normal message and can be forwarded, so the payer is not
+   * necessarily whoever ran /donate. That matters beyond bookkeeping:
+   * `refundStarPayment` takes a user_id, and Telegram will refuse a refund
+   * aimed at anyone but the real payer — so recording the requester here would
+   * make that donation permanently unrefundable. The payer is authenticated by
+   * the webhook secret like every other field in the update.
+   */
+  payerTelegramId?: string
+): Promise<CompletionResult> {
   const donation = await db.donation.findUnique({ where: { invoicePayload: p.invoice_payload } });
   if (!donation) {
     console.error("[telegram] successful payment for an unknown payload");
@@ -185,11 +198,21 @@ export async function completeDonation(p: SuccessfulPayment): Promise<Completion
     return { outcome: "duplicate" };
   }
 
+  if (payerTelegramId && payerTelegramId !== donation.telegramUserId) {
+    console.warn(
+      `[telegram] donation ${donation.id} was invoiced to one account and paid by another; ` +
+        "recording the payer so a refund can reach them"
+    );
+  }
+
   try {
     const updated = await db.donation.update({
       where: { id: donation.id, status: { in: ["PENDING", "PRECHECKOUT"] } },
       data: {
         status: "COMPLETED",
+        // The payer is the donor: attribution, per-donor stats and above all
+        // the refund path must follow whoever Telegram actually charged.
+        ...(payerTelegramId ? { telegramUserId: payerTelegramId } : {}),
         // Trust Telegram's figure for what was actually charged.
         amountStars: p.total_amount,
         currency: p.currency,

@@ -283,7 +283,7 @@ async function handleMessage(m: Message): Promise<void> {
 
   const b = await getBranding();
   if (m.successful_payment) {
-    const result = await completeDonation(m.successful_payment);
+    const result = await completeDonation(m.successful_payment, telegramId);
     // A redelivered update must not thank the user twice.
     if (result.outcome === "completed") {
       await recordEvent(user.id, "DONATION");
