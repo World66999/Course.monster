@@ -42,6 +42,13 @@ npx prisma db seed          # admin user + sample content
 npm run dev
 ```
 
+`ADMIN_EMAIL` and `ADMIN_PASSWORD` must both be set before seeding — the seed
+refuses to run otherwise rather than falling back to a password that is either
+empty or published in this repository. The account it creates is marked
+email-verified, which credentials sign-in requires; if you seeded with an older
+version and cannot sign in with the correct password, re-run the seed and it
+will repair that.
+
 - Site: http://localhost:3000
 - Admin: `http://localhost:3000/<ADMIN_SEGMENT>/login`, where `<ADMIN_SEGMENT>` is the
   value exported from `src/lib/admin-path.ts`. The panel is deliberately **not** at

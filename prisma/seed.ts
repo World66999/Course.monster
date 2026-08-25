@@ -92,16 +92,75 @@ You'll land on the download destination where the course files are hosted. Save 
 
 **Having trouble?** Join our Telegram channel from the header for help and course requests.`;
 
+/**
+ * The bootstrap admin's credentials, or a refusal to seed.
+ *
+ * This used to be `process.env.ADMIN_PASSWORD ?? "ChangeMe_Admin123!"`. `??`
+ * only catches undefined — and `.env.example` ships `ADMIN_PASSWORD=""`, so
+ * anyone following the documented setup got an ADMIN account whose password was
+ * the empty string. Verified against a freshly seeded database:
+ * `bcrypt.compare("", hash)` returned true. The fallback was no better: a
+ * published constant is a known password on every deployment that skipped the
+ * variable.
+ *
+ * Refusing outright is the only safe answer. There is no value this can pick on
+ * the operator's behalf that is not either empty or public.
+ */
+function adminCredentials(): { email: string; password: string } {
+  const email = (process.env.ADMIN_EMAIL ?? "").trim();
+  const password = process.env.ADMIN_PASSWORD ?? "";
+
+  const problems: string[] = [];
+  if (!email) problems.push("ADMIN_EMAIL is empty");
+  else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) problems.push(`ADMIN_EMAIL is not an email address: ${email}`);
+  if (!password) problems.push("ADMIN_PASSWORD is empty");
+  else if (password.length < 12) problems.push("ADMIN_PASSWORD is shorter than 12 characters");
+
+  if (problems.length > 0) {
+    console.error(
+      "\nRefusing to seed an administrator:\n" +
+        problems.map((p) => `  - ${p}`).join("\n") +
+        "\n\nSet both in .env before running `npx prisma db seed`. Generate a password with:\n" +
+        "  openssl rand -base64 24\n"
+    );
+    process.exit(1);
+  }
+  return { email: email.toLowerCase(), password };
+}
+
 async function main() {
-  const adminEmail = process.env.ADMIN_EMAIL ?? "admin@example.com";
-  const adminPassword = process.env.ADMIN_PASSWORD ?? "ChangeMe_Admin123!";
+  const { email: adminEmail, password: adminPassword } = adminCredentials();
 
   const passwordHash = await bcrypt.hash(adminPassword, 12);
+  // `emailVerified` is not optional here.
+  //
+  // authorize() in src/auth.ts refuses any credentials sign-in where it is null
+  // (the gate arrived with email signup, in 20260720095900_email_auth_otp).
+  // Seeding without it produced an admin who could not sign in *with the correct
+  // password* — a fresh deployment following the README was locked out of its
+  // own panel, with nothing in the UI to explain why. Confirmed by seeding a
+  // clean database and running authorize()'s checks against the row.
+  //
+  // Setting it here is not a shortcut around the gate: this account is created
+  // from the server's own environment by whoever already controls the machine.
+  // There is no address to prove ownership of that they do not already own.
   await db.user.upsert({
     where: { email: adminEmail },
-    create: { email: adminEmail, name: "Admin", passwordHash, role: "ADMIN" },
+    create: { email: adminEmail, name: "Admin", passwordHash, role: "ADMIN", emailVerified: new Date() },
+    // Deliberately empty: re-seeding must never silently reset an existing
+    // admin's password or role.
     update: {},
   });
+  // Repairs an account seeded before the line above existed, so a deployment
+  // already locked out by this is fixed by re-running the seed. Scoped to rows
+  // where it is actually null, so a real verification date is never overwritten.
+  const repaired = await db.user.updateMany({
+    where: { email: adminEmail, emailVerified: null },
+    data: { emailVerified: new Date() },
+  });
+  if (repaired.count > 0) {
+    console.log("Marked the existing admin's email as verified — it could not have signed in otherwise.");
+  }
   console.log(`Admin user ready: ${adminEmail}`);
 
   await db.setting.upsert({
