@@ -13,7 +13,7 @@ system is 100% secure — report issues promptly and keep dependencies updated.
   (10 / 15 min) *and* per IP (15 / 15 min). Failed attempts are audit-logged.
 - **Sessions** are JWTs in HTTP-only, SameSite=Lax cookies (Secure over
   HTTPS), max age 12 h.
-- **Two guards on every admin surface:** middleware blocks `/admin/*` routes,
+- **Two guards on every admin surface:** middleware blocks the admin segment,
   and every server action / admin API independently calls `requireAdmin()` —
   a compromised or bypassed middleware still leaves mutations protected.
 

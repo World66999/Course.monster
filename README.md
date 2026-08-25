@@ -16,7 +16,7 @@ Prisma and PostgreSQL.
 - Admin-editable "How to Download" page, custom 404, dark/light theme, ⌘K search,
   newsletter signup, full keyboard navigation and reduced-motion support
 
-**Admin panel** (`/admin`)
+**Admin panel** (at a secret path — see below)
 - Dashboard with stats, 14-day download chart, popular courses and recent activity
 - Course CRUD: create, edit, delete, duplicate, publish/unpublish, reorder,
   bulk select + bulk publish/unpublish/delete, image uploads (auto-WebP via sharp)
@@ -42,8 +42,36 @@ npx prisma db seed          # admin user + sample content
 npm run dev
 ```
 
-- Site: http://localhost:3000 — Admin: http://localhost:3000/admin
+- Site: http://localhost:3000
+- Admin: `http://localhost:3000/<ADMIN_SEGMENT>/login`, where `<ADMIN_SEGMENT>` is the
+  value exported from `src/lib/admin-path.ts`. The panel is deliberately **not** at
+  `/admin`: the random segment is a defence-in-depth layer on top of the real auth
+  checks in `middleware.ts` and `requireAdmin()`, and it is a build-time constant
+  rather than an env var because Next.js publishes the compiled middleware matcher to
+  a client-readable file.
 - Admin login: the `ADMIN_EMAIL` / `ADMIN_PASSWORD` you set in `.env` before seeding.
+
+## Tests
+
+```bash
+npm test          # unit tests — no database, no network
+npm run typecheck
+npm run lint
+```
+
+A few tests cover behaviour that only exists in the database (the chat feed's
+paging is the main one: the bug it guards against was in how Prisma translates a
+cursor, not in any pure function). Those skip unless you point them at a
+**throwaway** database — they delete every chat message in it — that has had
+`prisma migrate deploy` applied:
+
+```bash
+createdb coursevault_test
+DATABASE_URL=postgresql://user:pass@localhost:5432/coursevault_test npx prisma migrate deploy
+CHAT_TEST_DATABASE_URL=postgresql://user:pass@localhost:5432/coursevault_test npm test
+```
+
+Never point that variable at the production database.
 
 ## Documentation
 

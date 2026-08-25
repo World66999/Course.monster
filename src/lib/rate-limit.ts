@@ -33,6 +33,18 @@ let lastCleanup = Date.now();
 const MAX_KEYS = 50_000;
 
 /**
+ * How far an over-ceiling sweep evicts past the ceiling.
+ *
+ * Evicting to exactly MAX_KEYS is the obvious thing and it is quadratic: the
+ * very next new key puts the store back over, so *every* subsequent request
+ * runs another full O(n) pass. Measured at 60 000 one-off keys, that took 271
+ * seconds — which would have turned a slow memory leak into an immediate CPU
+ * exhaustion under exactly the traffic the ceiling exists to survive. Leaving
+ * headroom amortises the sweep over the next few thousand insertions.
+ */
+const EVICT_TO = 45_000;
+
+/**
  * The longest window any caller has actually asked for.
  *
  * The sweep prunes timestamps older than one window, but the store is shared by
@@ -47,22 +59,38 @@ const MAX_KEYS = 50_000;
  */
 let widestWindowMs = 15 * 60 * 1000;
 
-function cleanup(now: number, maxWindowMs: number) {
-  if (now - lastCleanup < CLEANUP_INTERVAL_MS && store.size <= MAX_KEYS) return;
+/**
+ * Drops everything that can no longer affect a decision, then enforces the key
+ * ceiling. Exported so it can be driven directly: the periodic call below is
+ * gated on a five-minute timer, which is not something a test can wait out, and
+ * the window bug above is only observable once a sweep has actually run.
+ */
+export function sweepRateLimitStore(now: number = Date.now()): void {
   lastCleanup = now;
   for (const [key, bucket] of store) {
-    const fresh = bucket.filter((t) => now - t < maxWindowMs);
+    const fresh = bucket.filter((t) => now - t < widestWindowMs);
     if (fresh.length === 0) store.delete(key);
     else store.set(key, fresh);
   }
   if (store.size <= MAX_KEYS) return;
   // Still over after dropping everything expired: every remaining bucket is
   // live, so shed the oldest-written ones. Map iterates in insertion order.
-  let excess = store.size - MAX_KEYS;
+  let excess = store.size - EVICT_TO;
   for (const key of store.keys()) {
     store.delete(key);
     if (--excess <= 0) break;
   }
+}
+
+/** Number of distinct keys currently held, for a health readout. */
+export function rateLimitStoreSize(): number {
+  return store.size;
+}
+
+function cleanup(now: number, willAddKey = false) {
+  const projected = store.size + (willAddKey ? 1 : 0);
+  if (now - lastCleanup < CLEANUP_INTERVAL_MS && projected <= MAX_KEYS) return;
+  sweepRateLimitStore(now);
 }
 
 export interface RateLimitOptions {
@@ -82,7 +110,9 @@ export interface RateLimitResult {
 export function checkRateLimit(key: string, opts: RateLimitOptions): RateLimitResult {
   const now = Date.now();
   if (opts.windowMs > widestWindowMs) widestWindowMs = opts.windowMs;
-  cleanup(now, widestWindowMs);
+  // `>=` rather than `>`: this call may be about to add a key, and the ceiling
+  // should hold after that write, not one key later.
+  cleanup(now, !store.has(key));
 
   const bucket = (store.get(key) ?? []).filter((t) => now - t < opts.windowMs);
   if (bucket.length >= opts.limit) {
