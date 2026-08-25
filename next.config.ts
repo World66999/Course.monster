@@ -69,6 +69,17 @@ const nextConfig: NextConfig = {
         source: "/:path*",
         headers: securityHeaders,
       },
+      {
+        // The final download hop. It hands the visitor to a third-party host,
+        // and the route sets `Referrer-Policy: no-referrer` on its own 302 for
+        // exactly that reason — but a header set here wins over one set in the
+        // route, so the site-wide `strict-origin-when-cross-origin` was
+        // silently reinstated and the destination still learned where the
+        // visitor came from. Confirmed by reading the response, not assumed.
+        // A later, more specific entry is the supported way to override.
+        source: "/go/:token*",
+        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
+      },
     ];
   },
 };

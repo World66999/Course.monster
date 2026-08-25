@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { consumeDownloadToken } from "@/lib/download-token";
 import { getShortLink } from "@/lib/shortener";
-import { getClientIp, hashIp } from "@/lib/ip";
+import { getClientIp, hashIp, siteOrigin } from "@/lib/ip";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { isSafeExternalUrl } from "@/lib/safe-url";
 
@@ -15,7 +15,11 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
-  const home = new URL("/", request.nextUrl.origin);
+  // The public origin, not `nextUrl.origin`. Behind the reverse proxy the
+  // latter is whatever host header reached the Node process, so every "that
+  // link is spent, go back to the site" redirect risked pointing the visitor
+  // at an internal address they cannot reach.
+  const home = new URL("/", siteOrigin(request.nextUrl.origin));
   const ip = await getClientIp();
   const ipKey = hashIp(ip);
 

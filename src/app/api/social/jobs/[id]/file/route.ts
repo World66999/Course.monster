@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { fetchRemoteFile } from "@/lib/social-download";
 import { contentDisposition } from "@/lib/content-disposition";
 
@@ -19,6 +20,19 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // Creating a job is rate limited; re-fetching a finished one was not, so a
+  // single account could pull the same multi-hundred-megabyte artefact in a
+  // loop and spend the server's egress on it. Generous enough for the real
+  // cases this needs to allow — a resumed transfer, a retried tap, a second
+  // device — and nowhere near enough to be worth abusing.
+  const rl = checkRateLimit(`social:file:${userId}`, { limit: 30, windowMs: 10 * 60_000 });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many download requests. Please wait a moment." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil(rl.retryAfterMs / 1000)) } }
+    );
+  }
 
   const { id } = await params;
   const job = await db.socialDownloadJob.findFirst({ where: { id, userId } });

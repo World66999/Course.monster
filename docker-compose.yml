@@ -20,16 +20,60 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # Every variable the app reads is listed, including the ones that are
+    # optional. Compose passes through only what is named here, so a missing
+    # line is not a warning — the feature simply is not there at runtime, and
+    # the failure looks like a bug in the feature rather than a gap in this
+    # file. That is exactly what happened: Google sign-in, all email/OTP flows,
+    # the whole Telegram bot and the social downloader were absent from a
+    # Compose deployment even with every value correctly set in .env.
+    #
+    # Deliberately kept in the same order and grouping as .env.example so the
+    # two can be diffed by eye.
     environment:
       DATABASE_URL: postgresql://freecourses:${POSTGRES_PASSWORD}@db:5432/freecourses?schema=public
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+
+      # Auth.js. AUTH_URL is required behind a proxy or every redirect is built
+      # on the container's internal address.
       AUTH_SECRET: ${AUTH_SECRET}
       AUTH_TRUST_HOST: "true"
+      AUTH_URL: ${AUTH_URL:-${NEXT_PUBLIC_SITE_URL}}
+
+      # Google sign-in.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+
+      # Email sign-in / OTP delivery.
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM: ${RESEND_FROM:-}
+      OTP_HASH_SECRET: ${OTP_HASH_SECRET:-}
+
+      # Download flow.
       DOWNLOAD_TOKEN_SECRET: ${DOWNLOAD_TOKEN_SECRET}
-      NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY}
-      VPLINK_API_KEY: ${VPLINK_API_KEY}
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+      VPLINK_API_KEY: ${VPLINK_API_KEY:-}
       VPLINK_API_BASE: ${VPLINK_API_BASE:-https://vplink.in/api}
+
+      # Telegram bot. Inert unless TELEGRAM_BOT_TOKEN is set.
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_WEBHOOK_PATH: ${TELEGRAM_WEBHOOK_PATH:-}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
+      TELEGRAM_CRON_SECRET: ${TELEGRAM_CRON_SECRET:-}
+      TELEGRAM_ADMIN_IDS: ${TELEGRAM_ADMIN_IDS:-}
+      TELEGRAM_REQUIRED_CHANNEL: ${TELEGRAM_REQUIRED_CHANNEL:-}
+      TELEGRAM_REQUIRED_CHANNEL_URL: ${TELEGRAM_REQUIRED_CHANNEL_URL:-}
+      NEXT_PUBLIC_TELEGRAM_BOT: ${NEXT_PUBLIC_TELEGRAM_BOT:-}
+
+      # Social downloader (Bot9). The service is not part of this Compose file;
+      # point SOCIAL_DOWNLOADER_URL at wherever it actually listens. Leave
+      # either value empty and the site reports the feature as unavailable
+      # rather than failing at runtime.
+      SOCIAL_DOWNLOADER_URL: ${SOCIAL_DOWNLOADER_URL:-}
+      SOCIAL_DOWNLOADER_INTERNAL_SECRET: ${SOCIAL_DOWNLOADER_INTERNAL_SECRET:-}
+      NEXT_PUBLIC_DOWNLOADER_TELEGRAM_BOT: ${NEXT_PUBLIC_DOWNLOADER_TELEGRAM_BOT:-}
+
       UPLOAD_DIR: /app/uploads
     volumes:
       - uploads:/app/uploads

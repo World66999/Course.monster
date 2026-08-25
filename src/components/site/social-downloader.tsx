@@ -90,18 +90,22 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
    */
   async function cancel() {
     if (!job?.id || cancelling) return;
+    const jobId = job.id;
     setCancelling(true);
     stopPolling();
     try {
-      const res = await fetch(`/api/social/jobs/${job.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/social/jobs/${jobId}`, { method: "DELETE" });
       if (!res.ok) throw new Error(String(res.status));
       setPhase("idle");
       setJob(null);
     } catch {
-      // Couldn't stop it — say so plainly and resume polling rather than
-      // leaving the UI stuck on a state that no longer updates.
-      setError("Couldn't cancel that download. It may already have finished.");
-      setPhase("error");
+      // The cancellation did not land, so the job is very likely still running.
+      // This used to stop polling and switch to the error panel, which threw
+      // away a download that was still on its way: the file finished, nothing
+      // was watching, and the only way back was to start again. Say what
+      // happened and keep watching instead — the job is still the user's.
+      setError("Couldn't stop that download — it's still running, so we'll keep watching it.");
+      poll(jobId);
     } finally {
       setCancelling(false);
     }
@@ -136,6 +140,7 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
 
   function poll(id: string) {
     stopPolling();
+    setPhase("working");
     const giveUpAt = Date.now() + POLL_DEADLINE_MS;
     pollRef.current = setInterval(async () => {
       if (Date.now() > giveUpAt) {
@@ -259,6 +264,13 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
             {statusLabel}
           </div>
+          {/* A failed cancellation, shown without abandoning the running job. */}
+          {error && (
+            <p className="flex items-start gap-2 text-xs text-muted-foreground">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" aria-hidden />
+              <span>{error}</span>
+            </p>
+          )}
           {/* Only shown when the downloader genuinely reports progress. */}
           {typeof job?.percent === "number" && (
             <>

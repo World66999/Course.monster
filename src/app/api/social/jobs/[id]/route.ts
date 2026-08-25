@@ -1,12 +1,44 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { checkRateLimit } from "@/lib/rate-limit";
 import {
   cancelRemoteJob, fetchRemoteJob, safeMessage, safeWarning, STALE_JOB_MS } from "@/lib/social-download";
-import type { SocialJobStatus } from "@prisma/client";
+import { SocialJobStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+/**
+ * Every state this route may report, and the subset that means "stop asking".
+ *
+ * The remote status used to be cast straight to the Prisma enum and handed to
+ * the browser. Anything the service reported that this schema does not know
+ * failed the database write silently (the update is `.catch`ed) and then
+ * reached the poller as a status it does not recognise as terminal, so the tab
+ * kept asking every two seconds until its own deadline. A value that is not one
+ * of ours is now treated as "still working", which is the honest reading.
+ */
+const TERMINAL: ReadonlySet<SocialJobStatus> = new Set([
+  SocialJobStatus.COMPLETED,
+  SocialJobStatus.FAILED,
+  SocialJobStatus.EXPIRED,
+  SocialJobStatus.CANCELLED,
+]);
+
+function knownStatus(value: unknown): SocialJobStatus | null {
+  return typeof value === "string" && value in SocialJobStatus ? (value as SocialJobStatus) : null;
+}
+
+/**
+ * The browser polls this every two seconds for the life of a job, and each poll
+ * that is not answered from our own row becomes a request to the internal
+ * downloader. Without a ceiling one signed-in account can turn that into an
+ * amplifier against a service that is deliberately not reachable any other way.
+ * Set well above what an honest client needs: two concurrent jobs at 0.5 Hz is
+ * 60 polls a minute, and this allows five times that.
+ */
+const POLL_LIMIT = { limit: 300, windowMs: 60_000 } as const;
 
 /** Job status. Ownership is enforced by the query, not by the id being opaque. */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -14,12 +46,23 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const userId = session?.user?.id;
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const rl = checkRateLimit(`social:poll:${userId}`, POLL_LIMIT);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many requests." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil(rl.retryAfterMs / 1000)) } }
+    );
+  }
+
   const { id } = await params;
   const job = await db.socialDownloadJob.findFirst({ where: { id, userId } });
   if (!job) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   // Terminal states are answered from our own row — no need to ask the service.
-  if (job.status === "COMPLETED" || job.status === "FAILED") {
+  // EXPIRED and CANCELLED belong here as much as COMPLETED and FAILED do: they
+  // are settled, and leaving them out meant a cancelled job kept calling the
+  // downloader on every poll to be told again that it was cancelled.
+  if (TERMINAL.has(job.status)) {
     return NextResponse.json({
       id: job.id, status: job.status, platform: job.platform, title: job.title,
       fileName: job.fileName, fileSize: job.fileSize,
@@ -57,7 +100,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ id: job.id, status: job.status, percent: null, error: null });
   }
 
-  const status = remote.data.status as SocialJobStatus;
+  // An unrecognised status is never written and never forwarded: the row keeps
+  // whatever it had, and the client is told the job is still in flight.
+  const status = knownStatus(remote.data.status) ?? job.status;
+  if (knownStatus(remote.data.status) === null) {
+    console.warn(`[social] job ${job.id}: downloader reported an unknown status, treating it as ${job.status}`);
+  }
   if (status !== job.status) {
     await db.socialDownloadJob.update({
       where: { id: job.id },
@@ -65,11 +113,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         status,
         title: remote.data.title ?? undefined,
         fileName: remote.data.fileName ?? undefined,
-        fileSize: remote.data.fileSize ?? 0,
+        // `?? 0` would reset a size the row already knew whenever the service
+        // omitted it; leave the stored value alone instead.
+        fileSize: typeof remote.data.fileSize === "number" ? remote.data.fileSize : undefined,
         errorCode: remote.data.errorCode ?? undefined,
-        completedAt: status === "COMPLETED" || status === "FAILED" ? new Date() : undefined,
+        completedAt: TERMINAL.has(status) ? new Date() : undefined,
       },
-    }).catch(() => undefined);
+    }).catch((err) => console.error(`[social] failed to record job ${job.id} as ${status}:`, err));
   }
 
   return NextResponse.json({
@@ -108,6 +158,16 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // Cancellation also reaches the internal service, so it is bounded as well —
+  // more tightly, since no honest client cancels more than a handful of times.
+  const rl = checkRateLimit(`social:cancel:${userId}`, { limit: 20, windowMs: 5 * 60_000 });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many cancellation requests." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil(rl.retryAfterMs / 1000)) } }
+    );
+  }
 
   const { id } = await params;
   const job = await db.socialDownloadJob.findFirst({

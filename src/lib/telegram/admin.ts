@@ -25,7 +25,7 @@ import {
 } from "./branding-schema";
 import { getMostDownloadedCourses, getMostRequestedCourses, getOverview } from "./analytics";
 import { queueBroadcast, runBroadcast } from "./broadcast";
-import { getWebhookInfo, getLastCustomEmojiError } from "./api";
+import { apiBase, getWebhookInfo, getLastCustomEmojiError } from "./api";
 import { esc } from "./render";
 import { validateCustomEmoji, customEmojiCapability } from "./custom-emoji";
 import { fetchLibrary, planAssignments, verifyConfigured } from "./emoji-library";
@@ -211,7 +211,19 @@ async function statsScreen(snapshot?: Branding): Promise<Screen> {
   const lastEmojiError = getLastCustomEmojiError();
   const [donationStats, gatedUsers] = await Promise.all([
     getDonationStats(),
-    db.telegramEvent.groupBy({ by: ["userId"], where: { type: "START" }, _count: { _all: true } }),
+    // How many distinct users have ever reached the menu.
+    //
+    // This was a `groupBy` whose only use was `.length`, so the database
+    // returned one row per user and the process held every one of them just to
+    // count them — the single query on this screen that grows without bound
+    // with the audience. Prisma has no distinct-count, and its `distinct:` is
+    // not guaranteed to be pushed into SQL, so this counts in the database.
+    // No interpolation: the table and the enum literal are fixed here.
+    db.$queryRaw<{ count: bigint }[]>`
+      SELECT COUNT(DISTINCT "userId")::bigint AS count
+      FROM telegram_events
+      WHERE type = 'START'::"TelegramEventType"
+    `.then((rows) => Number(rows[0]?.count ?? 0)),
   ]);
   const lines = [
     `${I(b, "dashboard")} <b>Dashboard</b>`,
@@ -242,7 +254,7 @@ async function statsScreen(snapshot?: Branding): Promise<Screen> {
     `<i>Button icons render only for bots with a Fragment username or a Premium owner — Telegram decides this, not the bot.</i>`,
     "",
     `${I(b, "channel")} Required channel: <b>${gateEnabled() ? esc(requiredChannel() ?? "") : "disabled"}</b>`,
-    `${I(b, "users")} Users who reached the menu: <b>${gatedUsers.length}</b>`,
+    `${I(b, "users")} Users who reached the menu: <b>${gatedUsers}</b>`,
     `${I(b, "donate")} Donations <b>${donationStats.totalCompleted}</b> · ${I(b, "stars")} <b>${donationStats.totalStars}</b> Stars`,
   ];
   return { text: lines.join("\n"), keyboard: back(b) };
@@ -867,7 +879,7 @@ async function sendExport(chatId: string, b: Branding): Promise<void> {
   try {
     const token = process.env.TELEGRAM_BOT_TOKEN;
     if (!token) throw new Error("token not configured");
-    const res = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, {
+    const res = await fetch(`${apiBase()}/bot${token}/sendDocument`, {
       method: "POST",
       body: form,
       signal: AbortSignal.timeout(20_000),

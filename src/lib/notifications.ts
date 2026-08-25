@@ -83,6 +83,18 @@ export async function createNotification(input: {
  * user who triggered it. One query for the follower list, then reuses
  * createNotification's own fire-and-forget/no-self-notify guarantees.
  */
+/**
+ * Upper bound on how many followers one comment notifies.
+ *
+ * The fan-out used to be `Promise.all` over one `create` per follower, with no
+ * limit on the follower list. On a request with a few thousand followers that
+ * is a few thousand simultaneous round trips from inside a single server
+ * action: the connection pool is exhausted, every *other* request queues behind
+ * it, and the comment that triggered it is still waiting. One `createMany`
+ * makes it a single statement, and the cap keeps even that bounded.
+ */
+const MAX_FANOUT = 2_000;
+
 export async function notifyFollowers(input: {
   requestId: string;
   type: NotificationType;
@@ -97,19 +109,25 @@ export async function notifyFollowers(input: {
     const followers = await db.requestFollow.findMany({
       where: { requestId: input.requestId, userId: { notIn: [...exclude] } },
       select: { userId: true },
+      // Oldest followers first, so the cap — if it is ever reached — cuts off
+      // deterministically rather than at whatever the planner happened to emit.
+      orderBy: { createdAt: "asc" },
+      take: MAX_FANOUT,
     });
-    await Promise.all(
-      followers.map((f) =>
-        createNotification({
-          userId: f.userId,
-          type: input.type,
-          message: input.message,
-          requestId: input.requestId,
-          commentId: input.commentId,
-          actorId: input.actorId,
-        })
-      )
-    );
+    if (followers.length === 0) return;
+    if (followers.length === MAX_FANOUT) {
+      console.warn(`[notifications] follower fan-out for ${input.requestId} hit the ${MAX_FANOUT} cap`);
+    }
+    await db.notification.createMany({
+      data: followers.map((f) => ({
+        userId: f.userId,
+        type: input.type,
+        message: input.message,
+        requestId: input.requestId,
+        commentId: input.commentId ?? null,
+        actorId: input.actorId,
+      })),
+    });
   } catch (err) {
     console.error("[notifications] follower fan-out failed:", err);
   }
