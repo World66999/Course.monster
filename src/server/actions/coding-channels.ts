@@ -41,11 +41,3 @@ export async function toggleChannelBookmarkAction(
   return { ok: true, bookmarked: true, bookmarkCount: updated.bookmarkCount };
 }
 
-/** Fire-and-forget click-through counter, same idea as the course detail page's inline views increment. */
-export async function recordChannelViewAction(channelId: unknown): Promise<void> {
-  const parsed = idSchema.safeParse(channelId);
-  if (!parsed.success) return;
-  await db.codingChannel
-    .update({ where: { id: parsed.data }, data: { views: { increment: 1 } } })
-    .catch(() => undefined);
-}

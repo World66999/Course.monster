@@ -13,6 +13,32 @@ Schema changes: create migrations in development with
 under `prisma/migrations/`, and production applies them on the next deploy via
 `prisma migrate deploy`. Never edit an applied migration.
 
+## Pinned transitive versions (`overrides` in package.json)
+
+`npm audit` reported eight high-severity advisories, all of them in packages
+this project does not depend on directly — they arrive underneath `next`,
+`@eslint/eslintrc` and the `prisma` CLI. npm's suggested fix was `next@16` and
+`prisma@6.12`, i.e. a major upgrade and a major downgrade, for defects in
+transitive dependencies. The `overrides` block pins the patched versions
+instead:
+
+| Package | Pinned | Arrives via | Why |
+| --- | --- | --- | --- |
+| `sharp` | `^0.35.3` | `next` (optional dep, `^0.34.3`) | libvips CVEs. This is the copy next/image uses; the app's own upload pipeline was already on 0.35. |
+| `postcss` | `^8.5.26` | `next` (pinned `8.4.31`) | sourceMappingURL path traversal. Build-time only. |
+| `brace-expansion` | `^5.0.9` | `minimatch` under the eslint parser | ReDoS-style unbounded expansion. Dev only. |
+| `js-yaml` | `^5.3.0` | `@eslint/eslintrc` | Quadratic CPU in `!!omap`. Dev only; this project uses flat config, so it is never parsed. |
+| `deepmerge-ts` | `^8.0.2` | `@prisma/config` | Stack exhaustion on recursive graphs. Prisma CLI only. |
+
+Verified after pinning, not assumed: `npm run build`, a request through
+`/_next/image` (the only thing that actually exercises next's `sharp` — it
+returned a correctly resized JPEG), `eslint`, `prisma validate`,
+`prisma generate`, `prisma migrate deploy`, and the test suite. `npm audit`
+reports 0 vulnerabilities.
+
+When upgrading `next` or `prisma`, re-check whether these are still needed —
+an override that outlives its reason silently holds a dependency back.
+
 ## Dependencies (monthly)
 
 ```bash

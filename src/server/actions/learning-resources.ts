@@ -41,10 +41,3 @@ export async function toggleResourceBookmarkAction(
   return { ok: true, bookmarked: true, bookmarkCount: updated.bookmarkCount };
 }
 
-export async function recordResourceViewAction(resourceId: unknown): Promise<void> {
-  const parsed = idSchema.safeParse(resourceId);
-  if (!parsed.success) return;
-  await db.learningResource
-    .update({ where: { id: parsed.data }, data: { views: { increment: 1 } } })
-    .catch(() => undefined);
-}
