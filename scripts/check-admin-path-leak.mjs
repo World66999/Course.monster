@@ -19,10 +19,10 @@
  *
  * Only (1) used to be checked, and (1) alone would not notice (2).
  *
- * Usage: node scripts/check-admin-path-leak.js [buildDir]   (default: .next)
+ * Usage: node scripts/check-admin-path-leak.mjs [buildDir]   (default: .next)
  */
-const fs = require("node:fs");
-const path = require("node:path");
+import fs from "node:fs";
+import path from "node:path";
 
 const buildDir = process.argv[2] || ".next";
 const source = fs.readFileSync(path.join("src", "lib", "admin-path.ts"), "utf8");

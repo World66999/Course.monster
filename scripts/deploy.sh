@@ -124,7 +124,7 @@ log "7/9 Verifying the admin path never leaked into a client bundle a visitor ge
 # second half is the one that matters for a future refactor: the panel's own
 # chunks legitimately contain the segment, and only a staff session ever fetches
 # them, but one shared import would put it in a chunk the homepage pulls in.
-node scripts/check-admin-path-leak.js .next || fail "admin segment leaked into a client bundle"
+node scripts/check-admin-path-leak.mjs .next || fail "admin segment leaked into a client bundle"
 
 log "8/9 Installing into the $TARGET slot and starting it"
 systemctl stop "coursevault@$TARGET" 2>/dev/null || true
