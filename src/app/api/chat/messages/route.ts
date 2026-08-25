@@ -24,8 +24,13 @@ export async function GET(request: NextRequest) {
   const session = await auth();
   const userId = session?.user?.id ?? null;
 
+  // Stamped before any query runs, and handed back to the client as
+  // `serverTime`. A message moderated while these queries are in flight then
+  // lands inside the *next* poll's window rather than being missed by both.
+  const requestedAt = new Date();
+
   const { items, nextCursor } = await listChatMessages(parsed.data);
-  const payload = await toChatMessagesResponse(items, nextCursor, userId);
+  const payload = await toChatMessagesResponse(items, nextCursor, userId, requestedAt);
 
   if (parsed.data.since) {
     payload.removedIds = await listRemovedMessageIds(parsed.data.since);

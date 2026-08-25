@@ -43,6 +43,18 @@ export interface ChatMessagesResponse {
   mentions: Record<string, ChatAuthorDTO>;
   /** Ids of already-fetched messages that became invisible (hidden/deleted) since `since`. */
   removedIds?: string[];
+  /**
+   * The server's own clock at the moment this response was produced.
+   *
+   * The client echoes it back as `since` on the next poll. It must be the
+   * server's time, not the browser's: `since` is compared against
+   * `ChatMessage.updatedAt`, which is stamped server-side, so a browser clock
+   * running even slightly fast made every moderation in that window fall
+   * outside `updatedAt > since` and the hidden message stayed on screen until
+   * a reload. Nothing about a visitor's device clock is knowable, so it is
+   * never used as one end of a server-side comparison.
+   */
+  serverTime: string;
 }
 
 /** Curated set, validated server-side against this list — no picker dependency. */

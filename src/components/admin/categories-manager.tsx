@@ -20,7 +20,7 @@ import { cn, slugify } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input, Label, FieldError, FieldHint } from "@/components/ui/input";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 import {
   Dialog,
   DialogContent,

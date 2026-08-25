@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 import { cancelSocialJobAction, retrySocialJobAction } from "@/server/actions/admin-social";
 
 /**

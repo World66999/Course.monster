@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import type { z } from "zod";
 import { changeEmailRequestSchema } from "@/lib/validation";
 import { requestEmailChangeAction, verifyEmailChangeAction } from "@/server/actions/profile";
+import { safeAction } from "@/lib/safe-action";
 import { Button } from "@/components/ui/button";
 import { Input, Label, FieldError, FieldHint } from "@/components/ui/input";
 import { PasswordField } from "@/components/auth/password-field";
@@ -33,7 +34,7 @@ export function EmailSection({ email, hasPassword }: { email: string; hasPasswor
   });
 
   async function onRequest(values: FormOutput) {
-    const result = await requestEmailChangeAction(values);
+    const result = await safeAction(() => requestEmailChangeAction(values), "request email change");
     if (result.ok) {
       setPendingEmail(values.newEmail);
       toast.success("Check your new inbox for a verification code.");
@@ -46,7 +47,7 @@ export function EmailSection({ email, hasPassword }: { email: string; hasPasswor
     if (code.length !== 6 || verifying) return;
     setVerifying(true);
     try {
-      const result = await verifyEmailChangeAction({ code });
+      const result = await safeAction(() => verifyEmailChangeAction({ code }), "verify email change");
       if (result.ok) {
         toast.success("Email updated");
         await update({ email: pendingEmail });

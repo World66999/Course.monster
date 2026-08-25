@@ -7,6 +7,7 @@ import { ChevronDown, Heart, Loader2, Pencil, Reply, Trash2 } from "lucide-react
 import { toast } from "sonner";
 import type { CommentWithMeta } from "@/lib/comments";
 import { createCommentAction, editCommentAction, deleteCommentAction, toggleCommentLikeAction } from "@/server/actions/comments";
+import { safeAction } from "@/lib/safe-action";
 import { AuthorAvatar, VerifiedBadge } from "@/components/site/comments/author-avatar";
 import { CommentForm } from "@/components/site/comments/comment-form";
 import { ReportButton } from "@/components/site/report-dialog";
@@ -113,7 +114,7 @@ export function CommentItem({
         };
         addOptimisticReply({ type: "add", reply: optimisticReply });
 
-        const result = await createCommentAction({ courseId, parentId: comment.id, body });
+        const result = await safeAction(() => createCommentAction({ courseId, parentId: comment.id, body }), "reply to comment");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;
@@ -141,7 +142,7 @@ export function CommentItem({
     return new Promise((resolve) => {
       startReplyTransition(async () => {
         addOptimisticReply({ type: "update", id, body });
-        const result = await editCommentAction(id, body);
+        const result = await safeAction(() => editCommentAction(id, body), "edit comment");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;
@@ -160,7 +161,7 @@ export function CommentItem({
     return new Promise((resolve) => {
       startReplyTransition(async () => {
         addOptimisticReply({ type: "remove", id });
-        const result = await deleteCommentAction(id);
+        const result = await safeAction(() => deleteCommentAction(id), "delete comment");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;
@@ -182,7 +183,7 @@ export function CommentItem({
     setLiked(nextLiked);
     setLikeCount((c) => c + (nextLiked ? 1 : -1));
     try {
-      const result = await toggleCommentLikeAction(comment.id);
+      const result = await safeAction(() => toggleCommentLikeAction(comment.id), "toggle comment like");
       if (!result.ok) {
         // Revert on failure.
         setLiked(!nextLiked);

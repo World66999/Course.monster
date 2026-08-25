@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { BadgeCheck, Bookmark, ExternalLink, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { toggleChannelBookmarkAction } from "@/server/actions/coding-channels";
+import { safeAction } from "@/lib/safe-action";
 import { Badge } from "@/components/ui/badge";
 import { cn, gradientFromString } from "@/lib/utils";
 
@@ -63,7 +64,7 @@ export function ChannelCard({ channel }: { channel: ChannelCardDTO }) {
     const next = !bookmarked;
     setBookmarked(next);
     try {
-      const result = await toggleChannelBookmarkAction(channel.id);
+      const result = await safeAction(() => toggleChannelBookmarkAction(channel.id), "toggle channel bookmark");
       if (!result.ok) {
         setBookmarked(!next);
         toast.error(result.error);

@@ -10,6 +10,7 @@ import {
   editRequestCommentAction,
   deleteRequestCommentAction,
 } from "@/server/actions/request-comments";
+import { safeAction } from "@/lib/safe-action";
 import { RequestCommentItem } from "@/components/site/requests/request-comment-item";
 import { CommentForm } from "@/components/site/comments/comment-form";
 import { SignInGate } from "@/components/site/sign-in-gate";
@@ -70,7 +71,7 @@ export function RequestCommentsSection({
         };
         addOptimistic({ type: "add", comment: optimisticComment });
 
-        const result = await createRequestCommentAction({ requestId, body });
+        const result = await safeAction(() => createRequestCommentAction({ requestId, body }), "post request comment");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;
@@ -90,7 +91,7 @@ export function RequestCommentsSection({
     return new Promise((resolve) => {
       startTransition(async () => {
         addOptimistic({ type: "update", id, body });
-        const result = await editRequestCommentAction(id, body);
+        const result = await safeAction(() => editRequestCommentAction(id, body), "edit request comment");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;
@@ -105,7 +106,7 @@ export function RequestCommentsSection({
     return new Promise((resolve) => {
       startTransition(async () => {
         addOptimistic({ type: "remove", id });
-        const result = await deleteRequestCommentAction(id);
+        const result = await safeAction(() => deleteRequestCommentAction(id), "delete request comment");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;

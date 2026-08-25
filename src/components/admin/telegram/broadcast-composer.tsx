@@ -6,7 +6,7 @@ import { Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea, Label, FieldHint } from "@/components/ui/input";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 import { createBroadcastAction } from "@/server/actions/admin-telegram";
 
 const MAX = 3500;

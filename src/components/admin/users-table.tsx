@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { setUserDisabledAction } from "@/server/actions/admin-users";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 
 export interface AdminUserRow {
   id: string;

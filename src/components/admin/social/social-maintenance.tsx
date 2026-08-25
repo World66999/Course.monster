@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Eraser, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 import { pruneSocialJobsAction, sweepSocialJobsAction } from "@/server/actions/admin-social";
 
 /**

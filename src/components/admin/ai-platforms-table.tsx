@@ -27,7 +27,7 @@ import { Button, buttonClasses } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { adminPath } from "@/lib/admin-path";
 import { AI_CATEGORY_LABELS, AI_PRICING_LABELS, AI_PRICING_VARIANTS, labelFor } from "@/lib/directory-labels";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 
 export interface AdminAiPlatformRow {
   id: string;

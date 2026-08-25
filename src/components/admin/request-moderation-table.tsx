@@ -40,7 +40,7 @@ import {
   mergeRequestAction,
 } from "@/server/actions/admin-course-requests";
 import { REQUEST_STATUS_LABELS, REQUEST_KIND_LABELS, type RequestStatus, type RequestKind } from "@/lib/request-shared";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 
 export interface AdminRequestRow {
   id: string;

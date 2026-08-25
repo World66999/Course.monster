@@ -8,6 +8,7 @@ import { Loader2, Send, ImagePlus, X, AtSign } from "lucide-react";
 import { toast } from "sonner";
 import type { ChatMessageDTO } from "@/lib/chat-shared";
 import { createChatMessageAction, setChatDisplayNameAction } from "@/server/actions/chat";
+import { safeAction } from "@/lib/safe-action";
 import { Button } from "@/components/ui/button";
 import { Textarea, Input, FieldError } from "@/components/ui/input";
 
@@ -30,7 +31,7 @@ function ChatDisplayNamePrompt({ onSet }: { onSet: (name: string) => void }) {
     setBusy(true);
     setError("");
     try {
-      const result = await setChatDisplayNameAction({ chatDisplayName: value });
+      const result = await safeAction(() => setChatDisplayNameAction({ chatDisplayName: value }), "set chat display name");
       if (result.ok) {
         await update({ chatDisplayName: value });
         onSet(value);
@@ -162,12 +163,16 @@ export function Composer({
     if ((!body.trim() && !image) || submitting) return;
     setSubmitting(true);
     try {
-      const result = await createChatMessageAction({
-        parentId: replyTo?.id,
-        body,
-        imageUrl: image?.path,
-        imageThumbUrl: image?.thumbPath,
-      });
+      const result = await safeAction(
+        () =>
+          createChatMessageAction({
+            parentId: replyTo?.id,
+            body,
+            imageUrl: image?.path,
+            imageThumbUrl: image?.thumbPath,
+          }),
+        "post chat message"
+      );
       if (result.ok) {
         setBody("");
         setImage(null);

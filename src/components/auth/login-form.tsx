@@ -10,6 +10,7 @@ import { Loader2, LogIn } from "lucide-react";
 import { toast } from "sonner";
 import { loginFormSchema, type LoginFormValues } from "@/lib/validation";
 import { precheckLoginAction } from "@/server/actions/public-auth";
+import { safeAction } from "@/lib/safe-action";
 import { Button } from "@/components/ui/button";
 import { Input, Label, FieldError } from "@/components/ui/input";
 import { PasswordField } from "@/components/auth/password-field";
@@ -33,7 +34,7 @@ export function LoginForm() {
 
   async function onSubmit(values: LoginFormValues) {
     // Friendly disabled/unverified/rate-limit messages before attempting.
-    const precheck = await precheckLoginAction(values);
+    const precheck = await safeAction(() => precheckLoginAction(values), "pre-check login");
     if (!precheck.ok) {
       toast.error(precheck.error);
       return;

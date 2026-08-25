@@ -18,7 +18,7 @@ import { Input, Label, FieldError, FieldHint, Textarea } from "@/components/ui/i
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 
 type FormInput = z.input<typeof codingChannelFormSchema>;
 

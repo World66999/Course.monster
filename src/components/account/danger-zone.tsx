@@ -5,6 +5,7 @@ import { signOut } from "next-auth/react";
 import { Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteAccountAction } from "@/server/actions/profile";
+import { safeAction } from "@/lib/safe-action";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/input";
 import { PasswordField } from "@/components/auth/password-field";
@@ -17,7 +18,7 @@ export function DangerZone({ hasPassword }: { hasPassword: boolean }) {
 
   async function onDelete() {
     setBusy(true);
-    const result = await deleteAccountAction({ currentPassword: password });
+    const result = await safeAction(() => deleteAccountAction({ currentPassword: password }), "delete account");
     if (!result.ok) {
       toast.error(result.error);
       setBusy(false);

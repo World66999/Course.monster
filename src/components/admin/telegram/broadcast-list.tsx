@@ -6,7 +6,7 @@ import { Loader2, Pause, Play, X } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 import {
   cancelBroadcastAction,
   pauseBroadcastAction,

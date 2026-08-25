@@ -19,7 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { CATEGORY_LABELS, PLATFORM_LABELS } from "@/components/site/apps/app-card";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 
 type FormInput = z.input<typeof appListingFormSchema>;
 

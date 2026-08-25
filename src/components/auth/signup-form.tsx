@@ -9,6 +9,7 @@ import { Loader2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { signupFormSchema, type SignupFormValues } from "@/lib/validation";
 import { requestSignupAction } from "@/server/actions/signup";
+import { safeAction } from "@/lib/safe-action";
 import { Button } from "@/components/ui/button";
 import { Input, Label, FieldError } from "@/components/ui/input";
 import { PasswordField } from "@/components/auth/password-field";
@@ -28,7 +29,7 @@ export function SignupForm() {
   const password = watch("password") ?? "";
 
   async function onSubmit(values: SignupFormValues) {
-    const result = await requestSignupAction(values);
+    const result = await safeAction(() => requestSignupAction(values), "request signup");
     if (result.ok) {
       router.push(`/verify-email?email=${encodeURIComponent(values.email)}`);
     } else {

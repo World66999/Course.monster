@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Link2, Loader2, PlugZap, Unplug } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 import {
   checkBotAction,
   registerWebhookAction,

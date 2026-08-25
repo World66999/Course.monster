@@ -7,6 +7,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ArrowBigUp, Bookmark, MessageSquare, User } from "lucide-react";
 import { toast } from "sonner";
 import { toggleRequestVoteAction, toggleRequestBookmarkAction } from "@/server/actions/course-requests";
+import { safeAction } from "@/lib/safe-action";
 import type { RequestCardDTO } from "@/lib/request-shared";
 import { RequestStatusBadge, PopularBadge, RequestKindBadge } from "@/components/site/requests/status-badge";
 import { CourseImage } from "@/components/site/course-image";
@@ -32,7 +33,7 @@ export function RequestCard({ request }: { request: RequestCardDTO }) {
     setVoted(next);
     setVoteCount((c) => c + (next ? 1 : -1));
     try {
-      const result = await toggleRequestVoteAction(request.id);
+      const result = await safeAction(() => toggleRequestVoteAction(request.id), "toggle request vote");
       if (!result.ok) {
         setVoted(!next);
         setVoteCount((c) => c + (next ? -1 : 1));
@@ -56,7 +57,7 @@ export function RequestCard({ request }: { request: RequestCardDTO }) {
     const next = !bookmarked;
     setBookmarked(next);
     try {
-      const result = await toggleRequestBookmarkAction(request.id);
+      const result = await safeAction(() => toggleRequestBookmarkAction(request.id), "toggle request bookmark");
       if (!result.ok) {
         setBookmarked(!next);
         toast.error(result.error);

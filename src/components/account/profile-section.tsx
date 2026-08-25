@@ -8,6 +8,7 @@ import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { displayNameFormSchema } from "@/lib/validation";
 import { updateDisplayNameAction } from "@/server/actions/profile";
+import { safeAction } from "@/lib/safe-action";
 import { AvatarUpload } from "@/components/account/avatar-upload";
 import { Button } from "@/components/ui/button";
 import { Input, Label, FieldError, FieldHint } from "@/components/ui/input";
@@ -29,7 +30,7 @@ export function ProfileSection({ name, image }: { name: string; image: string | 
   });
 
   async function onSubmit(values: FormValues) {
-    const result = await updateDisplayNameAction(values);
+    const result = await safeAction(() => updateDisplayNameAction(values), "update display name");
     if (result.ok) {
       toast.success("Display name updated");
       // Pushes the new name into the JWT/session immediately — the header

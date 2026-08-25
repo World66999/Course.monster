@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import type { ChatMessageDTO, ChatAuthorDTO } from "@/lib/chat-shared";
 import { parseMessageSegments } from "@/lib/chat-shared";
 import { toggleChatReactionAction } from "@/server/actions/chat";
+import { safeAction } from "@/lib/safe-action";
 import { EmojiReactionPicker } from "@/components/site/chat/emoji-reaction-picker";
 import { ReportButton } from "@/components/site/report-dialog";
 import { Button } from "@/components/ui/button";
@@ -144,7 +145,7 @@ export function MessageItem({
       : [...reactions, { emoji, count: 1, reactedByMe: true }];
     setReactions(optimistic);
     try {
-      const result = await toggleChatReactionAction({ messageId: message.id, emoji });
+      const result = await safeAction(() => toggleChatReactionAction({ messageId: message.id, emoji }), "toggle chat reaction");
       if (!result.ok) {
         setReactions(message.reactions);
         toast.error(result.error);

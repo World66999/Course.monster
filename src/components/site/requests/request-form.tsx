@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Loader2, Eye, Lightbulb, Pencil, Sparkles, UploadCloud, X } from "lucide-react";
 import { toast } from "sonner";
 import { createCourseRequestAction, editCourseRequestAction } from "@/server/actions/course-requests";
+import { safeAction } from "@/lib/safe-action";
 import { parseTagsInput, REQUEST_TAG_SUGGESTIONS, type RequestKind } from "@/lib/request-shared";
 import { RequestStatusBadge } from "@/components/site/requests/status-badge";
 import { cn } from "@/lib/utils";
@@ -136,8 +137,8 @@ export function RequestForm({
         anonymous,
       };
       const result = existing
-        ? await editCourseRequestAction(existing.id, payload)
-        : await createCourseRequestAction(payload);
+        ? await safeAction(() => editCourseRequestAction(existing.id, payload), "edit request")
+        : await safeAction(() => createCourseRequestAction(payload), "create request");
 
       if (!result.ok) {
         toast.error(result.error);

@@ -6,7 +6,7 @@ import { EyeOff, Loader2, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { moderateContentAction, resolveReportAction, dismissReportAction } from "@/server/actions/moderation";
 import { Button } from "@/components/ui/button";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 
 type ModerationStatus = "VISIBLE" | "HIDDEN" | "DELETED";
 

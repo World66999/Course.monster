@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, MailCheck } from "lucide-react";
 import { toast } from "sonner";
 import { verifySignupOtpAction, resendSignupOtpAction } from "@/server/actions/signup";
+import { safeAction } from "@/lib/safe-action";
 import { Button } from "@/components/ui/button";
 import { OtpInput } from "@/components/auth/otp-input";
 import { AuthCard } from "@/components/auth/auth-card";
@@ -27,7 +28,7 @@ export function VerifyEmailForm({ email }: { email: string }) {
     if (code.length !== 6 || submitting) return;
     setSubmitting(true);
     try {
-      const result = await verifySignupOtpAction({ email, code });
+      const result = await safeAction(() => verifySignupOtpAction({ email, code }), "verify signup code");
       if (result.ok) {
         router.push("/login?verified=1");
       } else {
@@ -42,7 +43,7 @@ export function VerifyEmailForm({ email }: { email: string }) {
   async function onResend() {
     if (cooldown > 0) return;
     setCooldown(RESEND_COOLDOWN);
-    const result = await resendSignupOtpAction(email);
+    const result = await safeAction(() => resendSignupOtpAction(email), "resend signup code");
     if (result.ok) {
       toast.success("A new code has been sent.");
     } else {

@@ -12,6 +12,7 @@ import {
   toggleRequestFollowAction,
   deleteCourseRequestAction,
 } from "@/server/actions/course-requests";
+import { safeAction } from "@/lib/safe-action";
 import { ReportButton } from "@/components/site/report-dialog";
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/lib/utils";
@@ -56,7 +57,7 @@ export function RequestDetailActions({
     setVoted(next);
     setVoteCount((c) => c + (next ? 1 : -1));
     try {
-      const result = await toggleRequestVoteAction(requestId);
+      const result = await safeAction(() => toggleRequestVoteAction(requestId), "toggle request vote");
       if (!result.ok) {
         setVoted(!next);
         setVoteCount((c) => c + (next ? -1 : 1));
@@ -79,7 +80,7 @@ export function RequestDetailActions({
     const next = !bookmarked;
     setBookmarked(next);
     try {
-      const result = await toggleRequestBookmarkAction(requestId);
+      const result = await safeAction(() => toggleRequestBookmarkAction(requestId), "toggle request bookmark");
       if (!result.ok) {
         setBookmarked(!next);
         toast.error(result.error);
@@ -101,7 +102,7 @@ export function RequestDetailActions({
     const next = !followed;
     setFollowed(next);
     try {
-      const result = await toggleRequestFollowAction(requestId);
+      const result = await safeAction(() => toggleRequestFollowAction(requestId), "toggle request follow");
       if (!result.ok) {
         setFollowed(!next);
         toast.error(result.error);
@@ -132,7 +133,7 @@ export function RequestDetailActions({
     if (!window.confirm("Delete this request? This can't be undone.")) return;
     setDeleteBusy(true);
     try {
-      const result = await deleteCourseRequestAction(requestId);
+      const result = await safeAction(() => deleteCourseRequestAction(requestId), "delete request");
       if (result.ok) {
         toast.success("Request deleted");
         router.push("/requests");

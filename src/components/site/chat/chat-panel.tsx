@@ -6,6 +6,7 @@ import { Loader2, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import type { ChatMessageDTO, ChatAuthorDTO, ChatMessagesResponse } from "@/lib/chat-shared";
 import { editChatMessageAction, deleteChatMessageAction } from "@/server/actions/chat";
+import { safeAction } from "@/lib/safe-action";
 import { MessageList } from "@/components/site/chat/message-list";
 import { Composer } from "@/components/site/chat/composer";
 import { Input } from "@/components/ui/input";
@@ -51,7 +52,15 @@ export function ChatPanel({
   // server can report ids of already-fetched messages that an admin hid or
   // deleted in the meantime (a plain `after` cursor only ever adds new
   // messages, never removes ones already rendered).
-  const sinceRef = React.useRef(new Date().toISOString());
+  //
+  // Always the value the *server* reported, never `new Date()` here. `since` is
+  // compared server-side against `ChatMessage.updatedAt`; seeding or advancing
+  // it from the browser clock meant any device running fast reported a `since`
+  // in the server's future, so `updatedAt > since` matched nothing and hidden
+  // messages stayed on screen until a reload. Device clocks are routinely off
+  // by minutes and nothing here can detect that, so the browser's clock is
+  // simply never one end of the comparison.
+  const sinceRef = React.useRef(initial.serverTime);
 
   function applyRemovedIds(ids?: string[]) {
     if (!ids || ids.length === 0) return;
@@ -83,7 +92,6 @@ export function ChatPanel({
       }
       try {
         const last = messagesRef.current[messagesRef.current.length - 1];
-        const requestedAt = new Date().toISOString();
         const qs = new URLSearchParams();
         if (last) qs.set("after", last.id);
         qs.set("since", sinceRef.current);
@@ -96,7 +104,7 @@ export function ChatPanel({
             mergeMentions(data.mentions);
           }
           applyRemovedIds(data.removedIds);
-          sinceRef.current = requestedAt;
+          sinceRef.current = data.serverTime;
         }
         backoffMs = pollIntervalSeconds * 1000;
       } catch {
@@ -167,7 +175,6 @@ export function ChatPanel({
     // sender sees their own message appear without delay.
     void (async () => {
       const last = messagesRef.current[messagesRef.current.length - 1];
-      const requestedAt = new Date().toISOString();
       const qs = new URLSearchParams();
       if (last) qs.set("after", last.id);
       qs.set("since", sinceRef.current);
@@ -179,7 +186,7 @@ export function ChatPanel({
         mergeMentions(data.mentions);
       }
       applyRemovedIds(data.removedIds);
-      sinceRef.current = requestedAt;
+      sinceRef.current = data.serverTime;
       bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
     })();
   }
@@ -188,7 +195,7 @@ export function ChatPanel({
     return new Promise((resolve) => {
       startTransition(async () => {
         addOptimistic({ type: "update", id, body });
-        const result = await editChatMessageAction(id, body);
+        const result = await safeAction(() => editChatMessageAction(id, body), "edit chat message");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;
@@ -214,7 +221,7 @@ export function ChatPanel({
     return new Promise((resolve) => {
       startTransition(async () => {
         addOptimistic({ type: "remove", id });
-        const result = await deleteChatMessageAction(id);
+        const result = await safeAction(() => deleteChatMessageAction(id), "delete chat message");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;

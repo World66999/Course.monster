@@ -6,7 +6,7 @@ import { Ban, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 import { setTelegramUserBlockedAction } from "@/server/actions/admin-telegram";
 
 export interface Row {

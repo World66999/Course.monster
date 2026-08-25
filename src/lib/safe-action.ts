@@ -1,11 +1,11 @@
 /**
- * Client-side wrapper for invoking admin server actions.
+ * Client-side wrapper for invoking a server action.
  *
  * A server action can *reject* rather than resolve — the action never gets to
  * return its `{ ok: false, error }` shape at all. That happens when:
  *
- *   - the session stopped being valid (requireAdmin() throws by design, so the
- *     admin authorization boundary fails closed — never weaken that),
+ *   - the session stopped being valid (requireAdmin()/requireUser() throw by
+ *     design, so the authorization boundary fails closed — never weaken that),
  *   - the browser still holds a client bundle from a previous deployment, so
  *     the action id no longer exists server-side ("Failed to find Server
  *     Action" — observed in production),
@@ -16,9 +16,20 @@
  * an uncaught error. This converts them into the same `{ ok, error }` result the
  * actions already return, so every call site keeps its existing logic.
  *
+ * There is a fourth case, specific to the public toggle actions (vote,
+ * bookmark, like, follow): they read the existing row and then create or
+ * delete it, so two taps racing each other make the loser's transaction fail
+ * on the unique constraint (P2002) or the vanished row (P2025). Prisma throws
+ * that out of the action, which on a phone — where a double-tap is normal —
+ * is a routine event, not an exceptional one.
+ *
  * This does NOT swallow the failure: the full error is still logged to the
  * console with context for diagnosis, and the user always gets a truthful,
  * actionable message.
+ *
+ * Named for what it does rather than where it is used: it was originally
+ * admin-only, but every public component that calls a server action needs
+ * exactly the same protection and several were going without it.
  */
 
 export interface ActionResultLike {
@@ -55,7 +66,7 @@ export async function safeAction<T extends ActionResultLike>(
     return await fn();
   } catch (err) {
     // Keep the real error visible for diagnosis — this is not suppression.
-    console.error(`[admin-action]${context ? ` ${context}:` : ""} request failed`, err);
+    console.error(`[action]${context ? ` ${context}:` : ""} request failed`, err);
     return { ok: false, error: describeActionError(err) };
   }
 }

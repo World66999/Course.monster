@@ -9,7 +9,7 @@ import { Input, Label, FieldError, FieldHint } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 import {
   BUTTON_STYLES,
   BUTTON_STYLE_KEYS,

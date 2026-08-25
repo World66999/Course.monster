@@ -9,7 +9,7 @@ import { savePageAction } from "@/server/actions/pages";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { MarkdownEditor } from "@/components/admin/markdown-editor";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 
 export function PageEditor({
   slug,

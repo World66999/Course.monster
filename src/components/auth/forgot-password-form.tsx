@@ -8,6 +8,7 @@ import { KeyRound, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { forgotPasswordFormSchema } from "@/lib/validation";
 import { requestPasswordResetAction, verifyPasswordResetOtpAction } from "@/server/actions/password-reset";
+import { safeAction } from "@/lib/safe-action";
 import { Button } from "@/components/ui/button";
 import { Input, Label, FieldError } from "@/components/ui/input";
 import { OtpInput } from "@/components/auth/otp-input";
@@ -27,7 +28,7 @@ export function ForgotPasswordForm() {
   } = useForm<{ email: string }>({ resolver: zodResolver(forgotPasswordFormSchema) });
 
   async function onRequest(values: { email: string }) {
-    const result = await requestPasswordResetAction(values);
+    const result = await safeAction(() => requestPasswordResetAction(values), "request password reset");
     if (result.ok) {
       setEmail(values.email);
       setStep("otp");
@@ -41,7 +42,7 @@ export function ForgotPasswordForm() {
     if (code.length !== 6 || verifying) return;
     setVerifying(true);
     try {
-      const result = await verifyPasswordResetOtpAction({ email, code });
+      const result = await safeAction(() => verifyPasswordResetOtpAction({ email, code }), "verify password reset code");
       if (result.ok && result.ticket) {
         router.push(`/reset-password?ticket=${encodeURIComponent(result.ticket)}`);
       } else {

@@ -14,6 +14,7 @@ import {
   deleteRequestCommentAction,
   toggleRequestCommentReactionAction,
 } from "@/server/actions/request-comments";
+import { safeAction } from "@/lib/safe-action";
 import { CommentForm } from "@/components/site/comments/comment-form";
 import { EmojiReactionPicker } from "@/components/site/chat/emoji-reaction-picker";
 import { ReportButton } from "@/components/site/report-dialog";
@@ -163,7 +164,7 @@ export function RequestCommentItem({
         };
         addOptimisticReply({ type: "add", reply: optimisticReply });
 
-        const result = await createRequestCommentAction({ requestId, parentId: comment.id, body });
+        const result = await safeAction(() => createRequestCommentAction({ requestId, parentId: comment.id, body }), "reply to request comment");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;
@@ -185,7 +186,7 @@ export function RequestCommentItem({
     return new Promise((resolve) => {
       startReplyTransition(async () => {
         addOptimisticReply({ type: "update", id, body });
-        const result = await editRequestCommentAction(id, body);
+        const result = await safeAction(() => editRequestCommentAction(id, body), "edit request comment");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;
@@ -200,7 +201,7 @@ export function RequestCommentItem({
     return new Promise((resolve) => {
       startReplyTransition(async () => {
         addOptimisticReply({ type: "remove", id });
-        const result = await deleteRequestCommentAction(id);
+        const result = await safeAction(() => deleteRequestCommentAction(id), "delete request comment");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;
@@ -226,7 +227,7 @@ export function RequestCommentItem({
       : [...reactions, { emoji, count: 1, reactedByMe: true }];
     setReactions(optimistic);
     try {
-      const result = await toggleRequestCommentReactionAction({ commentId: comment.id, emoji });
+      const result = await safeAction(() => toggleRequestCommentReactionAction({ commentId: comment.id, emoji }), "toggle request comment reaction");
       if (!result.ok) {
         setReactions(comment.reactions);
         toast.error(result.error);

@@ -85,6 +85,13 @@ export interface ListChatMessagesOptions {
   before?: string | null;
   /** Cursor: load messages newer than this id, ascending (polling for new messages). */
   after?: string | null;
+  /**
+   * Server-issued timestamp of the caller's previous poll. Used only as the
+   * fallback lower bound when the `after` row can no longer be found at all
+   * (its author's account was deleted, which cascades the message away).
+   * Without it such a client polls forever and never sees another message.
+   */
+  since?: Date | null;
   q?: string;
   limit?: number;
 }
@@ -94,7 +101,37 @@ export interface ListChatMessagesResult {
   nextCursor: string | null;
 }
 
-/** Public feed: always excludes hidden/deleted/link-pending messages. */
+/**
+ * Resolves a cursor id to the ordering values the feed is sorted by.
+ *
+ * Deliberately NOT filtered by the public `where`: the whole point is that the
+ * anchor may since have been hidden or deleted, and its position in the
+ * ordering is still exactly what the caller means by "after this one".
+ */
+async function cursorAnchor(id: string): Promise<{ createdAt: Date; id: string } | null> {
+  return db.chatMessage.findUnique({ where: { id }, select: { createdAt: true, id: true } });
+}
+
+/** `(createdAt, id)` strictly after / before the anchor — a total order, so nothing ties. */
+function afterAnchor(a: { createdAt: Date; id: string }): Prisma.ChatMessageWhereInput {
+  return { OR: [{ createdAt: { gt: a.createdAt } }, { createdAt: a.createdAt, id: { gt: a.id } }] };
+}
+function beforeAnchor(a: { createdAt: Date; id: string }): Prisma.ChatMessageWhereInput {
+  return { OR: [{ createdAt: { lt: a.createdAt } }, { createdAt: a.createdAt, id: { lt: a.id } }] };
+}
+
+/**
+ * Public feed: always excludes hidden/deleted/link-pending messages.
+ *
+ * Paging is an explicit `(createdAt, id)` range rather than Prisma's
+ * `cursor` + `skip: 1`. That form only behaves as intended while the cursor row
+ * still satisfies `where` — and in a moderated live feed it routinely does not.
+ * Prisma then positions at the first row *after* the (now filtered-out) anchor
+ * and `skip: 1` throws that row away, so the message immediately following a
+ * moderated one was silently dropped for every client currently polling, and
+ * never came back because the cursor had already advanced past it. Reproduced
+ * against a real database before this was changed.
+ */
 export async function listChatMessages(opts: ListChatMessagesOptions = {}): Promise<ListChatMessagesResult> {
   const limit = Math.min(Math.max(opts.limit ?? 30, 1), 50);
   const where: Prisma.ChatMessageWhereInput = {
@@ -104,23 +141,38 @@ export async function listChatMessages(opts: ListChatMessagesOptions = {}): Prom
   };
 
   if (opts.after) {
+    const anchor = await cursorAnchor(opts.after);
+    const range = anchor
+      ? afterAnchor(anchor)
+      : opts.since
+        ? { createdAt: { gt: opts.since } }
+        : null;
+    // No anchor and no timestamp to fall back on: nothing can be said about
+    // what "newer" means, so report nothing rather than replay the whole feed.
+    if (!range) return { items: [], nextCursor: null };
     const items = await db.chatMessage.findMany({
-      where,
+      where: { AND: [where, range] },
       select: chatMessageSelect,
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-      cursor: { id: opts.after },
-      skip: 1,
       take: limit,
     });
     return { items, nextCursor: null };
   }
 
+  let range: Prisma.ChatMessageWhereInput | null = null;
+  if (opts.before) {
+    const anchor = await cursorAnchor(opts.before);
+    // An unknown "load older" cursor is not recoverable from a timestamp the
+    // way the live cursor is, so answer with nothing more to load.
+    if (!anchor) return { items: [], nextCursor: null };
+    range = beforeAnchor(anchor);
+  }
+
   const items = await db.chatMessage.findMany({
-    where,
+    where: range ? { AND: [where, range] } : where,
     select: chatMessageSelect,
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: limit + 1,
-    ...(opts.before ? { cursor: { id: opts.before }, skip: 1 } : {}),
   });
 
   let nextCursor: string | null = null;
@@ -246,7 +298,13 @@ export async function resolveMentionDisplays(ids: string[]): Promise<Record<stri
 export async function toChatMessagesResponse(
   items: ChatMessageWithAuthor[],
   nextCursor: string | null,
-  userId: string | null
+  userId: string | null,
+  /**
+   * Captured by the caller *before* it queried, so a message moderated while
+   * the query was in flight is reported on the next poll instead of falling
+   * into the gap between the two.
+   */
+  serverTime: Date = new Date()
 ): Promise<ChatMessagesResponse> {
   const withReactions = await attachReactionSummary(items, userId);
   const withParents = await attachParentPreview(withReactions);
@@ -271,5 +329,5 @@ export async function toChatMessagesResponse(
     };
   });
 
-  return { items: mapped, nextCursor, mentions };
+  return { items: mapped, nextCursor, mentions, serverTime: serverTime.toISOString() };
 }

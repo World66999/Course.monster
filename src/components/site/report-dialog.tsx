@@ -4,6 +4,7 @@ import * as React from "react";
 import { Flag, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { reportContentAction } from "@/server/actions/reports";
+import { safeAction } from "@/lib/safe-action";
 import { Button } from "@/components/ui/button";
 import { Label, FieldHint, Textarea } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -44,7 +45,7 @@ export function ReportButton({
   async function submit() {
     setSubmitting(true);
     try {
-      const result = await reportContentAction({ ...target, reason, note });
+      const result = await safeAction(() => reportContentAction({ ...target, reason, note }), "report content");
       if (result.ok) {
         toast.success("Thanks — this has been reported to moderators.");
         setOpen(false);

@@ -17,8 +17,9 @@ export default async function ChatPage() {
   const [settings, session] = await Promise.all([getSiteSettings(), auth()]);
   const userId = session?.user?.id ?? null;
 
+  const requestedAt = new Date();
   const { items, nextCursor } = await listChatMessages({ limit: 30 });
-  const initial = await toChatMessagesResponse(items, nextCursor, userId);
+  const initial = await toChatMessagesResponse(items, nextCursor, userId, requestedAt);
 
   return (
     <Section className="max-w-2xl py-10 sm:py-14">

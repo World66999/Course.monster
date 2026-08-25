@@ -12,7 +12,7 @@ import { Button, buttonClasses } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { adminPath } from "@/lib/admin-path";
 import { PLATFORM_LABELS } from "@/components/site/apps/app-card";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 
 export interface AdminAppRow {
   id: string;

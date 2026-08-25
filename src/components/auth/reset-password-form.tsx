@@ -7,6 +7,7 @@ import { Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { resetPasswordFormSchema } from "@/lib/validation";
 import { resetPasswordAction } from "@/server/actions/password-reset";
+import { safeAction } from "@/lib/safe-action";
 import { Button } from "@/components/ui/button";
 import { Label, FieldError } from "@/components/ui/input";
 import { PasswordField } from "@/components/auth/password-field";
@@ -34,7 +35,7 @@ export function ResetPasswordForm({ ticket }: { ticket: string }) {
   const password = watch("password") ?? "";
 
   async function onSubmit(values: FormValues) {
-    const result = await resetPasswordAction(values);
+    const result = await safeAction(() => resetPasswordAction(values), "reset password");
     if (result.ok) {
       toast.success("Password reset — you can sign in now.");
       router.push("/login");

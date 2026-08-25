@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { Bookmark, Clock, ListVideo, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import { toggleResourceBookmarkAction } from "@/server/actions/learning-resources";
+import { safeAction } from "@/lib/safe-action";
 import { youtubeThumbnailUrl } from "@/lib/youtube";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -47,7 +48,7 @@ export function ResourceCard({ resource }: { resource: ResourceCardDTO }) {
     const next = !bookmarked;
     setBookmarked(next);
     try {
-      const result = await toggleResourceBookmarkAction(resource.id);
+      const result = await safeAction(() => toggleResourceBookmarkAction(resource.id), "toggle resource bookmark");
       if (!result.ok) {
         setBookmarked(!next);
         toast.error(result.error);

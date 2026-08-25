@@ -4,6 +4,7 @@ import * as React from "react";
 import { useSession } from "next-auth/react";
 import type { ReviewWithAuthor, ReviewSummary, ReviewSort } from "@/lib/comments";
 import { createReviewAction, editReviewAction, deleteReviewAction } from "@/server/actions/reviews";
+import { safeAction } from "@/lib/safe-action";
 import { ReviewSummaryCard } from "@/components/site/reviews/review-summary";
 import { ReviewForm, type ExistingReview } from "@/components/site/reviews/review-form";
 import { ReviewList } from "@/components/site/reviews/review-list";
@@ -97,7 +98,7 @@ export function ReviewsPanel({
           addOptimisticItem({ type: "update", id: myReview.id, ...values });
           addOptimisticSummaryDelta({ remove: myReview.rating, add: values.rating });
 
-          const result = await editReviewAction(myReview.id, values);
+          const result = await safeAction(() => editReviewAction(myReview.id, values), "edit review");
           if (!result.ok) {
             resolve({ ok: false, error: result.error });
             return;
@@ -130,7 +131,7 @@ export function ReviewsPanel({
         addOptimisticItem({ type: "add", review: optimisticReview });
         addOptimisticSummaryDelta({ remove: null, add: values.rating });
 
-        const result = await createReviewAction({ courseId, ...values });
+        const result = await safeAction(() => createReviewAction({ courseId, ...values }), "post review");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;
@@ -159,7 +160,7 @@ export function ReviewsPanel({
         addOptimisticItem({ type: "remove", id });
         addOptimisticSummaryDelta({ remove: rating, add: null });
 
-        const result = await deleteReviewAction(id);
+        const result = await safeAction(() => deleteReviewAction(id), "delete review");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;

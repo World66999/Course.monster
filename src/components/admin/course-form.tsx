@@ -26,7 +26,7 @@ import {
 import { Combobox } from "@/components/ui/combobox";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { MarkdownEditor } from "@/components/admin/markdown-editor";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 
 type FormInput = z.input<typeof courseFormSchema>;
 

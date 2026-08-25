@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Loader2, MessageSquare } from "lucide-react";
 import type { CommentSort, CommentWithMeta } from "@/lib/comments";
 import { createCommentAction, editCommentAction, deleteCommentAction } from "@/server/actions/comments";
+import { safeAction } from "@/lib/safe-action";
 import { CommentItem } from "@/components/site/comments/comment-item";
 import { CommentForm } from "@/components/site/comments/comment-form";
 import { SignInGate } from "@/components/site/sign-in-gate";
@@ -101,7 +102,7 @@ export function CommentThread({
         };
         addOptimistic({ type: "add", comment: optimisticComment });
 
-        const result = await createCommentAction({ courseId, body });
+        const result = await safeAction(() => createCommentAction({ courseId, body }), "post comment");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;
@@ -121,7 +122,7 @@ export function CommentThread({
     return new Promise((resolve) => {
       startTransition(async () => {
         addOptimistic({ type: "update", id, body });
-        const result = await editCommentAction(id, body);
+        const result = await safeAction(() => editCommentAction(id, body), "edit comment");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;
@@ -140,7 +141,7 @@ export function CommentThread({
     return new Promise((resolve) => {
       startTransition(async () => {
         addOptimistic({ type: "remove", id });
-        const result = await deleteCommentAction(id);
+        const result = await safeAction(() => deleteCommentAction(id), "delete comment");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;

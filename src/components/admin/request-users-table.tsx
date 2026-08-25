@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { banUserFromRequestsAction, unbanUserFromRequestsAction } from "@/server/actions/admin-course-requests";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 
 export interface RequestUserRow {
   id: string;

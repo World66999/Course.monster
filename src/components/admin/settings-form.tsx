@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { cn } from "@/lib/utils";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 
 const TABS = [
   { value: "general", label: "General" },
