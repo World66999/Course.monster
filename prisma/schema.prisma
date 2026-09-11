@@ -486,7 +486,9 @@ model ChatMessage {
   /// lets an admin hide/restore/delete a message and have it disappear (or
   /// reappear) for everyone already viewing chat, not just new fetches.
   @@index([updatedAt])
-  @@map("chat_messages")
+  @@index([status])
+ @@index([linkPending])
+ @@map("chat_messages")
 }
 
 model ChatReaction {
