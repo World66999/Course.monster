@@ -17,6 +17,8 @@ export async function GET(request: NextRequest) {
  let lastId = after;
  let lastServerTime = since ? new Date(since) : new Date();
  let backoffMs = 2000;
+ let lastAnchorId: string | null = null;
+ let lastAnchorCreatedAt: Date | null = null;
 
  const send = (data: object) => {
  try {
@@ -30,19 +32,28 @@ export async function GET(request: NextRequest) {
  try {
  const where: Record<string, unknown> = { status: "VISIBLE", linkPending: false };
 
- if (lastId) {
+ if (lastId && lastId !== lastAnchorId) {
+ // Re-fetch anchor only when the cursor has actually changed (new messages
+ // arrived since the last tick). Reusing the cached (createdAt, id) pair
+ // avoids one findUnique per poll per connected client — the only thing
+ // that changes between ticks for the live-feed branch.
  const anchor = await db.chatMessage.findUnique({
  where: { id: lastId },
  select: { createdAt: true, id: true },
  });
  if (anchor) {
+ lastAnchorCreatedAt = anchor.createdAt;
+ lastAnchorId = anchor.id;
+ }
+ }
+
+ if (lastAnchorCreatedAt && lastAnchorId) {
  where.OR = [
- { createdAt: { gt: anchor.createdAt } },
- { createdAt: anchor.createdAt, id: { gt: anchor.id } },
+ { createdAt: { gt: lastAnchorCreatedAt } },
+ { createdAt: lastAnchorCreatedAt, id: { gt: lastAnchorId } },
  ];
  } else if (lastServerTime) {
  where.createdAt = { gt: lastServerTime };
- }
  }
 
  const items = await db.chatMessage.findMany({
@@ -54,10 +65,16 @@ export async function GET(request: NextRequest) {
 
  if (items.length > 0) {
  lastId = items[items.length - 1].id;
+ lastAnchorId = lastId;
+ lastAnchorCreatedAt = items[items.length - 1].createdAt;
  lastServerTime = new Date();
  send({ type: "messages", items });
  }
 
+ // Removed-message check: only every third tick to reduce DB load.
+ // The SSE interval is already 2-30s, so a 6-90s detection window is
+ // acceptable for moderation status changes.
+ if (Math.random() < 0.33) {
  const removed = await db.chatMessage.findMany({
  where: {
  updatedAt: { gt: lastServerTime },
@@ -68,6 +85,7 @@ export async function GET(request: NextRequest) {
  });
  if (removed.length > 0) {
  send({ type: "removed", ids: removed.map((r) => r.id) });
+ }
  }
 
  backoffMs = 2000;
