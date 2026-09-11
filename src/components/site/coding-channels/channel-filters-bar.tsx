@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { X } from "lucide-react";
+import { useDebouncedSearchParam, useFilterParams } from "@/components/site/use-filter-params";
+import { FilterSearchIcon } from "@/components/site/filter-search-icon";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import { FilterPill, FilterPillGhost } from "@/components/ui/filter-pill";
 
 const ALL = "__all__";
 const PILL_VISIBLE = 12;
@@ -25,46 +26,24 @@ const SORT_OPTIONS = [
 ] as const;
 
 export function ChannelFiltersBar({ tags }: { tags: string[] }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const { searchParams, update, replaceLive, isPending } = useFilterParams();
 
-  const currentQ = searchParams.get("q") ?? "";
   const currentTag = searchParams.get("tag") ?? "";
   const currentLevel = searchParams.get("level") ?? "";
   const currentSort = searchParams.get("sort") ?? "newest";
   const currentFlag = searchParams.get("flag") ?? "";
 
-  const [search, setSearch] = React.useState(currentQ);
-  React.useEffect(() => setSearch(currentQ), [currentQ]);
+  const [search, setSearch, searchPending] = useDebouncedSearchParam("q", replaceLive, searchParams);
 
   const [tagsExpanded, setTagsExpanded] = React.useState(false);
   const visibleTags = tagsExpanded ? tags : tags.slice(0, PILL_VISIBLE);
   const hiddenCount = tags.length - visibleTags.length;
 
-  const update = React.useCallback(
-    (patch: Record<string, string>) => {
-      const params = new URLSearchParams(searchParams.toString());
-      for (const [key, value] of Object.entries(patch)) {
-        if (value) params.set(key, value);
-        else params.delete(key);
-      }
-      router.push(`${pathname}${params.size ? `?${params}` : ""}`, { scroll: false });
-    },
-    [router, pathname, searchParams]
-  );
-
-  React.useEffect(() => {
-    if (search === currentQ) return;
-    const t = setTimeout(() => update({ q: search.trim() }), 400);
-    return () => clearTimeout(t);
-  }, [search, currentQ, update]);
-
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" aria-busy={isPending}>
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
-          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <FilterSearchIcon pending={isPending || searchPending} />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -130,43 +109,18 @@ export function ChannelFiltersBar({ tags }: { tags: string[] }) {
 
       {tags.length > 0 && (
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter by topic">
-          <button
-            type="button"
-            onClick={() => update({ tag: "" })}
-            aria-pressed={!currentTag}
-            className={cn(
-              "cursor-pointer rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all duration-200 active:scale-95",
-              !currentTag
-                ? "border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/25"
-                : "border-border bg-card text-muted-foreground shadow-soft hover:border-primary/50 hover:text-foreground"
-            )}
-          >
-            All
-          </button>
+          <FilterPill active={!currentTag} onClick={() => update({ tag: "" })}>
+  All
+</FilterPill>
           {visibleTags.map((tag) => (
-            <button
-              key={tag}
-              type="button"
-              onClick={() => update({ tag: currentTag === tag ? "" : tag })}
-              aria-pressed={currentTag === tag}
-              className={cn(
-                "cursor-pointer rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all duration-200 active:scale-95",
-                currentTag === tag
-                  ? "border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/25"
-                  : "border-border bg-card text-muted-foreground shadow-soft hover:border-primary/50 hover:text-foreground"
-              )}
-            >
-              #{tag}
-            </button>
+            <FilterPill key={tag} active={currentTag === tag} onClick={() => update({ tag: currentTag === tag ? "" : tag })}>
+  #{tag}
+</FilterPill>
           ))}
           {hiddenCount > 0 && (
-            <button
-              type="button"
-              onClick={() => setTagsExpanded(true)}
-              className="cursor-pointer rounded-full border border-dashed border-border px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
-            >
-              +{hiddenCount} more
-            </button>
+            <FilterPillGhost onClick={() => setTagsExpanded(true)}>
+  +{hiddenCount} more
+</FilterPillGhost>
           )}
         </div>
       )}

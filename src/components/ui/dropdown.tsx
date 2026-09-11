@@ -17,7 +17,7 @@ export function DropdownContent({
         sideOffset={6}
         collisionPadding={8}
         className={cn(
-          "z-50 min-w-40 origin-[var(--radix-dropdown-menu-content-transform-origin)] rounded-xl border border-border bg-card p-1.5 shadow-floating inset-shadow-highlight data-[state=open]:animate-pop-in",
+          "glass-panel z-50 min-w-44 origin-[var(--radix-dropdown-menu-content-transform-origin)] rounded-panel p-1.5 data-[state=open]:animate-pop-in",
           className
         )}
         {...props}
@@ -33,7 +33,7 @@ export function DropdownItem({
   return (
     <DropdownPrimitive.Item
       className={cn(
-        "flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors duration-100 outline-none select-none data-[highlighted]:bg-muted",
+        "flex cursor-pointer items-center gap-2 rounded-control px-2.5 py-2 text-sm transition-colors duration-100 outline-none select-none data-[highlighted]:bg-primary-soft data-[highlighted]:text-primary data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         className
       )}
       {...props}

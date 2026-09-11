@@ -5,43 +5,62 @@ import { absoluteUrl } from "@/lib/utils";
 
 export const revalidate = 3600;
 
+/**
+ * Per-section cap on enumerated rows.
+ *
+ * Two reasons this exists. The protocol limits a single sitemap to 50,000 URLs
+ * and 50MB — past either, crawlers reject the whole file, so an uncapped sitemap
+ * fails *completely* rather than gracefully. And each list is otherwise a full
+ * table scan materialised in Node on a cache miss.
+ *
+ * `requests` and `resources` were already capped at 5000; courses, categories,
+ * channels and apps were not, which looks like an oversight rather than a
+ * decision — six sections at 5000 each stays comfortably inside the limit. If
+ * any section genuinely approaches this, the fix is to split into a sitemap
+ * index with one child per section, not to raise the cap.
+ */
+const SECTION_LIMIT = 5000;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const courses = await db.course.findMany({
-    where: { published: true },
-    select: { slug: true, updatedAt: true },
-    orderBy: { createdAt: "desc" },
-  });
-
-  const categories = await db.category.findMany({
-    where: { courses: { some: { published: true } } },
-    select: { slug: true, updatedAt: true },
-  });
-
-  const requests = await db.courseRequest.findMany({
-    where: { moderationStatus: "VISIBLE" },
-    select: { slug: true, updatedAt: true },
-    orderBy: { createdAt: "desc" },
-    take: 5000,
-  });
-
-  const channels = await db.codingChannel.findMany({
-    where: { published: true },
-    select: { slug: true, updatedAt: true },
-    orderBy: { createdAt: "desc" },
-  });
-
-  const resources = await db.learningResource.findMany({
-    where: { published: true },
-    select: { slug: true, updatedAt: true },
-    orderBy: { createdAt: "desc" },
-    take: 5000,
-  });
-
-  const apps = await db.appListing.findMany({
-    where: { published: true },
-    select: { slug: true, updatedAt: true },
-    orderBy: { createdAt: "desc" },
-  });
+  // One round trip's worth of latency, not six. These queries are independent
+  // and were previously awaited one after another.
+  const [courses, categories, requests, channels, resources, apps] = await Promise.all([
+    db.course.findMany({
+      where: { published: true },
+      select: { slug: true, updatedAt: true },
+      orderBy: { createdAt: "desc" },
+      take: SECTION_LIMIT,
+    }),
+    db.category.findMany({
+      where: { courses: { some: { published: true } } },
+      select: { slug: true, updatedAt: true },
+      take: SECTION_LIMIT,
+    }),
+    db.courseRequest.findMany({
+      where: { moderationStatus: "VISIBLE" },
+      select: { slug: true, updatedAt: true },
+      orderBy: { createdAt: "desc" },
+      take: SECTION_LIMIT,
+    }),
+    db.codingChannel.findMany({
+      where: { published: true },
+      select: { slug: true, updatedAt: true },
+      orderBy: { createdAt: "desc" },
+      take: SECTION_LIMIT,
+    }),
+    db.learningResource.findMany({
+      where: { published: true },
+      select: { slug: true, updatedAt: true },
+      orderBy: { createdAt: "desc" },
+      take: SECTION_LIMIT,
+    }),
+    db.appListing.findMany({
+      where: { published: true },
+      select: { slug: true, updatedAt: true },
+      orderBy: { createdAt: "desc" },
+      take: SECTION_LIMIT,
+    }),
+  ]);
 
   return [
     { url: absoluteUrl(), changeFrequency: "daily", priority: 1 },

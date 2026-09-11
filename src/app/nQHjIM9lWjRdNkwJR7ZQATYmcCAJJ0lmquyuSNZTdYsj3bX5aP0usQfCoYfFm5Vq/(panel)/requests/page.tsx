@@ -38,19 +38,19 @@ export default async function AdminCourseRequestsPage({ searchParams }: { search
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Course Requests</h1>
+        <h1 className="text-heading">Course Requests</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Moderate requests, review reports, and manage restricted users.
         </p>
       </div>
 
-      <div className="flex w-fit flex-wrap gap-1 rounded-xl bg-muted p-1">
+      <div className="flex w-fit flex-wrap gap-1 rounded-nested bg-muted p-1">
         {TABS.map((t) => (
           <Link
             key={t.value}
             href={`${adminPath("requests")}?tab=${t.value}`}
             className={cn(
-              "rounded-lg px-4 py-1.5 text-sm font-medium transition-colors",
+              "rounded-control px-4 py-1.5 text-sm font-medium transition-colors",
               tab === t.value ? "bg-card shadow-sm" : "text-muted-foreground hover:text-foreground"
             )}
           >

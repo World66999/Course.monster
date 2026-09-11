@@ -104,7 +104,7 @@ export function AppearanceManager({
       {/* Telegram, not this app, decides whether a custom emoji renders — say so plainly. */}
       <div
         className={cn(
-          "rounded-2xl border p-4 text-sm",
+          "rounded-card border p-4 text-sm",
           capability.canResolve ? "border-border bg-card" : "border-warning/40 bg-warning/10"
         )}
       >
@@ -158,7 +158,7 @@ export function AppearanceManager({
         </div>
 
         {showAll && (
-          <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+          <div className="overflow-x-auto rounded-card border border-border bg-card">
             <table className="w-full min-w-[46rem] text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted-foreground uppercase">
@@ -267,7 +267,7 @@ export function AppearanceManager({
                 onClick={() => void run("style", () => setDefaultStyleAction(style), "Default style updated")}
                 aria-pressed={active}
                 className={cn(
-                  "flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50",
+                  "flex items-center gap-2 rounded-nested border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50",
                   active ? "border-primary ring-2 ring-primary/40" : "border-border hover:bg-muted"
                 )}
               >
@@ -366,9 +366,9 @@ function IconRow({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div className="rounded-card border border-border bg-card p-4">
       <div className="flex items-start gap-3">
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-muted text-2xl leading-none">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-nested bg-muted text-2xl leading-none">
           {shown}
         </span>
         <div className="min-w-0 flex-1">
@@ -498,7 +498,7 @@ function LabelRow({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div className="rounded-card border border-border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground uppercase">{meta.where}</p>
         {customised && <Badge variant="secondary">customised</Badge>}
@@ -529,7 +529,7 @@ function LabelRow({
                 onClick={() => setStyle(s)}
                 aria-pressed={style === s}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs transition-colors",
+                  "flex items-center gap-1.5 rounded-control border px-2 py-1 text-xs transition-colors",
                   style === s ? "border-primary ring-2 ring-primary/40" : "border-border hover:bg-muted"
                 )}
               >
@@ -580,7 +580,7 @@ function Preview({ branding }: { branding: Branding }) {
           their fallback character here.
         </p>
       </header>
-      <div className="max-w-sm space-y-2 rounded-2xl border border-border bg-muted/40 p-4">
+      <div className="max-w-sm space-y-2 rounded-card border border-border bg-muted/40 p-4">
         <p className="text-sm">
           <span className="mr-1">{iconPlain(branding, "logo")}</span>
           <strong>Courses Monster</strong>
@@ -594,7 +594,7 @@ function Preview({ branding }: { branding: Branding }) {
               <div
                 key={label}
                 className={cn(
-                  "truncate rounded-lg px-3 py-2 text-center text-sm font-medium",
+                  "truncate rounded-control px-3 py-2 text-center text-sm font-medium",
                   style === "none" ? "bg-background border border-border" : STYLE_SWATCH[style]
                 )}
               >

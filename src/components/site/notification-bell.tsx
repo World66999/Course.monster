@@ -38,9 +38,14 @@ export function NotificationBell() {
     }
   }, []);
 
+  // Keyed on the user id, not on `session.user`. That object gets a fresh
+  // identity every time next-auth revalidates the session, so depending on it
+  // re-ran this effect and refetched notifications for no reason; the id is a
+  // primitive and only changes when the signed-in user actually does.
+  const userId = session?.user?.id;
   React.useEffect(() => {
-    if (session?.user) void load();
-  }, [session?.user, load]);
+    if (userId) void load();
+  }, [userId, load]);
 
   async function onOpenChange(next: boolean) {
     setOpen(next);

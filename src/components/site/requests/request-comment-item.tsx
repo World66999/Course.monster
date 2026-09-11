@@ -89,6 +89,14 @@ function CommentBody({ body, isReply }: { body: string; isReply: boolean }) {
   );
 }
 
+/**
+ * Reply / Edit / Delete under a request comment — 16px-tall text buttons, right
+ * for their visual weight and too small to hit reliably with a thumb, so
+ * `tap-target` extends each one's reach to 44px on a coarse pointer. Mirrors
+ * `ACTION_BUTTON` in components/site/comments/comment-item.tsx.
+ */
+const ACTION_BUTTON = "tap-target inline-flex cursor-pointer items-center gap-1 hover:text-primary";
+
 export function RequestCommentItem({
   comment,
   requestId,
@@ -266,7 +274,7 @@ export function RequestCommentItem({
     <div className={cn("flex gap-3", isReply && "pl-10", pending && "opacity-70")}>
       <Avatar author={comment.author} size={isReply ? 28 : 36} />
       <div className="min-w-0 flex-1">
-        <div className="rounded-2xl bg-muted/50 px-4 py-2.5">
+        <div className="rounded-card bg-muted/50 px-4 py-2.5">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-sm font-semibold">{isDeleted ? "Deleted" : comment.author.label}</span>
             {comment.author.isAdmin && (
@@ -304,7 +312,7 @@ export function RequestCommentItem({
               <button
                 type="button"
                 onClick={() => setReplying((r) => !r)}
-                className="inline-flex cursor-pointer items-center gap-1 hover:text-primary"
+                className={ACTION_BUTTON}
               >
                 <Reply className="h-3.5 w-3.5" aria-hidden />
                 Reply
@@ -318,7 +326,7 @@ export function RequestCommentItem({
                     setEditBody(comment.body);
                     setEditing(true);
                   }}
-                  className="inline-flex cursor-pointer items-center gap-1 hover:text-primary"
+                  className={ACTION_BUTTON}
                 >
                   <Pencil className="h-3.5 w-3.5" aria-hidden />
                   Edit
@@ -327,7 +335,7 @@ export function RequestCommentItem({
                   type="button"
                   onClick={() => void onDeleteClick()}
                   disabled={deleteBusy}
-                  className="inline-flex cursor-pointer items-center gap-1 hover:text-destructive disabled:opacity-60"
+                  className={cn(ACTION_BUTTON, "hover:text-destructive disabled:opacity-60")}
                 >
                   {deleteBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Trash2 className="h-3.5 w-3.5" aria-hidden />}
                   Delete
@@ -340,7 +348,7 @@ export function RequestCommentItem({
         )}
 
         {!isDeleted && !editing && (
-          <div className="mt-1.5 flex flex-wrap items-center gap-1 px-2">
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 px-2">
             {reactions.map((r) => (
               <button
                 key={r.emoji}
@@ -348,7 +356,10 @@ export function RequestCommentItem({
                 onClick={() => void onReact(r.emoji)}
                 disabled={reactBusy}
                 className={cn(
-                  "inline-flex cursor-pointer items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs transition-colors",
+                  // Real height rather than `tap-target`: chips this close
+                  // together would overlap each other's invisible hit boxes and
+                  // fire the wrong reaction. Matches the chat chips.
+                  "inline-flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1.5 text-xs transition-colors",
                   r.reactedByMe ? "border-primary/40 bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:bg-muted"
                 )}
               >

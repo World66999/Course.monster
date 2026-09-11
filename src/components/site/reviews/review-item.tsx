@@ -12,7 +12,7 @@ export function ReviewItem({
   isOwn: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+    <div className="rounded-card border border-border bg-card p-5 shadow-soft">
       <div className="flex items-start gap-3">
         <AuthorAvatar author={review.user} />
         <div className="min-w-0 flex-1">

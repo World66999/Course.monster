@@ -131,6 +131,52 @@ test("warnings are looked up, never echoed, and absent by default", () => {
   assert.ok(note && /no sound/i.test(note), "NO_AUDIO must explain the silence in plain words");
 });
 
+test("the no-audio note states a fact and never invents a cause", () => {
+  // It used to claim "the source didn't publish an audio track". That is true
+  // of some media (an Instagram reel whose every rendition really is
+  // video-only) and false of others: Facebook holds the audio and serves this
+  // server a video-only DASH copy, so the audio exists and simply cannot be
+  // fetched from here. Asserting an unverifiable cause is how a warning becomes
+  // a wrong answer.
+  const note = safeWarning("NO_AUDIO");
+  assert.ok(note);
+  assert.ok(
+    !/source (didn't|did not|doesn't|does not) publish/i.test(note!),
+    "must not claim the source has no audio — we cannot know that"
+  );
+  assert.ok(/retriev/i.test(note!), "must describe what actually happened: nothing could be retrieved");
+});
+
+test("no platform carries advice that is no longer true", () => {
+  // This briefly told Facebook users to try the Telegram bot, because only the
+  // bot's transport could reach Facebook's audio. The downloader now reaches
+  // that same transport itself (see bot9 fbbridge), so that advice would send
+  // someone to a route already tried on their behalf. A warning that names a
+  // remedy has to be re-checked whenever the remedy changes.
+  const base = safeWarning("NO_AUDIO");
+  for (const p of ["facebook", "instagram", "youtube", "pinterest", "tiktok"]) {
+    const note = safeWarning("NO_AUDIO", p);
+    assert.equal(note, base, `${p} must not carry stale advice`);
+    assert.ok(!/telegram bot/i.test(note!), `${p} must not point at the bot any more`);
+  }
+});
+
+test("platforms with no better route get no invented advice", () => {
+  const base = safeWarning("NO_AUDIO");
+  for (const p of ["instagram", "youtube", "pinterest", "tiktok"]) {
+    assert.equal(safeWarning("NO_AUDIO", p), base, `${p} must not gain an unfounded suggestion`);
+  }
+  // An unknown or absent platform is safe too.
+  assert.equal(safeWarning("NO_AUDIO", "nonsense"), base);
+  assert.equal(safeWarning("NO_AUDIO", null), base);
+  assert.equal(safeWarning("NO_AUDIO"), base);
+});
+
+test("the platform argument cannot smuggle copy in for an unknown code", () => {
+  assert.equal(safeWarning("SOMETHING_NEW", "facebook"), null);
+  assert.equal(safeWarning(null, "facebook"), null);
+});
+
 test("a host-level platform refusal reads as terminal, not as 'retry later'", () => {
   // TikTok blocks this server's address for every URL. Telling the user to
   // retry into a permanent refusal wastes their time and a worker each time.

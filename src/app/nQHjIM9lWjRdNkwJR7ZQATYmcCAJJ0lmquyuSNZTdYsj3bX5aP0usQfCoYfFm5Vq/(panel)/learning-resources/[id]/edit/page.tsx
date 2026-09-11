@@ -16,7 +16,7 @@ export default async function EditLearningResourcePage({ params }: { params: Pro
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">Edit learning resource</h1>
+      <h1 className="text-heading">Edit learning resource</h1>
       <LearningResourceForm
         resourceId={resource.id}
         categories={categories}

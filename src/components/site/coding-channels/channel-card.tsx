@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { toggleChannelBookmarkAction } from "@/server/actions/coding-channels";
 import { safeAction } from "@/lib/safe-action";
 import { Badge } from "@/components/ui/badge";
+import { cardClasses } from "@/components/ui/card";
 import { cn, gradientFromString } from "@/lib/utils";
 
 export interface ChannelCardDTO {
@@ -29,7 +30,7 @@ export interface ChannelCardDTO {
 function ChannelLogo({ name, logo }: { name: string; logo: string | null }) {
   if (logo) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={logo} alt={name} className="h-14 w-14 rounded-xl object-cover" loading="lazy" />;
+    return <img src={logo} alt={name} className="h-14 w-14 rounded-nested object-cover" loading="lazy" />;
   }
   const { from, to, light } = gradientFromString(name);
   const initials = name
@@ -40,7 +41,7 @@ function ChannelLogo({ name, logo }: { name: string; logo: string | null }) {
     .join("");
   return (
     <div
-      className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl"
+      className="flex h-14 w-14 shrink-0 items-center justify-center rounded-nested"
       style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
     >
       <span className={cn("text-lg font-bold", light ? "text-slate-900/85" : "text-white/90")}>{initials}</span>
@@ -77,7 +78,7 @@ export function ChannelCard({ channel }: { channel: ChannelCardDTO }) {
   return (
     <Link
       href={`/coding-channels/${channel.slug}`}
-      className="group relative flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-elevated"
+      className={cardClasses("gap-3 p-4")}
     >
       <div className="flex items-start gap-3">
         <ChannelLogo name={channel.name} logo={channel.logo} />
@@ -118,7 +119,10 @@ export function ChannelCard({ channel }: { channel: ChannelCardDTO }) {
           aria-pressed={bookmarked}
           aria-label={bookmarked ? "Remove bookmark" : "Bookmark this channel"}
           className={cn(
-            "inline-flex cursor-pointer items-center justify-center rounded-full border p-1.5 transition-colors",
+            // 28x28 as drawn. It also sits inside the card's own Link, so a
+            // near-miss on a phone navigated away instead of bookmarking —
+            // `tap-target` gives it 44px of reach on a coarse pointer.
+            "tap-target inline-flex cursor-pointer items-center justify-center rounded-full border p-1.5 transition-colors",
             bookmarked
               ? "border-primary/40 bg-primary/10 text-primary"
               : "border-border bg-background text-muted-foreground hover:bg-muted"

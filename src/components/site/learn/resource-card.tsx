@@ -9,6 +9,7 @@ import { toggleResourceBookmarkAction } from "@/server/actions/learning-resource
 import { safeAction } from "@/lib/safe-action";
 import { youtubeThumbnailUrl } from "@/lib/youtube";
 import { Badge } from "@/components/ui/badge";
+import { cardClasses } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 export interface ResourceCardDTO {
@@ -61,7 +62,7 @@ export function ResourceCard({ resource }: { resource: ResourceCardDTO }) {
   return (
     <Link
       href={`/learn/${resource.slug}`}
-      className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-elevated"
+      className={cardClasses("overflow-hidden")}
     >
       <div className="relative aspect-video overflow-hidden bg-muted">
         {thumb ? (
@@ -117,7 +118,9 @@ export function ResourceCard({ resource }: { resource: ResourceCardDTO }) {
             aria-pressed={bookmarked}
             aria-label={bookmarked ? "Remove bookmark" : "Bookmark this resource"}
             className={cn(
-              "inline-flex cursor-pointer items-center justify-center rounded-full border p-1.5 transition-colors",
+              // 28x28 as drawn, and nested inside the card's own Link, so a
+              // near-miss on a phone navigated instead of bookmarking.
+              "tap-target inline-flex cursor-pointer items-center justify-center rounded-full border p-1.5 transition-colors",
               bookmarked
                 ? "border-primary/40 bg-primary/10 text-primary"
                 : "border-border bg-background text-muted-foreground hover:bg-muted"

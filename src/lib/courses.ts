@@ -171,15 +171,28 @@ export async function getSiteStats() {
   };
 }
 
-/** Distinct languages across published courses, for the language filter. */
+/**
+ * Distinct languages across published courses, for the language filter.
+ *
+ * Raw SQL because Prisma's `distinct:` is a client-side dedupe here, not a
+ * pushdown. Verified by logging the emitted query: `findMany({ distinct:
+ * ["language"], orderBy: { language: "asc" } })` produced
+ * `SELECT id, language FROM courses WHERE published AND language IS NOT NULL
+ * ORDER BY language ASC` with no DISTINCT clause at all — so every published
+ * course was transferred to Node on every /courses load, to render a dropdown
+ * with a handful of entries. The same caveat is already noted in
+ * lib/telegram/admin.ts, where a previous audit hit it from the other direction.
+ *
+ * Nothing is interpolated: the table and the predicate are fixed.
+ */
 export async function getCourseLanguages(): Promise<string[]> {
-  const rows = await db.course.findMany({
-    where: { published: true, language: { not: null } },
-    distinct: ["language"],
-    select: { language: true },
-    orderBy: { language: "asc" },
-  });
-  return rows.map((r) => r.language!).filter(Boolean);
+  const rows = await db.$queryRaw<{ language: string }[]>`
+    SELECT DISTINCT "language"
+    FROM courses
+    WHERE "published" = true AND "language" IS NOT NULL
+    ORDER BY "language" ASC
+  `;
+  return rows.map((r) => r.language).filter(Boolean);
 }
 
 export async function getAllCategories() {

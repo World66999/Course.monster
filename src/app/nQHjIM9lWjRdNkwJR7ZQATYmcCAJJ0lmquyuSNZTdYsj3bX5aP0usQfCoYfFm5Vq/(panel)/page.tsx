@@ -8,6 +8,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { db } from "@/lib/db";
+import { AnimatedCounter } from "@/components/site/animated-counter";
 import { formatNumber, formatDate } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +30,7 @@ async function getDashboardData() {
     recentEvents,
     popularCourses,
     recentAudit,
-    eventsForChart,
+    chartRows,
   ] = await Promise.all([
     db.course.count(),
     db.course.count({ where: { published: true } }),
@@ -52,21 +53,39 @@ async function getDashboardData() {
       take: 8,
       include: { user: { select: { name: true } } },
     }),
-    db.downloadEvent.findMany({
-      where: { createdAt: { gte: since14d } },
-      select: { createdAt: true },
-    }),
+    // Counted per day in the database, at most 14 rows back.
+    //
+    // This was `findMany({ where: { createdAt: { gte: since14d } }, select:
+    // { createdAt: true } })` followed by fourteen `Array.filter` passes — so a
+    // dashboard load transferred every download event of the last fortnight,
+    // walked the whole array once per day of the chart, and allocated a fresh
+    // `toISOString()` string on every one of those 14n visits. At a thousand
+    // downloads a day that is 14k rows and ~200k throwaway strings, and it grows
+    // with traffic; the page is `force-dynamic`, so nothing amortises it.
+    //
+    // Prisma cannot group by a truncated date, so this is raw SQL. Nothing is
+    // interpolated but the bound parameter. `createdAt` is a timestamp without
+    // time zone holding UTC, so `date_trunc('day', …)` buckets by UTC day —
+    // exactly what `toISOString().slice(0, 10)` did, so the chart is unchanged.
+    // Served by the existing @@index([createdAt]).
+    db.$queryRaw<{ day: Date; count: bigint }[]>`
+      SELECT date_trunc('day', "createdAt") AS day, COUNT(*)::bigint AS count
+      FROM download_events
+      WHERE "createdAt" >= ${since14d}
+      GROUP BY 1
+    `,
   ]);
 
-  // Bucket the last 14 days of download events by day.
+  // Bucket the last 14 days of download events by day. The database returns only
+  // the days that actually had downloads, so this fills the gaps with zeroes and
+  // keeps the axis a fixed 14 columns wide.
+  const counts = new Map(
+    chartRows.map((r) => [r.day.toISOString().slice(0, 10), Number(r.count)])
+  );
   const days: { label: string; count: number }[] = [];
   for (let i = 13; i >= 0; i--) {
-    const day = new Date(Date.now() - i * 86_400_000);
-    const key = day.toISOString().slice(0, 10);
-    days.push({
-      label: key.slice(5),
-      count: eventsForChart.filter((e) => e.createdAt.toISOString().slice(0, 10) === key).length,
-    });
+    const key = new Date(Date.now() - i * 86_400_000).toISOString().slice(0, 10);
+    days.push({ label: key.slice(5), count: counts.get(key) ?? 0 });
   }
 
   return {
@@ -99,7 +118,7 @@ export default async function AdminDashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-heading">Dashboard</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           What&apos;s happening on your platform right now.
         </p>
@@ -110,15 +129,17 @@ export default async function AdminDashboard() {
         {cards.map(({ label, value, sub, icon: Icon }) => (
           <div
             key={label}
-            className="rounded-2xl border border-border bg-card p-5 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-elevated"
+            className="group relative overflow-hidden rounded-card border border-border bg-card p-5 shadow-soft transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-elevated"
           >
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">{label}</p>
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-primary text-white shadow-sm shadow-primary/30 inset-shadow-[0_1px_0_0_rgba(255,255,255,0.25)]">
+              <span className="lit flex h-9 w-9 items-center justify-center rounded-nested bg-primary text-primary-foreground shadow-primary inset-shadow-highlight transition-transform duration-300 group-hover:scale-105">
                 <Icon className="h-4.5 w-4.5" aria-hidden />
               </span>
             </div>
-            <p className="mt-2 text-3xl font-bold tracking-tight tabular-nums">{formatNumber(value)}</p>
+            <p className="numeric mt-2 text-3xl font-bold tracking-tight">
+              <AnimatedCounter value={value} />
+            </p>
             <p className="mt-1 text-xs text-muted-foreground">{sub}</p>
           </div>
         ))}
@@ -126,7 +147,7 @@ export default async function AdminDashboard() {
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         {/* Downloads chart */}
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-soft xl:col-span-2">
+        <div className="rounded-card border border-border bg-card p-5 shadow-soft xl:col-span-2">
           <div className="mb-6 flex items-center justify-between">
             <div>
               <h2 className="font-semibold">Downloads — last 14 days</h2>
@@ -152,16 +173,16 @@ export default async function AdminDashboard() {
         </div>
 
         {/* Popular courses */}
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+        <div className="rounded-card border border-border bg-card p-5 shadow-soft">
           <h2 className="mb-4 font-semibold">Popular courses</h2>
           <ol className="space-y-3">
             {popularCourses.map((course, i) => (
               <li key={course.id}>
                 <Link
                   href={adminPath(`courses/${course.id}/edit`)}
-                  className="group flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-muted"
+                  className="group flex items-center gap-3 rounded-nested p-2 transition-colors hover:bg-muted"
                 >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-control bg-primary/10 text-xs font-bold text-primary">
                     {i + 1}
                   </span>
                   <div className="min-w-0 flex-1">
@@ -182,7 +203,7 @@ export default async function AdminDashboard() {
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         {/* Recent downloads */}
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+        <div className="rounded-card border border-border bg-card p-5 shadow-soft">
           <h2 className="mb-4 font-semibold">Recent downloads</h2>
           {recentEvents.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">No downloads yet.</p>
@@ -191,7 +212,7 @@ export default async function AdminDashboard() {
               {recentEvents.map((event) => (
                 <li
                   key={event.id}
-                  className="flex items-center justify-between gap-3 rounded-xl px-2 py-1.5 text-sm"
+                  className="flex items-center justify-between gap-3 rounded-nested px-2 py-1.5 text-sm"
                 >
                   <span className="inline-flex min-w-0 items-center gap-2">
                     <Download className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
@@ -207,7 +228,7 @@ export default async function AdminDashboard() {
         </div>
 
         {/* Recent activity */}
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+        <div className="rounded-card border border-border bg-card p-5 shadow-soft">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-semibold">Recent activity</h2>
             <Link
@@ -223,7 +244,7 @@ export default async function AdminDashboard() {
           ) : (
             <ul className="space-y-2">
               {recentAudit.map((log) => (
-                <li key={log.id} className="flex items-center justify-between gap-3 rounded-xl px-2 py-1.5 text-sm">
+                <li key={log.id} className="flex items-center justify-between gap-3 rounded-nested px-2 py-1.5 text-sm">
                   <span className="min-w-0 truncate">
                     <span className="font-medium">{log.user?.name ?? "System"}</span>{" "}
                     <span className="text-muted-foreground">{log.action}</span>

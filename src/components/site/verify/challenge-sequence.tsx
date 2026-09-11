@@ -89,7 +89,11 @@ export function ChallengeSequence({
               aria-label={`Tile ${tile + 1}`}
               aria-pressed={isTapped}
               className={cn(
-                "h-14 w-14 rounded-2xl border transition-all duration-150 will-change-transform sm:h-16 sm:w-16",
+                // Scoped rather than `transition-all`: only these four properties
+                // ever change between the lit/tapped/idle states, and `all` would
+                // also transition the 150ms flash through anything else the class
+                // list touches.
+                "h-14 w-14 rounded-card border transition-[transform,background-color,border-color,box-shadow] duration-150 will-change-transform sm:h-16 sm:w-16",
                 "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                 isLit
                   ? "scale-105 border-primary bg-primary shadow-elevated"

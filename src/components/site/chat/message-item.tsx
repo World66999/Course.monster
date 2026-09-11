@@ -74,6 +74,14 @@ function MessageBody({ body, mentions }: { body: string; mentions: Record<string
   );
 }
 
+/**
+ * Reply / Edit / Delete under a chat message — 16px-tall text buttons, so
+ * `tap-target` extends each one's reach to 44px on a coarse pointer without
+ * changing how they look. Mirrors `ACTION_BUTTON` in
+ * components/site/comments/comment-item.tsx.
+ */
+const ACTION_BUTTON = "tap-target inline-flex cursor-pointer items-center gap-1 hover:text-primary";
+
 export function MessageItem({
   message,
   mentions,
@@ -159,7 +167,7 @@ export function MessageItem({
     <div className="flex gap-3">
       <Avatar author={message.author} />
       <div className="min-w-0 flex-1">
-        <div className="rounded-2xl bg-muted/50 px-4 py-2.5">
+        <div className="rounded-card bg-muted/50 px-4 py-2.5">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-sm font-semibold">{message.author.label}</span>
             {message.author.isAdmin && (
@@ -170,7 +178,7 @@ export function MessageItem({
           </div>
 
           {message.parentPreview && (
-            <div className="mt-1 mb-1.5 rounded-lg border-l-2 border-border bg-background/60 px-2.5 py-1 text-xs text-muted-foreground">
+            <div className="mt-1 mb-1.5 rounded-control border-l-2 border-border bg-background/60 px-2.5 py-1 text-xs text-muted-foreground">
               <span className="font-medium">{message.parentPreview.authorLabel}</span>{" "}
               {message.parentPreview.body ? (
                 <span className="line-clamp-1">{message.parentPreview.body}</span>
@@ -207,7 +215,7 @@ export function MessageItem({
                   <button
                     type="button"
                     onClick={() => setLightboxOpen(true)}
-                    className="mt-2 block cursor-zoom-in overflow-hidden rounded-xl border border-border"
+                    className="mt-2 block cursor-zoom-in overflow-hidden rounded-nested border border-border"
                   >
                     <Image
                       src={message.imageThumbUrl}
@@ -226,7 +234,7 @@ export function MessageItem({
                       <img
                         src={message.imageUrl ?? message.imageThumbUrl}
                         alt={`Image shared by ${message.author.label}`}
-                        className="max-h-[85vh] w-full rounded-2xl object-contain"
+                        className="max-h-[85dvh] w-full rounded-card object-contain"
                       />
                     </DialogContent>
                   </Dialog>
@@ -243,7 +251,7 @@ export function MessageItem({
             <button
               type="button"
               onClick={() => onReply(message)}
-              className="inline-flex cursor-pointer items-center gap-1 hover:text-primary"
+              className={ACTION_BUTTON}
             >
               <Reply className="h-3.5 w-3.5" aria-hidden />
               Reply
@@ -256,7 +264,7 @@ export function MessageItem({
                     setEditBody(message.body);
                     setEditing(true);
                   }}
-                  className="inline-flex cursor-pointer items-center gap-1 hover:text-primary"
+                  className={ACTION_BUTTON}
                 >
                   <Pencil className="h-3.5 w-3.5" aria-hidden />
                   Edit
@@ -265,7 +273,7 @@ export function MessageItem({
                   type="button"
                   onClick={() => void onDeleteClick()}
                   disabled={deleteBusy}
-                  className="inline-flex cursor-pointer items-center gap-1 hover:text-destructive disabled:opacity-60"
+                  className={cn(ACTION_BUTTON, "hover:text-destructive disabled:opacity-60")}
                 >
                   {deleteBusy ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
@@ -282,7 +290,7 @@ export function MessageItem({
         )}
 
         {!editing && (
-          <div className="mt-1.5 flex flex-wrap items-center gap-1 px-2">
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 px-2">
             {reactions.map((r) => (
               <button
                 key={r.emoji}
@@ -290,7 +298,12 @@ export function MessageItem({
                 onClick={() => void onReact(r.emoji)}
                 disabled={reactBusy}
                 className={cn(
-                  "inline-flex cursor-pointer items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs transition-colors",
+                  // Grown from `px-1.5 py-0.5` (26px tall) rather than given
+                  // `tap-target`: these chips sit shoulder to shoulder, so an
+                  // invisible 44px box on each would overlap its neighbours and
+                  // fire the wrong reaction — worse than a small target. Real
+                  // height plus a slightly wider gap fixes it honestly.
+                  "inline-flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1.5 text-xs transition-colors",
                   r.reactedByMe
                     ? "border-primary/40 bg-primary/10 text-primary"
                     : "border-border bg-background text-muted-foreground hover:bg-muted"

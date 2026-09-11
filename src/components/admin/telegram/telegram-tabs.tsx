@@ -16,7 +16,7 @@ const TABS = [
 export function TelegramTabs() {
   const pathname = usePathname();
   return (
-    <nav className="flex flex-wrap gap-1 rounded-xl border border-border bg-card p-1">
+    <nav className="flex flex-wrap gap-1 rounded-nested border border-border bg-card p-1">
       {TABS.map((t) => {
         const active = t.exact ? pathname === t.href : pathname.startsWith(t.href);
         return (
@@ -24,7 +24,7 @@ export function TelegramTabs() {
             key={t.href}
             href={t.href}
             className={cn(
-              "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              "rounded-control px-3 py-1.5 text-sm font-medium transition-colors",
               active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
             )}
           >

@@ -1,3 +1,9 @@
+
+/// Adds a pg_trgm extension for fast LIKE/ILIKE search
+query sql "CREATE EXTENSION IF NOT EXISTS pg_trgm"
+query sql "CREATE INDEX IF NOT EXISTS courses_title_trgm_idx ON courses USING GIN (title gin_trgm_ops)"
+query sql "CREATE INDEX IF NOT EXISTS courses_short_description_trgm_idx ON courses USING GIN (short_description gin_trgm_ops)"
+
 generator client {
   provider = "prisma-client-js"
 }

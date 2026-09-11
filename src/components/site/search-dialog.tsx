@@ -177,7 +177,7 @@ export function SearchDialog() {
   }
 
   const rowClass =
-    "flex w-full cursor-pointer items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-muted";
+    "flex w-full cursor-pointer items-center gap-3 rounded-control p-2 text-left transition-colors hover:bg-muted";
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -185,11 +185,11 @@ export function SearchDialog() {
         <button
           type="button"
           aria-label="Search"
-          className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+          className="tap-target inline-flex h-9 cursor-pointer items-center gap-2 rounded-control border border-border bg-card px-2.5 text-sm text-muted-foreground shadow-soft transition-colors hover:border-primary/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:px-3"
         >
           <Search className="h-4 w-4" aria-hidden />
-          <span className="hidden sm:inline">Search…</span>
-          <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] sm:inline">
+          <span className="hidden lg:inline">Search…</span>
+          <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] lg:inline">
             ⌘K
           </kbd>
         </button>
@@ -218,7 +218,10 @@ export function SearchDialog() {
             }}
             placeholder="Search courses, resources, AI tools…"
             aria-label="Search query"
-            className="h-13 w-full rounded bg-transparent text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
+            // `text-base` on phones: iOS zooms the viewport whenever a focused
+            // field computes under 16px, which made opening search on an iPhone
+            // magnify the whole page.
+            className="h-13 w-full rounded bg-transparent text-base outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/30 sm:text-sm"
           />
         </div>
         <div className="max-h-80 overflow-y-auto p-2">

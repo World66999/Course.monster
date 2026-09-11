@@ -168,7 +168,7 @@ export function CourseForm({
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
         {/* Main column */}
         <div className="space-y-6 xl:col-span-2">
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-4 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">Basics</h2>
             <div className="space-y-1.5">
               <Label htmlFor="title">Title *</Label>
@@ -214,7 +214,7 @@ export function CourseForm({
             </div>
           </section>
 
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-4 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">Course details</h2>
             <p className="-mt-2 text-xs text-muted-foreground">
               All optional — only filled-in fields are shown on the public page.
@@ -345,7 +345,7 @@ export function CourseForm({
             </div>
           </section>
 
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-4 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">Links</h2>
             <div className="space-y-1.5">
               <Label htmlFor="downloadUrl">Download URL *</Label>
@@ -368,7 +368,7 @@ export function CourseForm({
             </div>
           </section>
 
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-4 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">SEO</h2>
             <div className="space-y-1.5">
               <div className="flex items-center">
@@ -410,7 +410,7 @@ export function CourseForm({
 
         {/* Sidebar */}
         <div className="space-y-6">
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-4 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">Organization</h2>
             <div className="space-y-1.5">
               <Label>Category</Label>
@@ -496,7 +496,7 @@ export function CourseForm({
             </div>
           </section>
 
-          <section className="space-y-5 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-5 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">Artwork</h2>
             <Controller
               control={control}

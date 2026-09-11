@@ -44,7 +44,7 @@ function ChatDisplayNamePrompt({ onSet }: { onSet: (name: string) => void }) {
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-2 rounded-2xl border border-dashed border-border bg-muted/30 p-4">
+    <form onSubmit={submit} className="flex flex-col gap-2 rounded-card border border-dashed border-border bg-muted/30 p-4">
       <p className="text-sm font-medium">Choose a name to chat with</p>
       <p className="text-xs text-muted-foreground">
         This is shown next to your messages instead of your account name. You can change it later.
@@ -191,9 +191,9 @@ export function Composer({
 
   if (!session?.user) {
     return (
-      <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border bg-muted/30 p-5 text-center">
+      <div className="flex flex-col items-center gap-2 rounded-card border border-dashed border-border bg-muted/30 p-5 text-center">
         <p className="text-sm text-muted-foreground">Sign in to send messages.</p>
-        <Link href="/login?callbackUrl=/chat" className="text-sm font-medium text-primary hover:underline">
+        <Link href="/login?callbackUrl=/chat" className="tap-target text-sm font-medium text-primary hover:underline">
           Sign in
         </Link>
       </div>
@@ -207,7 +207,7 @@ export function Composer({
   return (
     <form onSubmit={onSubmit} className="space-y-2">
       {replyTo && (
-        <div className="flex items-center justify-between rounded-lg bg-muted/60 px-3 py-1.5 text-xs">
+        <div className="flex items-center justify-between rounded-control bg-muted/60 px-3 py-1.5 text-xs">
           <span className="truncate text-muted-foreground">
             Replying to <span className="font-medium">{replyTo.author.label}</span>
           </span>
@@ -235,7 +235,7 @@ export function Composer({
 
       {image && (
         <div className="relative inline-flex">
-          <Image src={image.previewUrl} alt="Attached image preview" width={80} height={80} unoptimized className="rounded-xl object-cover" />
+          <Image src={image.previewUrl} alt="Attached image preview" width={80} height={80} unoptimized className="rounded-nested object-cover" />
           <button
             type="button"
             onClick={() => setImage(null)}
@@ -258,7 +258,7 @@ export function Composer({
           aria-label="Write a message"
         />
         {mentionQuery !== null && mentionResults.length > 0 && (
-          <div className="absolute top-full left-0 z-20 mt-1 w-64 overflow-hidden rounded-xl border border-border bg-card shadow-floating">
+          <div className="absolute top-full left-0 z-20 mt-1 w-64 overflow-hidden rounded-nested border border-border bg-card shadow-floating">
             {mentionResults.map((user) => (
               <button
                 key={user.id}

@@ -39,7 +39,7 @@ export function BroadcastComposer({ audience, configured }: { audience: number; 
   const empty = body.trim().length === 0;
 
   return (
-    <section className="space-y-3 rounded-2xl border border-border bg-card p-6">
+    <section className="space-y-3 rounded-card border border-border bg-card p-6">
       <h2 className="font-semibold">📣 Broadcast</h2>
       <div className="space-y-1.5">
         <Label htmlFor="broadcast-body">Message</Label>
@@ -65,7 +65,7 @@ export function BroadcastComposer({ audience, configured }: { audience: number; 
           Send to {audience} user{audience === 1 ? "" : "s"}
         </Button>
       ) : (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-warning/40 bg-warning/10 p-3">
+        <div className="flex flex-wrap items-center gap-2 rounded-nested border border-warning/40 bg-warning/10 p-3">
           <span className="text-sm">
             Send this to <strong>{audience}</strong> user{audience === 1 ? "" : "s"}? This cannot be undone.
           </span>

@@ -81,7 +81,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Users</h1>
+        <h1 className="text-heading">Users</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Search accounts, view provider &amp; verification status, disable or restore.
         </p>

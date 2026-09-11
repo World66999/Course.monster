@@ -91,14 +91,6 @@ export async function listFreeResources(
   return { items, nextCursor, total };
 }
 
-export async function getFeaturedFreeResources(limit = 6): Promise<FreeResourceCard[]> {
-  return db.freeResource.findMany({
-    where: { published: true, featured: true },
-    select: freeResourceCardSelect,
-    orderBy: [{ order: "asc" }, { createdAt: "desc" }, { id: "asc" }],
-    take: limit,
-  });
-}
 
 /**
  * Tag cloud for the filter bar. Bounded scan: only published rows, only the

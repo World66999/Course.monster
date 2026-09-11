@@ -40,7 +40,7 @@ export function YoutubeEmbed({
 
   return (
     <div className={cn("space-y-2", className)}>
-      <div className="relative aspect-video w-full min-h-[200px] overflow-hidden rounded-xl bg-muted">
+      <div className="relative aspect-video w-full min-h-[200px] overflow-hidden rounded-nested bg-muted">
         {playing ? (
           <iframe
             src={youtubeEmbedUrl(videoId ?? "", { playlistId })}

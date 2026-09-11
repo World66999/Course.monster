@@ -22,12 +22,12 @@ export default function ErrorBoundary({
   }, [error]);
 
   return (
-    <div className="relative flex min-h-[60vh] flex-col items-center justify-center overflow-hidden px-4 py-20 text-center">
+    <div className="relative flex min-h-[60dvh] flex-col items-center justify-center overflow-hidden px-4 py-20 text-center">
       <div className="bg-grid absolute inset-0" aria-hidden />
       <div className="relative">
-        <p className="text-gradient text-6xl font-extrabold tracking-tight sm:text-7xl">Oops</p>
-        <h1 className="mt-4 text-xl font-bold sm:text-2xl">Something went wrong</h1>
-        <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
+        <p className="text-gradient font-display text-[clamp(3.5rem,12vw,5.5rem)] leading-none font-bold tracking-[-0.04em]">Oops</p>
+        <h1 className="mt-5 text-heading text-balance">Something went wrong</h1>
+        <p className="mx-auto mt-3 max-w-md text-pretty text-sm leading-relaxed text-muted-foreground">
           An unexpected error occurred while loading this page. It has been logged — trying
           again usually fixes it.
           {error.digest && (

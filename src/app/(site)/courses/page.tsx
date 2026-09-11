@@ -4,7 +4,7 @@ import { listCourses, getAllCategories, getCourseLanguages } from "@/lib/courses
 import { listCoursesQuerySchema } from "@/lib/validation";
 import { db } from "@/lib/db";
 import { absoluteUrl } from "@/lib/utils";
-import { Section } from "@/components/site/section";
+import { PageHeader, Section } from "@/components/site/section";
 import { FiltersBar } from "@/components/site/filters-bar";
 import { InfiniteCourseList } from "@/components/site/course-list";
 import { CourseGridSkeleton } from "@/components/ui/skeleton";
@@ -73,12 +73,15 @@ export default async function CoursesPage({ searchParams }: { searchParams: Sear
 
   return (
     <Section className="py-12">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">All courses</h1>
-        <p className="mt-2 text-muted-foreground">
-          Every course is free to download. Filter, search and sort to find yours.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Library"
+        title="All courses"
+        description={
+          <>
+            Every course is free to download. Filter, search and sort to find yours.
+          </>
+        }
+      />
 
       <div className="mb-8">
         <Suspense>

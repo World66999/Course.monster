@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default function NewAiPlatformPage() {
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">New AI platform</h1>
+      <h1 className="text-heading">New AI platform</h1>
       <AiPlatformForm
         platformId={null}
         defaultValues={{

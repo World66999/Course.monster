@@ -1,10 +1,12 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { FolderOpen } from "lucide-react";
 import { FreeResourceCard, type FreeResourceCardDTO } from "@/components/site/free-resources/resource-card";
 import { DirectoryCardSkeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/site/section";
+import { buttonClasses } from "@/components/ui/button";
 
 interface Props {
   initialItems: FreeResourceCardDTO[];
@@ -77,7 +79,12 @@ export function InfiniteResourceList({ initialItems, initialCursor, total, query
       <EmptyState
         icon={<FolderOpen aria-hidden />}
         title="No resources found"
-        description="Try a different search, type or source."
+        description="Try a different search, type or source — or browse everything instead."
+        action={
+          <Link href="/free-resources" className={buttonClasses("outline", "sm")}>
+            Clear filters
+          </Link>
+        }
       />
     );
   }
@@ -103,7 +110,7 @@ export function InfiniteResourceList({ initialItems, initialCursor, total, query
           <button
             type="button"
             onClick={() => void loadMore()}
-            className="cursor-pointer rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
+            className="cursor-pointer rounded-control border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
           >
             Try again
           </button>

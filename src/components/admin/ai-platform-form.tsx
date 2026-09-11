@@ -96,7 +96,7 @@ export function AiPlatformForm({
 
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-4 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">Basics</h2>
             <div className="space-y-1.5">
               <Label htmlFor="name">Platform name *</Label>
@@ -128,7 +128,7 @@ export function AiPlatformForm({
             </div>
           </section>
 
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-4 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">How it is free</h2>
             {/*
               The single most important field on this form: students plan around
@@ -179,7 +179,7 @@ export function AiPlatformForm({
         </div>
 
         <div className="space-y-6">
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-4 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">Classification</h2>
             <div className="space-y-1.5">
               <Label>Category *</Label>
@@ -211,7 +211,7 @@ export function AiPlatformForm({
             </div>
           </section>
 
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-4 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">Logo</h2>
             <Controller
               control={control}
@@ -230,7 +230,7 @@ export function AiPlatformForm({
             />
           </section>
 
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-4 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">Curation</h2>
             <label className="flex cursor-pointer items-center justify-between gap-2 text-sm font-medium">
               Featured

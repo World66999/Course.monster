@@ -5,19 +5,25 @@ import { cn, gradientFromString } from "@/lib/utils";
  * /uploads (see src/lib/uploads.ts), so a plain img tag with lazy loading
  * is the right tool; when no image is set we render a branded gradient
  * with the course initials so cards never look broken.
+ *
+ * There is deliberately no `sizes`/`srcset`: the upload pipeline stores exactly
+ * one variant per kind (thumbnails are 800px WebP), so there is no candidate set
+ * for the browser to choose from and a `sizes` attribute is inert — it used to be
+ * passed in and threaded through here, implying responsive images that were never
+ * generated. 800px is a deliberate single-size compromise: it is about right for
+ * a full-width card on a 2-3x DPR phone and still comfortably covers the ~350px
+ * slot a 4-up desktop grid gives it.
  */
 export function CourseImage({
   src,
   title,
   className,
   priority = false,
-  sizes,
 }: {
   src?: string | null;
   title: string;
   className?: string;
   priority?: boolean;
-  sizes?: string;
 }) {
   if (src) {
     return (
@@ -26,8 +32,10 @@ export function CourseImage({
         src={src}
         alt={title}
         loading={priority ? "eager" : "lazy"}
+        // Promotes the above-the-fold thumbnails out of the low-priority bucket
+        // that images default to, which is what `priority` is for here.
+        fetchPriority={priority ? "high" : undefined}
         decoding="async"
-        sizes={sizes}
         className={cn("h-full w-full object-cover", className)}
       />
     );

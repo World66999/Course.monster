@@ -136,7 +136,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     // job into COMPLETED — the terminal branch above answers from our own row
     // and the note is deliberately not persisted (it would need a migration to
     // record something that only matters at the moment of delivery).
-    warning: safeWarning(remote.data.warning),
+    // `job.platform` is our own stored value, not the caller's — the note can
+    // differ per platform (Facebook withholds audio from this server rather
+    // than lacking it), so the copy has to know which one it is talking about.
+    warning: safeWarning(remote.data.warning, job.platform),
   });
 }
 

@@ -23,7 +23,11 @@ export const PasswordField = React.forwardRef<
         onClick={() => setVisible((v) => !v)}
         aria-label={visible ? "Hide password" : "Show password"}
         aria-pressed={visible}
-        className="absolute top-1/2 right-2.5 -translate-y-1/2 cursor-pointer rounded p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        // 24x24 as drawn, which is well under the touch minimum — and it is the
+        // one control on a sign-in form a phone user reaches for when the
+        // password looks wrong. `tap-target` gives it 44px of reach on a coarse
+        // pointer without resizing the glyph or disturbing the field.
+        className="tap-target absolute top-1/2 right-2.5 -translate-y-1/2 cursor-pointer rounded p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
       >
         {visible ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
       </button>

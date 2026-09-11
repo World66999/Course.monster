@@ -64,7 +64,7 @@ export function EmailSection({ email, hasPassword }: { email: string; hasPasswor
   }
 
   return (
-    <section className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-soft">
+    <section className="space-y-4 rounded-card border border-border bg-card p-6 shadow-soft">
       <div>
         <h2 className="font-semibold">Email</h2>
         <p className="text-sm text-muted-foreground">

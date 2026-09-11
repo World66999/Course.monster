@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { X } from "lucide-react";
+import { useDebouncedSearchParam, useFilterParams } from "@/components/site/use-filter-params";
+import { FilterSearchIcon } from "@/components/site/filter-search-icon";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -12,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { FilterPill, FilterPillGhost } from "@/components/ui/filter-pill";
 
 interface CategoryOption {
   slug: string;
@@ -57,11 +58,8 @@ export function FiltersBar({
   categories: CategoryOption[];
   languages?: string[];
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const { searchParams, update, replaceLive, isPending } = useFilterParams();
 
-  const currentQ = searchParams.get("q") ?? "";
   const currentCategory = searchParams.get("category") ?? "";
   const currentSort = searchParams.get("sort") ?? "newest";
   const currentTag = searchParams.get("tag") ?? "";
@@ -70,8 +68,7 @@ export function FiltersBar({
   const currentDuration = searchParams.get("duration") ?? "";
   const currentFlag = searchParams.get("flag") ?? "";
 
-  const [search, setSearch] = React.useState(currentQ);
-  React.useEffect(() => setSearch(currentQ), [currentQ]);
+  const [search, setSearch, searchPending] = useDebouncedSearchParam("q", replaceLive, searchParams);
 
   const [categoriesExpanded, setCategoriesExpanded] = React.useState(false);
   React.useEffect(() => {
@@ -81,33 +78,11 @@ export function FiltersBar({
   const visibleCategories = categoriesExpanded ? categories : categories.slice(0, PILL_VISIBLE);
   const hiddenCategoryCount = categories.length - visibleCategories.length;
 
-  const update = React.useCallback(
-    (patch: Record<string, string>) => {
-      const params = new URLSearchParams(searchParams.toString());
-      for (const [key, value] of Object.entries(patch)) {
-        if (value) params.set(key, value);
-        else params.delete(key);
-      }
-      router.push(`${pathname}${params.size ? `?${params}` : ""}`, { scroll: false });
-    },
-    [router, pathname, searchParams]
-  );
-
-  // Debounced search-as-you-type.
-  React.useEffect(() => {
-    if (search === currentQ) return;
-    const t = setTimeout(() => update({ q: search.trim() }), 400);
-    return () => clearTimeout(t);
-  }, [search, currentQ, update]);
-
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" aria-busy={isPending}>
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
-          <Search
-            className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden
-          />
+          <FilterSearchIcon pending={isPending || searchPending} />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -204,72 +179,38 @@ export function FiltersBar({
           aria-label="Show only"
         >
           {FLAG_OPTIONS.map((f) => (
-            <button
+            <FilterPill
               key={f.value}
-              type="button"
+              active={currentFlag === f.value}
               onClick={() => update({ flag: currentFlag === f.value ? "" : f.value })}
-              aria-pressed={currentFlag === f.value}
-              className={cn(
-                "cursor-pointer rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all duration-200 active:scale-95",
-                currentFlag === f.value
-                  ? "border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/25"
-                  : "border-border bg-card text-muted-foreground shadow-soft hover:border-primary/50 hover:text-foreground"
-              )}
             >
               {f.label}
-            </button>
+            </FilterPill>
           ))}
         </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter by category">
-        <button
-          type="button"
-          onClick={() => update({ category: "" })}
-          aria-pressed={!currentCategory}
-          className={cn(
-            "cursor-pointer rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all duration-200 active:scale-95",
-            !currentCategory
-              ? "border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/25"
-              : "border-border bg-card text-muted-foreground shadow-soft hover:border-primary/50 hover:text-foreground"
-          )}
-        >
+        <FilterPill active={!currentCategory} onClick={() => update({ category: "" })}>
           All
-        </button>
+        </FilterPill>
         {visibleCategories.map((c) => (
-          <button
+          <FilterPill
             key={c.slug}
-            type="button"
+            active={currentCategory === c.slug}
+            count={c.count}
             onClick={() => update({ category: currentCategory === c.slug ? "" : c.slug })}
-            aria-pressed={currentCategory === c.slug}
-            className={cn(
-              "cursor-pointer rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all duration-200 active:scale-95",
-              currentCategory === c.slug
-                ? "border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/25"
-                : "border-border bg-card text-muted-foreground shadow-soft hover:border-primary/50 hover:text-foreground"
-            )}
           >
             {c.name}
-            <span className="ml-1.5 text-xs tabular-nums">{c.count}</span>
-          </button>
+          </FilterPill>
         ))}
         {hiddenCategoryCount > 0 && (
-          <button
-            type="button"
-            onClick={() => setCategoriesExpanded(true)}
-            className="cursor-pointer rounded-full border border-dashed border-border px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
-          >
+          <FilterPillGhost onClick={() => setCategoriesExpanded(true)}>
             +{hiddenCategoryCount} more
-          </button>
+          </FilterPillGhost>
         )}
         {categoriesExpanded && categories.length > PILL_VISIBLE && (
-          <button
-            type="button"
-            onClick={() => setCategoriesExpanded(false)}
-            className="cursor-pointer rounded-full border border-dashed border-border px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
-          >
-            Show less
-          </button>
+          <FilterPillGhost onClick={() => setCategoriesExpanded(false)}>Show less</FilterPillGhost>
         )}
       </div>
 

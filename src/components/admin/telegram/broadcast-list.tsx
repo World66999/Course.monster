@@ -69,7 +69,7 @@ export function BroadcastList({ rows }: { rows: BroadcastRow[] }) {
         const pct = r.totalCount > 0 ? Math.round((done / r.totalCount) * 100) : 0;
         const live = r.status === "SENDING" || r.status === "QUEUED";
         return (
-          <div key={r.id} className="rounded-2xl border border-border bg-card p-4">
+          <div key={r.id} className="rounded-card border border-border bg-card p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="line-clamp-2 text-sm">{r.body}</p>
@@ -78,8 +78,20 @@ export function BroadcastList({ rows }: { rows: BroadcastRow[] }) {
               <Badge variant={VARIANT[r.status] ?? "secondary"}>{r.status}</Badge>
             </div>
 
-            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
-              <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+            <div
+              className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted"
+              role="progressbar"
+              aria-valuenow={pct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`Broadcast progress: ${pct}%`}
+            >
+              {/* `scaleX`, not an animated `width` — a transform is composited,
+                  where width re-runs layout on every 5s refresh tick. */}
+              <div
+                className="h-full w-full origin-left rounded-full bg-primary transition-transform duration-300 ease-out"
+                style={{ transform: `scaleX(${pct / 100})` }}
+              />
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
               {done}/{r.totalCount} processed · {r.sentCount} sent · {r.failedCount} failed ·{" "}

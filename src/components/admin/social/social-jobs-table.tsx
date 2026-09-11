@@ -119,7 +119,7 @@ export function SocialJobsTable({
           value={status}
           onChange={(e) => setStatus(e.target.value)}
           aria-label="Filter by status"
-          className="rounded-xl border border-border bg-card px-3 py-2 text-sm"
+          className="rounded-nested border border-border bg-card px-3 py-2 text-sm"
         >
           {STATUSES.map((s) => (
             <option key={s} value={s}>
@@ -131,7 +131,7 @@ export function SocialJobsTable({
           value={platform}
           onChange={(e) => setPlatform(e.target.value)}
           aria-label="Filter by platform"
-          className="rounded-xl border border-border bg-card px-3 py-2 text-sm"
+          className="rounded-nested border border-border bg-card px-3 py-2 text-sm"
         >
           <option value="ALL">All platforms</option>
           {platforms.map((p) => (
@@ -145,7 +145,7 @@ export function SocialJobsTable({
         </span>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-soft">
+      <div className="overflow-x-auto rounded-card border border-border bg-card shadow-soft">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs text-muted-foreground uppercase">

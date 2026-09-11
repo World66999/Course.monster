@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { ChevronLeft, ChevronRight, EyeOff, ImageIcon, Loader2, RotateCcw, Search, ShieldCheck, Trash2, XCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -10,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { safeAction } from "@/lib/safe-action";
+import { useAdminParams } from "@/components/admin/use-admin-params";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -132,9 +133,7 @@ export function ChatModerationTable({
   pageCount: number;
   mode: "all" | "pending-links";
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const { searchParams, update, goToPage, isPending } = useAdminParams();
   const [q, setQ] = React.useState(searchParams.get("q") ?? "");
   const [localRows, setLocalRows] = React.useState(rows);
   const [, startTransition] = React.useTransition();
@@ -155,31 +154,17 @@ export function ChatModerationTable({
     setLocalRows(rows);
   }, [rows]);
 
-  function update(patch: Record<string, string>) {
-    const params = new URLSearchParams(searchParams.toString());
-    for (const [k, v] of Object.entries(patch)) {
-      if (v) params.set(k, v);
-      else params.delete(k);
-    }
-    params.delete("page");
-    router.push(`${pathname}?${params.toString()}`);
-  }
-
+  // Not `useDebouncedParam`: this table has two modes and the search box only
+  // applies in "all", so the push has to stay behind that guard. `update` is now
+  // a stable callback from useAdminParams, which is what lets this list its real
+  // dependencies instead of suppressing the lint rule.
+  const currentQ = searchParams.get("q") ?? "";
   React.useEffect(() => {
     if (mode !== "all") return;
-    const current = searchParams.get("q") ?? "";
-    if (q === current) return;
+    if (q === currentQ) return;
     const t = setTimeout(() => update({ q }), 400);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, mode]);
-
-  function goToPage(next: number) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (next > 1) params.set("page", String(next));
-    else params.delete("page");
-    router.push(`${pathname}?${params.toString()}`);
-  }
+  }, [q, mode, currentQ, update]);
 
   const currentStatus = searchParams.get("chatStatus") ?? "";
 
@@ -243,7 +228,16 @@ export function ChatModerationTable({
         </div>
       )}
 
-      <div className="relative overflow-x-auto rounded-2xl border border-border bg-card shadow-soft">
+      {/* Dimmed and inert while the next page/filter is in flight, so a slow
+          query cannot leave stale rows looking current and clickable. */}
+      <div
+        aria-busy={isPending}
+        className={cn(
+          "relative overflow-x-auto rounded-card border border-border bg-card shadow-soft",
+          "transition-opacity duration-200",
+          isPending && "pointer-events-none opacity-60"
+        )}
+      >
         <table className="w-full min-w-[760px] text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/50 text-left text-xs tracking-wider text-muted-foreground uppercase">
@@ -265,7 +259,7 @@ export function ChatModerationTable({
               </tr>
             )}
             {optimisticRows.map((row) => (
-              <tr key={row.id} className="border-b border-border last:border-0 hover:bg-muted/40">
+              <tr key={row.id} className="border-b border-border transition-colors duration-150 last:border-0 hover:bg-primary-soft/45">
                 <td className="max-w-96 p-3">
                   <div className="flex items-center gap-2">
                     {row.imageThumbUrl && (

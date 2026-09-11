@@ -16,7 +16,7 @@ export default async function AdminPagesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Pages</h1>
+        <h1 className="text-heading">Pages</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Edit the content of your site&apos;s standalone pages — the download guide and the
           legal pages linked in the footer.

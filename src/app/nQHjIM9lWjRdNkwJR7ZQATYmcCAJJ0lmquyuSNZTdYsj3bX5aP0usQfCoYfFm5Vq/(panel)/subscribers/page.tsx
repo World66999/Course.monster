@@ -16,7 +16,7 @@ export default async function AdminSubscribersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Newsletter subscribers</h1>
+        <h1 className="text-heading">Newsletter subscribers</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {subscribers.length} subscriber{subscribers.length === 1 ? "" : "s"} (most recent 500
           shown)
@@ -30,8 +30,11 @@ export default async function AdminSubscribersPage() {
           description="Signups from the footer newsletter form will appear here."
         />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
-          <table className="w-full text-sm">
+        /* `overflow-x-auto`, matching every other admin table. With
+           `overflow-hidden` a long email on a narrow screen was clipped with no
+           way to scroll to the rest of the row. */
+        <div className="relative overflow-x-auto rounded-card border border-border bg-card shadow-soft">
+          <table className="w-full min-w-[32rem] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs text-muted-foreground uppercase">
                 <th className="p-3 font-medium">Email</th>

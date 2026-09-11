@@ -30,7 +30,7 @@ export function DangerZone({ hasPassword }: { hasPassword: boolean }) {
   }
 
   return (
-    <section className="space-y-3 rounded-2xl border border-destructive/30 bg-destructive/5 p-6">
+    <section className="space-y-3 rounded-card border border-destructive/30 bg-destructive/5 p-6">
       <div>
         <h2 className="font-semibold text-destructive">Delete account</h2>
         <p className="text-sm text-muted-foreground">

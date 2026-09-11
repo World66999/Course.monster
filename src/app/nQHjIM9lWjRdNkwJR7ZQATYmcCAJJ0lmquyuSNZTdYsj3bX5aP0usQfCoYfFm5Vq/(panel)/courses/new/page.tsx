@@ -13,7 +13,7 @@ export default async function NewCoursePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">New course</h1>
+      <h1 className="text-heading">New course</h1>
       <CourseForm
         courseId={null}
         categories={categories}

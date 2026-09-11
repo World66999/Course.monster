@@ -6,8 +6,8 @@ export function Skeleton({ className }: { className?: string }) {
 
 export function CourseCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-border bg-card p-3">
-      <Skeleton className="aspect-video w-full rounded-xl" />
+    <div className="rounded-card border border-border bg-card p-3">
+      <Skeleton className="aspect-video w-full rounded-nested" />
       <div className="space-y-2 p-2 pt-4">
         <Skeleton className="h-4 w-3/4" />
         <Skeleton className="h-3 w-full" />
@@ -29,7 +29,7 @@ export function CourseGridSkeleton({ count = 8 }: { count?: number }) {
 
 export function RequestCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div className="rounded-card border border-border bg-card p-4">
       <div className="flex items-center gap-2">
         <Skeleton className="h-5 w-16 rounded-full" />
         <Skeleton className="h-5 w-14 rounded-full" />
@@ -60,9 +60,9 @@ export function RequestGridSkeleton({ count = 8 }: { count?: number }) {
 
 export function ChannelCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div className="rounded-card border border-border bg-card p-4">
       <div className="flex items-start gap-3">
-        <Skeleton className="h-14 w-14 shrink-0 rounded-xl" />
+        <Skeleton className="h-14 w-14 shrink-0 rounded-nested" />
         <div className="min-w-0 flex-1 space-y-2">
           <Skeleton className="h-4 w-2/3" />
           <Skeleton className="h-3 w-full" />
@@ -88,8 +88,8 @@ export function ChannelGridSkeleton({ count = 8 }: { count?: number }) {
 
 export function ResourceCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-border bg-card p-3">
-      <Skeleton className="aspect-video w-full rounded-xl" />
+    <div className="rounded-card border border-border bg-card p-3">
+      <Skeleton className="aspect-video w-full rounded-nested" />
       <div className="space-y-2 p-2 pt-3">
         <Skeleton className="h-4 w-3/4" />
         <Skeleton className="h-3 w-1/2" />
@@ -110,9 +110,9 @@ export function ResourceGridSkeleton({ count = 8 }: { count?: number }) {
 
 export function AppCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div className="rounded-card border border-border bg-card p-4">
       <div className="flex items-center gap-3">
-        <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
+        <Skeleton className="h-12 w-12 shrink-0 rounded-nested" />
         <div className="min-w-0 flex-1 space-y-2">
           <Skeleton className="h-4 w-2/3" />
           <Skeleton className="h-3 w-1/2" />
@@ -140,9 +140,9 @@ export function AppGridSkeleton({ count = 8 }: { count?: number }) {
  */
 export function DirectoryCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div className="rounded-card border border-border bg-card p-4">
       <div className="flex items-center gap-3">
-        <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
+        <Skeleton className="h-12 w-12 shrink-0 rounded-nested" />
         <div className="min-w-0 flex-1 space-y-2">
           <Skeleton className="h-4 w-2/3" />
           <Skeleton className="h-3 w-1/2" />

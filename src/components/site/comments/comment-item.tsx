@@ -31,6 +31,15 @@ function reduceReplies(state: CommentWithMeta[], action: ReplyAction): CommentWi
   }
 }
 
+/**
+ * Like / Reply / Edit / Delete under a comment. These are 16px-tall text
+ * buttons — right for the visual weight they should carry, and genuinely hard to
+ * hit with a thumb, so `tap-target` extends each one's reach to 44px on a coarse
+ * pointer. The row is `gap-3`, and the boxes only grow past the label where the
+ * label is under 44px wide, so no button can capture its neighbour's tap.
+ */
+const ACTION_BUTTON = "tap-target inline-flex cursor-pointer items-center gap-1 hover:text-primary";
+
 export function CommentItem({
   comment,
   courseId,
@@ -226,7 +235,7 @@ export function CommentItem({
     <div className={cn("flex gap-3", isReply && "pl-10", pending && "opacity-70")}>
       <AuthorAvatar author={comment.user} size={isReply ? 28 : 36} />
       <div className="min-w-0 flex-1">
-        <div className="rounded-2xl bg-muted/50 px-4 py-2.5">
+        <div className="rounded-card bg-muted/50 px-4 py-2.5">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-sm font-semibold">{isDeleted ? "Deleted" : comment.user.name}</span>
             {!isDeleted && <VerifiedBadge author={comment.user} />}
@@ -265,10 +274,7 @@ export function CommentItem({
               type="button"
               onClick={() => void onToggleLike()}
               aria-pressed={liked}
-              className={cn(
-                "inline-flex cursor-pointer items-center gap-1 hover:text-primary",
-                liked && "text-primary"
-              )}
+              className={cn(ACTION_BUTTON, liked && "text-primary")}
             >
               <Heart className={cn("h-3.5 w-3.5", liked && "fill-primary")} aria-hidden />
               {likeCount > 0 ? likeCount : "Like"}
@@ -277,7 +283,7 @@ export function CommentItem({
               <button
                 type="button"
                 onClick={() => setReplying((v) => !v)}
-                className="inline-flex cursor-pointer items-center gap-1 hover:text-primary"
+                className={ACTION_BUTTON}
               >
                 <Reply className="h-3.5 w-3.5" aria-hidden />
                 Reply
@@ -291,7 +297,7 @@ export function CommentItem({
                     setEditBody(comment.body);
                     setEditing(true);
                   }}
-                  className="inline-flex cursor-pointer items-center gap-1 hover:text-primary"
+                  className={ACTION_BUTTON}
                 >
                   <Pencil className="h-3.5 w-3.5" aria-hidden />
                   Edit
@@ -299,7 +305,7 @@ export function CommentItem({
                 <button
                   type="button"
                   onClick={() => void onDeleteClick()}
-                  className="inline-flex cursor-pointer items-center gap-1 hover:text-destructive"
+                  className={cn(ACTION_BUTTON, "hover:text-destructive")}
                 >
                   <Trash2 className="h-3.5 w-3.5" aria-hidden />
                   Delete

@@ -75,7 +75,7 @@ export default async function SocialHealthPage() {
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+      <div className="overflow-hidden rounded-card border border-border bg-card shadow-soft">
         <table className="w-full text-sm">
           <tbody>
             {rows.map((r) => (
@@ -91,7 +91,7 @@ export default async function SocialHealthPage() {
         </table>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+      <div className="rounded-card border border-border bg-card p-5 shadow-soft">
         <h2 className="font-semibold">Jobs currently held by the service</h2>
         {Object.keys(byStatus).length === 0 ? (
           <p className="mt-2 text-sm text-muted-foreground">Nothing in progress or retained.</p>

@@ -74,7 +74,7 @@ export default async function LearningResourceDetailPage({ params }: Props) {
         Back to Free Learning Hub
       </Link>
 
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-soft sm:p-8">
+      <div className="rounded-card border border-border bg-card p-6 shadow-soft sm:p-8">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={resource.resourceType === "PLAYLIST" ? "secondary" : "default"}>
             {resource.resourceType}

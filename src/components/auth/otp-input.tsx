@@ -74,7 +74,7 @@ export function OtpInput({
           onPaste={handlePaste}
           aria-label={`Digit ${i + 1} of ${LENGTH}`}
           className={cn(
-            "h-12 w-10 rounded-lg border border-input bg-card text-center text-lg font-semibold shadow-soft transition-[border-color,box-shadow] duration-200",
+            "h-12 w-10 rounded-control border border-input bg-card text-center text-lg font-semibold shadow-soft transition-[border-color,box-shadow] duration-200",
             "focus-visible:outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/15",
             "sm:h-14 sm:w-12 sm:text-xl"
           )}

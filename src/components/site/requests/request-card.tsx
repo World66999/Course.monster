@@ -11,6 +11,7 @@ import { safeAction } from "@/lib/safe-action";
 import type { RequestCardDTO } from "@/lib/request-shared";
 import { RequestStatusBadge, PopularBadge, RequestKindBadge } from "@/components/site/requests/status-badge";
 import { CourseImage } from "@/components/site/course-image";
+import { cardClasses } from "@/components/ui/card";
 import { cn, formatNumber } from "@/lib/utils";
 
 export function RequestCard({ request }: { request: RequestCardDTO }) {
@@ -70,14 +71,13 @@ export function RequestCard({ request }: { request: RequestCardDTO }) {
   return (
     <Link
       href={`/requests/${request.slug}`}
-      className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-elevated"
+      className={cardClasses("overflow-hidden")}
     >
       {request.imageThumbUrl && (
         <div className="relative aspect-[16/9] overflow-hidden bg-muted">
           <CourseImage
             src={request.imageThumbUrl}
             title={request.title}
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="transition-transform duration-500 ease-out group-hover:scale-[1.04]"
           />
         </div>
@@ -121,7 +121,11 @@ export function RequestCard({ request }: { request: RequestCardDTO }) {
             onClick={(e) => void onVote(e)}
             aria-pressed={voted}
             className={cn(
-              "inline-flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+              // The vote chip is 26px as drawn, and it sits inside the card's own
+              // Link, so a near-miss on a phone navigated to the request instead
+              // of voting. Grown for real on touch rather than given an invisible
+              // hit box, because a comment-count pill sits immediately beside it.
+              "inline-flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors pointer-coarse:min-h-10 pointer-coarse:px-3",
               voted
                 ? "border-primary/40 bg-primary/10 text-primary"
                 : "border-border bg-background text-muted-foreground hover:bg-muted"
@@ -130,7 +134,7 @@ export function RequestCard({ request }: { request: RequestCardDTO }) {
             <ArrowBigUp className={cn("h-3.5 w-3.5", voted && "fill-primary")} aria-hidden />
             <span className="tabular-nums">{formatNumber(voteCount)}</span>
           </button>
-          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground pointer-coarse:min-h-10 pointer-coarse:px-3">
             <MessageSquare className="h-3.5 w-3.5" aria-hidden />
             {formatNumber(request.commentCount)}
           </span>
@@ -140,7 +144,9 @@ export function RequestCard({ request }: { request: RequestCardDTO }) {
             aria-pressed={bookmarked}
             aria-label={bookmarked ? "Remove bookmark" : "Bookmark this request"}
             className={cn(
-              "ml-auto inline-flex cursor-pointer items-center justify-center rounded-full border p-1.5 transition-colors",
+              // `ml-auto` puts clear space to its left, so the 44px reach
+              // `tap-target` gives it cannot capture the comment-count pill's taps.
+              "tap-target ml-auto inline-flex cursor-pointer items-center justify-center rounded-full border p-1.5 transition-colors",
               bookmarked
                 ? "border-primary/40 bg-primary/10 text-primary"
                 : "border-border bg-background text-muted-foreground hover:bg-muted"

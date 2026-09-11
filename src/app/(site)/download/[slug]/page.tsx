@@ -44,10 +44,10 @@ export default async function DownloadPage({ params, searchParams }: Props) {
         Back to course
       </Link>
 
-      <div className="glass overflow-hidden rounded-3xl shadow-elevated inset-shadow-highlight">
+      <div className="glass overflow-hidden rounded-feature shadow-elevated inset-shadow-highlight">
         {/* Course summary */}
         <div className="flex gap-4 border-b border-border p-5 sm:gap-5 sm:p-6">
-          <div className="h-20 w-32 shrink-0 overflow-hidden rounded-xl bg-muted sm:h-24 sm:w-40">
+          <div className="h-20 w-32 shrink-0 overflow-hidden rounded-nested bg-muted sm:h-24 sm:w-40">
             <CourseImage src={course.thumbnail} title={course.title} priority />
           </div>
           <div className="min-w-0">
@@ -80,7 +80,7 @@ export default async function DownloadPage({ params, searchParams }: Props) {
             attribution={attribution}
           />
 
-          <div className="mt-8 flex items-start gap-3 rounded-xl bg-muted/60 p-4 text-sm text-muted-foreground">
+          <div className="mt-8 flex items-start gap-3 rounded-nested bg-muted/60 p-4 text-sm text-muted-foreground">
             <ShieldCheck className="mt-0.5 h-4.5 w-4.5 shrink-0 text-success" aria-hidden />
             <p>
               This quick verification keeps the site free for everyone by stopping bots and

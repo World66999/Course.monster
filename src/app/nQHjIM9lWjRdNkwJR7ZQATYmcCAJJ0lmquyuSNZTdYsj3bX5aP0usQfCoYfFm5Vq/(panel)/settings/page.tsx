@@ -11,7 +11,7 @@ export default async function AdminSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Website settings</h1>
+        <h1 className="text-heading">Website settings</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Everything here applies site-wide without touching code.
         </p>

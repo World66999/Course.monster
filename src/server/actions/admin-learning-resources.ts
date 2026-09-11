@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/server/auth-helpers";
 import { logAudit } from "@/lib/audit";
 import { learningResourceFormSchema, parseTags } from "@/lib/validation";
-import { deleteUpload } from "@/lib/uploads";
+import { deleteOrphanedUploads, deleteUpload } from "@/lib/uploads";
 import { parseYouTubeUrl } from "@/lib/youtube";
 import type { ActionResult } from "@/server/actions/courses";
 
@@ -114,12 +114,16 @@ export async function deleteLearningResourcesAction(ids: unknown): Promise<Actio
   });
   const { count } = await db.learningResource.deleteMany({ where: { id: { in: parsed.data } } });
 
-  const candidates = new Set(doomed.map((r) => r.thumbnail).filter((p): p is string => Boolean(p)));
-  for (const path of candidates) {
-    if (!path.startsWith("/uploads/")) continue;
-    const stillUsed = await db.learningResource.count({ where: { thumbnail: path } });
-    if (stillUsed === 0) await deleteUpload(path);
-  }
+  await deleteOrphanedUploads(
+    doomed.map((r) => r.thumbnail),
+    async (paths) => {
+      const rows = await db.learningResource.findMany({
+        where: { thumbnail: { in: paths } },
+        select: { thumbnail: true },
+      });
+      return rows.map((r) => r.thumbnail).filter((p): p is string => Boolean(p));
+    }
+  );
 
   await logAudit({ userId: user.id, action: "learningResource.delete", entity: "learningResource", meta: { count } });
   revalidateSite();

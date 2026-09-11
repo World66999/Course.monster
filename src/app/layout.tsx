@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import Script from "next/script";
 import { ThemeProvider } from "next-themes";
 import { SessionProvider } from "next-auth/react";
@@ -18,8 +18,50 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export async function generateMetadata(): Promise<Metadata> {
-  const settings = await getSiteSettings();
+// Display face for headings only. Geist stays the body face: it is a superb UI
+// sans but its headline voice is neutral to the point of anonymous, which is
+// most of why the old pages read as generic. Jakarta's tighter apertures and
+// higher contrast give headings a distinct personality without a second body
+// font's readability cost. Weights are pinned to the three actually used so
+// this adds ~3 subset files, not a family.
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  display: "swap",
+});
+
+/**
+ * Without an explicit viewport export Next emits only
+ * `width=device-width, initial-scale=1`, which has no `viewport-fit`. That
+ * matters here because three surfaces already pad themselves with
+ * `env(safe-area-inset-bottom)` — the mobile nav drawer, the admin sidebar and
+ * the sticky course CTA bar — and `env()` only resolves to real values under
+ * `viewport-fit: cover`. Until now those paddings silently computed to 0px and
+ * iOS letterboxed the page away from the home indicator, so the site never went
+ * edge to edge on a notched iPhone.
+ *
+ * Turning cover on means the layout viewport spans the whole screen, so in
+ * landscape the notch sits over the page's leading edge. The `page-gutter`
+ * utility every container now uses takes the larger of the design gutter and
+ * the horizontal inset, which is what keeps text clear of it.
+ *
+ * `maximumScale`/`userScalable` are deliberately left unset: pinch zoom stays
+ * available, since disabling it is an accessibility failure.
+ */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  // Colours the browser chrome to match the page instead of leaving a white bar
+  // above a dark page. Values are the light/dark `--background` tokens.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f6f6fa" },
+    { media: "(prefers-color-scheme: dark)", color: "#08080f" },
+  ],
+};
+
+export async function generateMetadata(): Promise<Metadata> {  const settings = await getSiteSettings();
   return {
     metadataBase: new URL(absoluteUrl()),
     title: {
@@ -51,7 +93,19 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${jakarta.variable} antialiased`}>
+        {/* Safety net for scripting-disabled visitors.
+
+            Every scroll reveal and the hero headline are server-rendered by
+            framer-motion in their `initial` state, which it emits as the inline
+            style `opacity:0`. With JS enabled that is corrected within a frame.
+            With JS disabled nothing ever corrects it and the page renders
+            blank. The attribute substring selector matches exactly those inline
+            styles and restores them, and because it lives inside <noscript> it
+            has no effect whatsoever on normal visitors. */}
+        <noscript>
+          <style>{`[style*="opacity:0"]{opacity:1!important;transform:none!important}`}</style>
+        </noscript>
         <ThemeProvider
           attribute="class"
           defaultTheme={settings.theme.defaultMode}

@@ -89,14 +89,6 @@ export const getPublishedResource = cache(async (slug: string) => {
   });
 });
 
-export async function getFeaturedResources(limit = 8): Promise<ResourceCard[]> {
-  return db.learningResource.findMany({
-    where: { published: true, featured: true },
-    select: resourceCardSelect,
-    orderBy: [{ order: "asc" }, { createdAt: "desc" }],
-    take: limit,
-  });
-}
 
 export async function getResourceCategories() {
   return db.category.findMany({

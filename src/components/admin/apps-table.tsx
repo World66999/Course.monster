@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, ExternalLink, Pencil, Search, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteAppsAction, toggleAppPublishedAction, toggleAppFeaturedAction } from "@/server/actions/admin-apps";
@@ -13,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { adminPath } from "@/lib/admin-path";
 import { PLATFORM_LABELS } from "@/components/site/apps/app-card";
 import { safeAction } from "@/lib/safe-action";
+import { useAdminParams, useDebouncedParam } from "@/components/admin/use-admin-params";
+import { cn } from "@/lib/utils";
 
 export interface AdminAppRow {
   id: string;
@@ -26,38 +27,11 @@ export interface AdminAppRow {
 }
 
 export function AppsTable({ rows, page, pageCount }: { rows: AdminAppRow[]; page: number; pageCount: number }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const [q, setQ] = React.useState(searchParams.get("q") ?? "");
+  const { searchParams, update, goToPage, isPending } = useAdminParams();
+  const [q, setQ] = useDebouncedParam("q", update, searchParams);
   const [localRows, setLocalRows] = React.useState(rows);
 
   React.useEffect(() => setLocalRows(rows), [rows]);
-
-  function update(patch: Record<string, string>) {
-    const params = new URLSearchParams(searchParams.toString());
-    for (const [k, v] of Object.entries(patch)) {
-      if (v) params.set(k, v);
-      else params.delete(k);
-    }
-    params.delete("page");
-    router.push(`${pathname}?${params.toString()}`);
-  }
-
-  React.useEffect(() => {
-    const current = searchParams.get("q") ?? "";
-    if (q === current) return;
-    const t = setTimeout(() => update({ q }), 400);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
-
-  function goToPage(next: number) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (next > 1) params.set("page", String(next));
-    else params.delete("page");
-    router.push(`${pathname}?${params.toString()}`);
-  }
 
   async function onTogglePublished(id: string) {
     const result = await safeAction(() => toggleAppPublishedAction(id));
@@ -91,7 +65,16 @@ export function AppsTable({ rows, page, pageCount }: { rows: AdminAppRow[]; page
         </Link>
       </div>
 
-      <div className="relative overflow-x-auto rounded-2xl border border-border bg-card shadow-soft">
+      {/* Dimmed and inert while the next page/filter is in flight, so a slow
+          query cannot leave stale rows looking current and clickable. */}
+      <div
+        aria-busy={isPending}
+        className={cn(
+          "relative overflow-x-auto rounded-card border border-border bg-card shadow-soft",
+          "transition-opacity duration-200",
+          isPending && "pointer-events-none opacity-60"
+        )}
+      >
         <table className="w-full min-w-[800px] text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/50 text-left text-xs tracking-wider text-muted-foreground uppercase">
@@ -113,7 +96,7 @@ export function AppsTable({ rows, page, pageCount }: { rows: AdminAppRow[]; page
               </tr>
             )}
             {localRows.map((row) => (
-              <tr key={row.id} className="border-b border-border last:border-0 hover:bg-muted/40">
+              <tr key={row.id} className="border-b border-border transition-colors duration-150 last:border-0 hover:bg-primary-soft/45">
                 <td className="max-w-72 p-3">
                   <div className="flex items-center gap-2">
                     {row.icon && (

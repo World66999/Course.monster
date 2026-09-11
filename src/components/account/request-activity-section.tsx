@@ -12,7 +12,7 @@ const STATS: { key: keyof UserRequestStats; label: string; icon: React.Component
 
 export function RequestActivitySection({ stats }: { stats: UserRequestStats }) {
   return (
-    <section className="space-y-5 rounded-2xl border border-border bg-card p-6 shadow-soft">
+    <section className="space-y-5 rounded-card border border-border bg-card p-6 shadow-soft">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Course Requests activity</h2>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
@@ -25,7 +25,7 @@ export function RequestActivitySection({ stats }: { stats: UserRequestStats }) {
           <Link
             key={key}
             href={href}
-            className="flex flex-col items-center gap-1.5 rounded-xl border border-border bg-muted/30 p-4 text-center transition-colors hover:bg-muted/60"
+            className="flex flex-col items-center gap-1.5 rounded-nested border border-border bg-muted/30 p-4 text-center transition-colors hover:bg-muted/60"
           >
             <Icon className="h-5 w-5 text-primary" aria-hidden />
             <span className="text-xl font-bold tabular-nums">{stats[key]}</span>

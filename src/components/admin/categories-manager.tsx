@@ -103,7 +103,7 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
               className="w-full pl-8 sm:w-56"
             />
           </div>
-          <div className="inline-flex rounded-lg border border-border p-0.5">
+          <div className="inline-flex rounded-control border border-border p-0.5">
             <button
               type="button"
               onClick={() => setSortMode("alpha")}
@@ -130,7 +130,7 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+      <div className="overflow-hidden rounded-card border border-border bg-card shadow-soft">
         {categories.length === 0 ? (
           <p className="p-10 text-center text-sm text-muted-foreground">
             No categories yet. Create your first one.
@@ -142,7 +142,7 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
         ) : (
           <ul className="divide-y divide-border">
             {filtered.map((category, index) => (
-              <li key={category.id} className="flex items-center gap-3 p-4 hover:bg-muted/40">
+              <li key={category.id} className="flex items-center gap-3 p-4 transition-colors duration-150 hover:bg-primary-soft/45">
                 {canReorder && (
                   <div className="flex shrink-0 gap-0.5">
                     <Button

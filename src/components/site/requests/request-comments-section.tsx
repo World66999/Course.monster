@@ -128,7 +128,7 @@ export function RequestCommentsSection({
       </div>
 
       {commentsLocked ? (
-        <div className="flex items-center gap-2 rounded-xl border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 rounded-nested border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground">
           <Lock className="h-4 w-4" aria-hidden />
           Comments are locked on this request.
         </div>

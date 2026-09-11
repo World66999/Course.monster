@@ -41,7 +41,7 @@ export default async function StandalonePage({ params }: Props) {
 
   return (
     <Section className="max-w-3xl py-16">
-      <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{page?.title ?? meta.title}</h1>
+      <h1 className="text-title text-balance">{page?.title ?? meta.title}</h1>
       {page ? (
         <>
           <p className="mt-2 text-sm text-muted-foreground">

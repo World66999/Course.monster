@@ -44,7 +44,7 @@ export function PageEditor({
   }
 
   return (
-    <div className="space-y-5 rounded-2xl border border-border bg-card p-6">
+    <div className="space-y-5 rounded-card border border-border bg-card p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-semibold">{defaultTitle}</h2>
         <div className="flex gap-2">

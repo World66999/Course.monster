@@ -1,5 +1,6 @@
 import { ArrowUpRight, ExternalLink, Info, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { cardClasses } from "@/components/ui/card";
 import { hostnameOf } from "@/lib/external-resource";
 import {
   AI_CATEGORY_LABELS,
@@ -25,7 +26,7 @@ export interface AiPlatformCardDTO {
 function PlatformLogo({ name, logo }: { name: string; logo: string | null }) {
   if (logo) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={logo} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" loading="lazy" />;
+    return <img src={logo} alt="" className="h-12 w-12 shrink-0 rounded-nested object-cover" loading="lazy" />;
   }
   const { from, to, light } = gradientFromString(name);
   const initials = name
@@ -36,7 +37,7 @@ function PlatformLogo({ name, logo }: { name: string; logo: string | null }) {
     .join("");
   return (
     <div
-      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-nested"
       style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
       aria-hidden
     >
@@ -64,7 +65,7 @@ export function AiPlatformCard({ platform }: { platform: AiPlatformCardDTO }) {
       href={platform.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group relative flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-elevated"
+      className={cardClasses("gap-3 p-4")}
     >
       <div className="flex items-start gap-3">
         <PlatformLogo name={platform.name} logo={platform.logo} />
@@ -97,7 +98,7 @@ export function AiPlatformCard({ platform }: { platform: AiPlatformCardDTO }) {
       </div>
 
       {platform.freeTierNote && (
-        <p className="flex items-start gap-1.5 rounded-lg bg-muted/60 px-2.5 py-1.5 text-xs text-muted-foreground">
+        <p className="flex items-start gap-1.5 rounded-control bg-muted/60 px-2.5 py-1.5 text-xs text-muted-foreground">
           <Info className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
           <span>{platform.freeTierNote}</span>
         </p>

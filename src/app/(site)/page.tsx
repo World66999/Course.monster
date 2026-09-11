@@ -1,12 +1,9 @@
 import Link from "next/link";
 import {
-  ArrowRight,
   BarChart3,
   BookOpen,
   Briefcase,
   Code2,
-  Download,
-  FolderOpen,
   Megaphone,
   Palette,
   ShieldCheck,
@@ -17,12 +14,12 @@ import {
 import type { Metadata } from "next";
 import { getHomepageData } from "@/lib/courses";
 import { getSiteSettings } from "@/lib/settings";
-import { absoluteUrl, safeJsonLd } from "@/lib/utils";
-import { buttonClasses } from "@/components/ui/button";
+import { absoluteUrl, cn, safeJsonLd } from "@/lib/utils";
 import { CourseCard } from "@/components/site/course-card";
 import { Section, SectionHeading } from "@/components/site/section";
-import { Reveal } from "@/components/site/reveal";
-import { AnimatedCounter } from "@/components/site/animated-counter";
+import { Reveal, Stagger, StaggerItem } from "@/components/site/reveal";
+import { Spotlight } from "@/components/motion/interactive";
+import { BookHero } from "@/components/site/book-hero";
 
 export const revalidate = 120;
 
@@ -40,6 +37,64 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>
   briefcase: Briefcase,
   smartphone: Smartphone,
 };
+
+/**
+ * Column classes keyed by how many cards a rail actually has.
+ *
+ * A rail with one featured course was previously laid out on the same
+ * three-column grid as a rail with eight, so the card sat alone against two
+ * empty thirds and read as a rendering fault. Constraining the track count (and
+ * the max width) to the real item count keeps a short rail looking deliberate.
+ * Classes are written out in full because Tailwind cannot see computed names.
+ */
+const RAIL_COLUMNS: Record<number, string> = {
+  1: "grid-cols-1 sm:max-w-sm",
+  2: "grid-cols-1 sm:grid-cols-2 sm:max-w-3xl",
+  3: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+};
+
+/** One shared shell for the four course rails, so they cannot drift apart. */
+function CourseRail({
+  eyebrow,
+  title,
+  subtitle,
+  href,
+  courses,
+  columns = "three",
+  priority = false,
+}: {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  href: string;
+  courses: Awaited<ReturnType<typeof getHomepageData>>["featured"];
+  columns?: "three" | "four";
+  priority?: boolean;
+}) {
+  if (courses.length === 0) return null;
+  return (
+    <Section>
+      <Reveal>
+        <SectionHeading eyebrow={eyebrow} title={title} subtitle={subtitle} href={href} />
+      </Reveal>
+      <Stagger
+        className={cn(
+          "grid gap-5",
+          RAIL_COLUMNS[courses.length] ??
+            (columns === "four"
+              ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+              : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3")
+        )}
+      >
+        {courses.map((course, i) => (
+          <StaggerItem key={course.id}>
+            <CourseCard course={course} priority={priority && i < 3} />
+          </StaggerItem>
+        ))}
+      </Stagger>
+    </Section>
+  );
+}
 
 export default async function HomePage() {
   const [{ featured, trending, mostDownloaded, recent, categories, stats }, settings] =
@@ -71,214 +126,135 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLd([websiteLd, organizationLd]) }}
       />
-      {/* ---------- Hero ---------- */}
-      <div className="relative overflow-hidden">
-        <div className="bg-grid absolute inset-0" aria-hidden />
-        <div
-          aria-hidden
-          className="animate-float absolute -top-40 left-1/2 h-96 w-[42rem] -translate-x-1/2 rounded-full bg-gradient-to-r from-accent/30 to-primary/30 blur-3xl"
-        />
-        <div
-          aria-hidden
-          className="animate-float-delayed absolute top-10 -right-40 hidden h-72 w-96 rounded-full bg-gradient-to-l from-primary/15 to-accent/10 blur-3xl lg:block"
-        />
-        <Section className="relative flex flex-col items-center py-20 text-center sm:py-28">
-          <Reveal>
-            <span className="glass inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground shadow-soft inset-shadow-highlight">
-              <Sparkles className="h-4 w-4 text-primary" aria-hidden />
-              {stats.courses}+ premium courses, 100% free
-            </span>
-          </Reveal>
-          <Reveal delay={0.08}>
-            <h1 className="mt-6 max-w-3xl text-4xl font-extrabold tracking-tight text-balance sm:text-6xl">
-              Learn anything.
-              <br />
-              <span className="text-gradient">Download everything.</span>
-            </h1>
-          </Reveal>
-          <Reveal delay={0.16}>
-            <p className="mt-6 max-w-xl text-lg text-pretty text-muted-foreground">
-              {settings.description}
-            </p>
-          </Reveal>
-          <Reveal delay={0.24}>
-            <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-              <Link href="/courses" className={buttonClasses("primary", "lg")}>
-                Browse courses
-                <ArrowRight className="h-4 w-4" aria-hidden />
-              </Link>
-              <Link href="/how-to-download" className={buttonClasses("outline", "lg")}>
-                How it works
-              </Link>
-            </div>
-          </Reveal>
 
-          {/* Stats */}
-          <Reveal delay={0.32} className="mt-16 w-full max-w-3xl">
-            <dl className="glass grid grid-cols-3 divide-x divide-border rounded-2xl py-6 shadow-elevated inset-shadow-highlight">
-              {[
-                { icon: BookOpen, label: "Courses", value: stats.courses },
-                { icon: Download, label: "Downloads", value: stats.downloads },
-                { icon: FolderOpen, label: "Categories", value: stats.categories },
-              ].map(({ icon: Icon, label, value }) => (
-                <div key={label} className="flex flex-col items-center gap-1 px-2">
-                  <Icon className="mb-1 h-5 w-5 text-primary" aria-hidden />
-                  <dd className="text-2xl font-bold tabular-nums sm:text-3xl">
-                    <AnimatedCounter value={value} />
-                  </dd>
-                  <dt className="text-xs text-muted-foreground sm:text-sm">{label}</dt>
-                </div>
-              ))}
-            </dl>
-          </Reveal>
-        </Section>
-      </div>
+      {/* ---------- Cinematic Book Hero ---------- */}
+      <BookHero
+        siteName={settings.siteName}
+        description={settings.description}
+        stats={stats}
+      />
 
       {/* ---------- Categories ---------- */}
       {categories.length > 0 && (
-        <Section className="py-14">
+        <Section rhythm="tight">
           <Reveal>
             <SectionHeading
+              eyebrow="Explore"
               title="Browse by category"
               subtitle="Find courses in the field you want to master"
               href={categories.length > CATEGORY_GRID_LIMIT ? "/courses" : undefined}
               linkLabel="View all categories"
             />
           </Reveal>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-            {categories.slice(0, CATEGORY_GRID_LIMIT).map((category, i) => {
+          <Stagger stagger={0.035} className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {categories.slice(0, CATEGORY_GRID_LIMIT).map((category) => {
               const Icon = CATEGORY_ICONS[category.icon ?? ""] ?? BookOpen;
               return (
-                <Reveal key={category.id} delay={i * 0.05}>
+                <StaggerItem key={category.id}>
+                  <Spotlight className="h-full overflow-hidden rounded-card" radius={220}>
                   <Link
                     href={`/courses?category=${category.slug}`}
-                    className="group flex flex-col items-center gap-3 rounded-2xl border border-border bg-card p-5 text-center shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-elevated"
+                    className="group surface flex h-full flex-col items-center gap-3 rounded-card p-5 text-center transition-[transform,box-shadow,border-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:shadow-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   >
-                    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-white group-hover:shadow-md group-hover:shadow-primary/30">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-control bg-primary/10 text-primary transition-[transform,background-color,color,box-shadow] duration-500 group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground group-hover:shadow-[0_0_20px_color-mix(in_srgb,var(--primary)_30%,transparent)]">
                       <Icon className="h-5 w-5" aria-hidden />
                     </span>
-                    <span className="text-sm leading-tight font-semibold">{category.name}</span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-sm leading-tight font-semibold text-balance">
+                      {category.name}
+                    </span>
+                    <span className="numeric mt-auto text-xs text-muted-foreground">
                       {category._count.courses} courses
                     </span>
                   </Link>
-                </Reveal>
+                  </Spotlight>
+                </StaggerItem>
               );
             })}
-          </div>
+          </Stagger>
         </Section>
       )}
 
-      {/* ---------- Featured ---------- */}
-      {featured.length > 0 && (
-        <Section className="py-14">
-          <Reveal>
-            <SectionHeading
-              title="Featured courses"
-              subtitle="Hand-picked by our team"
-              href="/courses"
-            />
-          </Reveal>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {featured.map((course, i) => (
-              <Reveal key={course.id} delay={Math.min(i * 0.06, 0.3)}>
-                <CourseCard course={course} priority={i < 3} />
-              </Reveal>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {/* ---------- Trending ---------- */}
-      {trending.length > 0 && (
-        <Section className="py-14">
-          <Reveal>
-            <SectionHeading
-              title="Trending now"
-              subtitle="What everyone is downloading this week"
-              href="/courses?sort=popular"
-            />
-          </Reveal>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {trending.map((course, i) => (
-              <Reveal key={course.id} delay={Math.min(i * 0.06, 0.3)}>
-                <CourseCard course={course} />
-              </Reveal>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {/* ---------- Most downloaded ---------- */}
-      {mostDownloaded.length > 0 && (
-        <Section className="py-14">
-          <Reveal>
-            <SectionHeading
-              title="Most downloaded"
-              subtitle="All-time community favorites"
-              href="/courses?sort=popular"
-            />
-          </Reveal>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {mostDownloaded.map((course, i) => (
-              <Reveal key={course.id} delay={Math.min(i * 0.06, 0.3)}>
-                <CourseCard course={course} />
-              </Reveal>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {/* ---------- Recently added ---------- */}
-      {recent.length > 0 && (
-        <Section className="py-14">
-          <Reveal>
-            <SectionHeading
-              title="Recently added"
-              subtitle="Fresh courses, updated regularly"
-              href="/courses?sort=newest"
-            />
-          </Reveal>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {recent.map((course, i) => (
-              <Reveal key={course.id} delay={Math.min(i * 0.05, 0.3)}>
-                <CourseCard course={course} />
-              </Reveal>
-            ))}
-          </div>
-        </Section>
-      )}
+      <CourseRail
+        eyebrow="Hand-picked"
+        title="Featured courses"
+        subtitle="Chosen by our team for depth and production quality"
+        href="/courses"
+        courses={featured}
+        priority
+      />
+      <CourseRail
+        eyebrow="This week"
+        title="Trending now"
+        subtitle="What everyone is downloading right now"
+        href="/courses?sort=popular"
+        courses={trending}
+      />
+      <CourseRail
+        eyebrow="All time"
+        title="Most downloaded"
+        subtitle="Community favourites, ranked by real downloads"
+        href="/courses?sort=popular"
+        courses={mostDownloaded}
+      />
+      <CourseRail
+        eyebrow="Fresh"
+        title="Recently added"
+        subtitle="New courses land here first"
+        href="/courses?sort=newest"
+        courses={recent}
+        columns="four"
+      />
 
       {/* ---------- Value props ---------- */}
-      <Section className="py-14">
-        <div className="glass bg-aurora grid gap-8 rounded-3xl p-8 shadow-elevated inset-shadow-highlight sm:grid-cols-3 sm:p-12">
-          {[
-            {
-              icon: Zap,
-              title: "Fast downloads",
-              text: "Every course goes through a quick, protected download flow — no signup required.",
-            },
-            {
-              icon: ShieldCheck,
-              title: "Verified content",
-              text: "Courses are checked and organized by category so you always know what you get.",
-            },
-            {
-              icon: Sparkles,
-              title: "Always free",
-              text: "Every course on this platform is free to download. Forever.",
-            },
-          ].map(({ icon: Icon, title, text }, i) => (
-            <Reveal key={title} delay={i * 0.08}>
-              <div className="flex flex-col items-start gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Icon className="h-5 w-5" aria-hidden />
-                </span>
-                <h3 className="text-lg font-semibold">{title}</h3>
-                <p className="text-sm leading-relaxed text-muted-foreground">{text}</p>
-              </div>
-            </Reveal>
-          ))}
+      <Section rhythm="loose">
+        <div className="surface relative overflow-hidden rounded-feature p-8 sm:p-12 shadow-floating">
+          <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,var(--primary)_15%,transparent),transparent_70%)]" aria-hidden />
+          <div className="noise pointer-events-none absolute inset-0 -z-10 opacity-20" aria-hidden />
+          <Reveal>
+            <SectionHeading
+              align="center"
+              eyebrow="Why here"
+              title="Built for people who actually finish courses"
+              subtitle="No paywalls, no drip-feed, no account required to download."
+            />
+          </Reveal>
+          <Stagger stagger={0.08} className="grid gap-8 sm:grid-cols-3">
+            {[
+              {
+                icon: Zap,
+                title: "Fast downloads",
+                text: "Every course goes through a quick, protected download flow — no signup required.",
+              },
+              {
+                icon: ShieldCheck,
+                title: "Verified content",
+                text: "Courses are checked and organised by category so you always know what you get.",
+              },
+              {
+                icon: Sparkles,
+                title: "Always free",
+                text: "Every course on this platform is free to download. Forever.",
+              },
+            ].map(({ icon: Icon, title, text }) => (
+              <StaggerItem key={title}>
+                {/* `surface`, not `glass-veil`: these three cards carry real body
+                    copy, and globals.css marks glass-veil "decorative only —
+                    never put body copy on this one" precisely because its blur
+                    muddies text. They also sat inside a glass-panel, so this was
+                    a blurred backdrop nested inside another blurred backdrop —
+                    the most expensive compositing case there is. */}
+                <div className="group surface relative flex h-full flex-col items-start gap-4 rounded-card p-6 transition-[transform,box-shadow,border-color] duration-500 hover:-translate-y-1 hover:shadow-elevated">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-nested bg-primary/10 text-primary ring-1 ring-inset ring-primary/20 transition-[transform,background-color,color,box-shadow] duration-500 group-hover:bg-primary group-hover:text-primary-foreground group-hover:ring-primary group-hover:shadow-[0_0_20px_color-mix(in_srgb,var(--primary)_30%,transparent)] group-hover:scale-110">
+                    <Icon className="h-5 w-5" aria-hidden />
+                  </span>
+                  <div>
+                    <h3 className="text-subheading mb-2">{title}</h3>
+                    <p className="text-sm leading-relaxed text-muted-foreground">{text}</p>
+                  </div>
+                </div>
+              </StaggerItem>
+            ))}
+          </Stagger>
         </div>
       </Section>
     </>

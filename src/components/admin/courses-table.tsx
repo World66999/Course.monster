@@ -119,7 +119,7 @@ export function CoursesTable({
     <div className="space-y-4">
       {/* Bulk action bar */}
       {selected.size > 0 && (
-        <div className="glass sticky top-20 z-30 flex flex-wrap items-center gap-2 rounded-xl p-3">
+        <div className="glass-chrome sticky top-20 z-30 flex flex-wrap items-center gap-2 rounded-nested p-3">
           <span className="mr-2 text-sm font-medium">{selected.size} selected</span>
           <Button
             variant="outline"
@@ -149,7 +149,7 @@ export function CoursesTable({
         </div>
       )}
 
-      <div className="relative overflow-x-auto rounded-2xl border border-border bg-card shadow-soft">
+      <div className="relative overflow-x-auto rounded-card border border-border bg-card shadow-soft">
         <table className="w-full min-w-[820px] text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/50 text-left text-xs tracking-wider text-muted-foreground uppercase">
@@ -182,7 +182,7 @@ export function CoursesTable({
               </tr>
             )}
             {courses.map((course, index) => (
-              <tr key={course.id} className="border-b border-border transition-colors duration-150 last:border-0 hover:bg-muted/40">
+              <tr key={course.id} className="border-b border-border transition-colors duration-150 last:border-0 hover:bg-primary-soft/45">
                 <td className="p-3">
                   <input
                     type="checkbox"

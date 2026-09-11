@@ -79,7 +79,7 @@ export function Combobox({
         <button
           type="button"
           aria-label={ariaLabel}
-          className="flex h-10 w-full items-center justify-between rounded-xl border border-border bg-background px-3.5 text-sm shadow-soft transition-colors hover:border-primary/40 focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-ring/15 focus-visible:outline-none"
+          className="flex h-10 w-full items-center justify-between rounded-nested border border-border bg-background px-3.5 text-sm shadow-soft transition-colors hover:border-primary/40 focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-ring/15 focus-visible:outline-none"
         >
           <span className={cn("truncate", !selected && "text-muted-foreground")}>
             {selected ? selected.label : placeholder}
@@ -92,7 +92,7 @@ export function Combobox({
           align="start"
           sideOffset={6}
           collisionPadding={8}
-          className="z-50 w-[var(--radix-popover-trigger-width)] origin-[var(--radix-popover-content-transform-origin)] overflow-hidden rounded-xl border border-border bg-card shadow-floating inset-shadow-highlight data-[state=open]:animate-pop-in"
+          className="z-50 w-[var(--radix-popover-trigger-width)] origin-[var(--radix-popover-content-transform-origin)] overflow-hidden rounded-nested border border-border bg-card shadow-floating inset-shadow-highlight data-[state=open]:animate-pop-in"
         >
           <div className="flex items-center gap-2 border-b border-border px-3 py-2">
             <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
@@ -107,7 +107,9 @@ export function Combobox({
               aria-expanded={open}
               aria-controls={`${instanceId}-listbox`}
               aria-activedescendant={filtered.length > 0 ? optionId(highlighted) : undefined}
-              className="w-full rounded bg-transparent text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
+              // `text-base` on phones so iOS does not zoom the viewport in when
+              // this search field takes focus (it zooms below 16px).
+              className="w-full rounded bg-transparent text-base outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/30 sm:text-sm"
             />
           </div>
           <div id={`${instanceId}-listbox`} role="listbox" className="max-h-64 overflow-y-auto p-1">
@@ -124,7 +126,7 @@ export function Combobox({
                   onMouseEnter={() => setHighlighted(i)}
                   onClick={() => select(option.value)}
                   className={cn(
-                    "flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm transition-colors",
+                    "flex w-full cursor-pointer items-center justify-between gap-2 rounded-control px-2.5 py-1.5 text-left text-sm transition-colors",
                     i === highlighted && "bg-muted"
                   )}
                 >

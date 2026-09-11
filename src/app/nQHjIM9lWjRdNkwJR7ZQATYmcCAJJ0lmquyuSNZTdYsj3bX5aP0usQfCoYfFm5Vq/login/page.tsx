@@ -17,9 +17,9 @@ export default async function AdminLoginPage() {
         aria-hidden
         className="absolute top-1/4 left-1/2 h-72 w-[36rem] -translate-x-1/2 rounded-full bg-gradient-to-r from-accent/25 to-primary/25 blur-3xl"
       />
-      <div className="glass relative w-full max-w-sm rounded-3xl p-8 shadow-floating inset-shadow-highlight">
+      <div className="glass relative w-full max-w-sm rounded-feature p-8 shadow-floating inset-shadow-highlight">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-accent to-primary text-white shadow-md shadow-primary/30 inset-shadow-[0_1px_0_0_rgba(255,255,255,0.25)]">
+          <span className="flex h-12 w-12 items-center justify-center rounded-card bg-gradient-to-br from-accent to-primary text-white shadow-md shadow-primary/30 inset-shadow-[0_1px_0_0_rgba(255,255,255,0.25)]">
             <GraduationCap className="h-6 w-6" aria-hidden />
           </span>
           <div>

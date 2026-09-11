@@ -258,14 +258,14 @@ export default async function CoursePage({ params }: Props) {
               {course.trending && <Badge variant="warning">Trending</Badge>}
               {course.popular && <Badge>Popular</Badge>}
             </div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">
+            <h1 className="text-title text-balance">
               {course.title}
             </h1>
             {course.shortDescription && (
-              <p className="mt-3 text-lg text-muted-foreground">{course.shortDescription}</p>
+              <p className="mt-4 max-w-2xl text-lead text-pretty text-muted-foreground">{course.shortDescription}</p>
             )}
 
-            <dl className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
+            <dl className="numeric mt-7 flex flex-wrap gap-x-6 gap-y-2.5 text-sm text-muted-foreground">
               {course.instructor && (
                 <div className="flex items-center gap-1.5">
                   <UserRound className="h-4 w-4 text-primary" aria-hidden />
@@ -331,8 +331,8 @@ export default async function CoursePage({ params }: Props) {
             )}
 
             {course.learningOutcomes.length > 0 && (
-              <section className="mt-10 rounded-2xl border border-border bg-card p-6 shadow-soft">
-                <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+              <section className="mt-10 rounded-card border border-border bg-card p-6 shadow-soft sm:p-7">
+                <h2 className="mb-5 flex items-center gap-2.5 text-subheading">
                   <BookOpenCheck className="h-5 w-5 text-primary" aria-hidden />
                   What you&apos;ll learn
                 </h2>
@@ -348,8 +348,8 @@ export default async function CoursePage({ params }: Props) {
             )}
 
             {course.prerequisites.length > 0 && (
-              <section className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-soft">
-                <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+              <section className="mt-6 rounded-card border border-border bg-card p-6 shadow-soft sm:p-7">
+                <h2 className="mb-5 flex items-center gap-2.5 text-subheading">
                   <GraduationCap className="h-5 w-5 text-primary" aria-hidden />
                   Prerequisites
                 </h2>
@@ -374,7 +374,7 @@ export default async function CoursePage({ params }: Props) {
 
           {/* Sidebar */}
           <aside className="lg:sticky lg:top-24 lg:self-start">
-            <div className="glass overflow-hidden rounded-2xl shadow-elevated inset-shadow-highlight">
+            <div className="glass-panel edge-gradient overflow-hidden rounded-panel">
               <div className="aspect-video overflow-hidden">
                 <CourseImage src={course.thumbnail} title={course.title} />
               </div>
@@ -466,8 +466,12 @@ export default async function CoursePage({ params }: Props) {
         <CommentsSection courseId={course.id} />
       </div>
 
-      {/* Mobile sticky download bar — the sidebar CTA is below the fold on phones. */}
-      <div className="glass fixed inset-x-0 bottom-0 z-30 border-x-0 border-b-0 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
+      {/* Mobile sticky download bar — the sidebar CTA is below the fold on phones.
+          Horizontal insets as well as the bottom one: with `viewport-fit=cover`
+          set in the root layout, a notched iPhone held in landscape puts the notch
+          over this bar's leading edge, and a flat 12px gutter let the button slide
+          under it. */}
+      <div className="glass fixed inset-x-0 bottom-0 z-30 border-x-0 border-b-0 py-3 pr-[max(0.75rem,env(safe-area-inset-right))] pl-[max(0.75rem,env(safe-area-inset-left))] pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
         <Link
           href={`/download/${course.slug}`}
           className={buttonClasses("primary", "lg", "w-full")}

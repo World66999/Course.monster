@@ -4,14 +4,14 @@ import { StarDisplay } from "@/components/site/reviews/stars";
 export function ReviewSummaryCard({ summary }: { summary: ReviewSummary }) {
   if (summary.reviewCount === 0) {
     return (
-      <div className="rounded-2xl border border-border bg-card p-6 text-center shadow-soft">
+      <div className="rounded-card border border-border bg-card p-6 text-center shadow-soft">
         <p className="text-sm text-muted-foreground">No reviews yet — be the first to review this course.</p>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-6 rounded-2xl border border-border bg-card p-6 shadow-soft sm:grid-cols-[auto_1fr]">
+    <div className="grid gap-6 rounded-card border border-border bg-card p-6 shadow-soft sm:grid-cols-[auto_1fr]">
       <div className="flex flex-col items-center justify-center gap-1 sm:pr-6 sm:border-r sm:border-border">
         <p className="text-4xl font-extrabold tabular-nums">{summary.avgRating.toFixed(1)}</p>
         <StarDisplay rating={summary.avgRating} />

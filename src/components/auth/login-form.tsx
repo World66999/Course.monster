@@ -78,7 +78,16 @@ export function LoginForm() {
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Password</Label>
-            <Link href="/forgot-password" className="text-xs font-medium text-primary hover:underline">
+            {/* `py-1` takes it to 24px, which is the pointer minimum WCAG 2.5.8
+                asks for and this link does not get the inline-text exemption —
+                it is a standalone control in a form row, not a word in a
+                sentence. `tap-target` then carries it to 44px on touch, where it
+                is the one link someone reaches for when the password fails. Its
+                row partner is a plain <Label>, so nothing else can lose taps. */}
+            <Link
+              href="/forgot-password"
+              className="tap-target -my-1 py-1 text-xs font-medium text-primary hover:underline"
+            >
               Forgot password?
             </Link>
           </div>

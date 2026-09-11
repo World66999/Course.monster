@@ -58,7 +58,7 @@ export default async function AdminAiPlatformsPage({ searchParams }: { searchPar
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Free AI Platforms</h1>
+        <h1 className="text-heading">Free AI Platforms</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Curate AI tools students can use free. Keep the free-access type accurate — students plan around
           it, and it is the one claim on the card that can mislead if it goes stale.

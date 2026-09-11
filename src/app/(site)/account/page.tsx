@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getUserRequestStats } from "@/lib/course-requests";
-import { Section } from "@/components/site/section";
+import { PageHeader, Section } from "@/components/site/section";
 import { ProfileSection } from "@/components/account/profile-section";
 import { RequestActivitySection } from "@/components/account/request-activity-section";
 import { PasswordSection } from "@/components/account/password-section";
@@ -39,10 +39,11 @@ export default async function AccountPage() {
 
   return (
     <Section className="max-w-2xl py-12">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Your account</h1>
-        <p className="mt-2 text-muted-foreground">Manage your profile, security and account settings.</p>
-      </div>
+      <PageHeader
+        eyebrow="Account"
+        title="Your account"
+        description="Manage your profile, security and account settings."
+      />
       <div className="space-y-6">
         <ProfileSection name={user.name} image={user.image} />
         <RequestActivitySection stats={requestStats} />

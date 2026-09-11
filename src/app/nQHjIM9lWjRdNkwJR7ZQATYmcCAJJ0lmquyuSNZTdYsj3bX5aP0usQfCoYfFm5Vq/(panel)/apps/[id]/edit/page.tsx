@@ -13,7 +13,7 @@ export default async function EditAppPage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">Edit app</h1>
+      <h1 className="text-heading">Edit app</h1>
       <AppListingForm
         appId={app.id}
         defaultValues={{

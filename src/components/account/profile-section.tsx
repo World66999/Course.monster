@@ -44,7 +44,7 @@ export function ProfileSection({ name, image }: { name: string; image: string | 
   }
 
   return (
-    <section className="space-y-5 rounded-2xl border border-border bg-card p-6 shadow-soft">
+    <section className="space-y-5 rounded-card border border-border bg-card p-6 shadow-soft">
       <div>
         <h2 className="font-semibold">Profile</h2>
         <p className="text-sm text-muted-foreground">Shown publicly on your comments and reviews.</p>

@@ -63,7 +63,10 @@ export function ReportButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex cursor-pointer items-center gap-1 text-xs text-muted-foreground hover:text-destructive"
+        // 16px tall as drawn — see the ACTION_BUTTON note in
+        // components/site/comments/comment-item.tsx; this button sits in the same
+        // row and gets the same 44px reach on a coarse pointer.
+        className="tap-target inline-flex cursor-pointer items-center gap-1 text-xs text-muted-foreground hover:text-destructive"
       >
         <Flag className="h-3.5 w-3.5" aria-hidden />
         Report

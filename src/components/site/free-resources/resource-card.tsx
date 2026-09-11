@@ -1,5 +1,6 @@
 import { ArrowUpRight, ExternalLink, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { cardClasses } from "@/components/ui/card";
 import { hostnameOf } from "@/lib/external-resource";
 import { RESOURCE_CATEGORY_LABELS, RESOURCE_SOURCE_LABELS, labelFor } from "@/lib/directory-labels";
 import { cn, gradientFromString } from "@/lib/utils";
@@ -19,7 +20,7 @@ export interface FreeResourceCardDTO {
 function ResourceThumb({ title, thumbnail }: { title: string; thumbnail: string | null }) {
   if (thumbnail) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={thumbnail} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" loading="lazy" />;
+    return <img src={thumbnail} alt="" className="h-12 w-12 shrink-0 rounded-nested object-cover" loading="lazy" />;
   }
   const { from, to, light } = gradientFromString(title);
   const initials = title
@@ -30,7 +31,7 @@ function ResourceThumb({ title, thumbnail }: { title: string; thumbnail: string 
     .join("");
   return (
     <div
-      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-nested"
       style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
       aria-hidden
     >
@@ -61,7 +62,7 @@ export function FreeResourceCard({ resource }: { resource: FreeResourceCardDTO }
       href={resource.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group relative flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-elevated"
+      className={cardClasses("gap-3 p-4")}
     >
       <div className="flex items-start gap-3">
         <ResourceThumb title={resource.title} thumbnail={resource.thumbnail} />

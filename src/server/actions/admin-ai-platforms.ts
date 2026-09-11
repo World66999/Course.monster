@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/server/auth-helpers";
 import { logAudit } from "@/lib/audit";
 import { aiPlatformFormSchema, parseTags } from "@/lib/validation";
-import { deleteUpload } from "@/lib/uploads";
+import { deleteOrphanedUploads, deleteUpload } from "@/lib/uploads";
 import type { ActionResult } from "@/server/actions/courses";
 
 const idSchema = z.string().cuid();
@@ -101,13 +101,16 @@ export async function deleteAiPlatformsAction(ids: unknown): Promise<ActionResul
   });
   const { count } = await db.aiPlatform.deleteMany({ where: { id: { in: parsed.data } } });
 
-  const candidates = new Set(
-    doomed.map((p) => p.logo).filter((p): p is string => typeof p === "string" && p.startsWith("/uploads/"))
+  await deleteOrphanedUploads(
+    doomed.map((p) => p.logo),
+    async (paths) => {
+      const rows = await db.aiPlatform.findMany({
+        where: { logo: { in: paths } },
+        select: { logo: true },
+      });
+      return rows.map((r) => r.logo).filter((p): p is string => Boolean(p));
+    }
   );
-  for (const path of candidates) {
-    const stillUsed = await db.aiPlatform.count({ where: { logo: path } });
-    if (stillUsed === 0) await deleteUpload(path);
-  }
 
   await logAudit({ userId: user.id, action: "aiPlatform.delete", entity: "aiPlatform", meta: { count } });
   revalidateSite();
