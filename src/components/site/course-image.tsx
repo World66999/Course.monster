@@ -15,55 +15,59 @@ import { cn, gradientFromString } from "@/lib/utils";
  * slot a 4-up desktop grid gives it.
  */
 export function CourseImage({
-  src,
-  title,
-  className,
-  priority = false,
+ src,
+ title,
+ className,
+ priority = false,
+ loading: loadingProp,
 }: {
-  src?: string | null;
-  title: string;
-  className?: string;
-  priority?: boolean;
+ src?: string | null;
+ title: string;
+ className?: string;
+ priority?: boolean;
+ loading?: "lazy" | "eager";
 }) {
-  if (src) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={src}
-        alt={title}
-        loading={priority ? "eager" : "lazy"}
-        // Promotes the above-the-fold thumbnails out of the low-priority bucket
-        // that images default to, which is what `priority` is for here.
-        fetchPriority={priority ? "high" : undefined}
-        decoding="async"
-        className={cn("h-full w-full object-cover", className)}
-      />
-    );
-  }
+ const loading = loadingProp ?? (priority ? "eager" : "lazy");
 
-  const { from, to, light } = gradientFromString(title);
-  const initials = title
-    .split(/\s+/)
-    .filter((w) => /^[a-zA-Z0-9]/.test(w))
-    .slice(0, 2)
-    .map((w) => w[0]!.toUpperCase())
-    .join("");
+ if (src) {
+ return (
+ // eslint-disable-next-line @next/next/no-img-element
+ <img
+ src={src}
+ alt={title}
+ loading={loading}
+ // Promotes the above-the-fold thumbnails out of the low-priority bucket
+ // that images default to, which is what `priority` is for here.
+ fetchPriority={priority ? "high" : undefined}
+ decoding="async"
+ className={cn("h-full w-full object-cover", className)}
+ />
+ );
+ }
 
-  return (
-    <div
-      role="img"
-      aria-label={title}
-      className={cn("flex h-full w-full items-center justify-center", className)}
-      style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
-    >
-      <span
-        className={cn(
-          "text-3xl font-bold tracking-tight select-none",
-          light ? "text-slate-900/85" : "text-white/90"
-        )}
-      >
-        {initials}
-      </span>
-    </div>
-  );
+ const { from, to, light } = gradientFromString(title);
+ const initials = title
+ .split(/\s+/)
+ .filter((w) => /^[a-zA-Z0-9]/.test(w))
+ .slice(0, 2)
+ .map((w) => w[0]!.toUpperCase())
+ .join("");
+
+ return (
+ <div
+ role="img"
+ aria-label={title}
+ className={cn("flex h-full w-full items-center justify-center", className)}
+ style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
+ >
+ <span
+ className={cn(
+ "text-3xl font-bold tracking-tight select-none",
+ light ? "text-slate-900/85" : "text-white/90"
+ )}
+ >
+ {initials}
+ </span>
+ </div>
+ );
 }
