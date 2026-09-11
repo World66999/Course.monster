@@ -40,7 +40,7 @@ const CourseCard = React.memo(function CourseCard({ course, priority = false }: 
  <CourseImage
  src={course.thumbnail}
  title={course.title}
- priority={priority}
+ loading={priority ? "eager" : "lazy"}
  className="transition-transform duration-500 ease-out group-hover:scale-[1.05]"
  />
  <div
@@ -63,7 +63,7 @@ const CourseCard = React.memo(function CourseCard({ course, priority = false }: 
  </div>
  <div className="absolute top-3 right-3">
  <Badge variant="secondary" className="bg-white/90 text-foreground dark:bg-black/70 dark:text-foreground">
- {SKILL_LABELS[course.level] ?? course.level}
+ {course.skillLevel ? SKILL_LABELS[course.skillLevel] : "-"}
  </Badge>
  </div>
  </div>
@@ -96,7 +96,7 @@ const CourseCard = React.memo(function CourseCard({ course, priority = false }: 
  )}
  <div className="mt-3 flex items-center justify-between gap-2">
  <Badge variant="outline" className="truncate">
- {course.categoryName}
+ {course.category?.name ?? ""}
  </Badge>
  <span className="text-xs text-muted-foreground" suppressHydrationWarning>
  {formatDistanceToNow(course.contentUpdatedAt, { addSuffix: true })}

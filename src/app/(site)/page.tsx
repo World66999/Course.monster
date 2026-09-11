@@ -88,7 +88,7 @@ function CourseRail({
       >
         {courses.map((course, i) => (
           <StaggerItem key={course.id}>
-            <CourseCard course={course} priority={priority && i < 3} />
+            <CourseCard course={course} priority={priority && i < 2} />
           </StaggerItem>
         ))}
       </Stagger>

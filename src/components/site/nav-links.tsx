@@ -70,7 +70,7 @@ export function NavLinks({ links }: { links: ReadonlyArray<NavEntry> }) {
               <DropdownContent align="start">
                 {link.children.map((child) => (
                   <DropdownItem key={child.href} asChild>
-                    <Link href={child.href} aria-current={isActive(pathname, child.href) ? "page" : undefined}>
+                    <Link href={child.href} aria-current={isActive(pathname, child.href) ? "page" : undefined} prefetch={false}>
                       {child.label}
                     </Link>
                   </DropdownItem>
