@@ -17,7 +17,7 @@ export function DropdownContent({
         sideOffset={6}
         collisionPadding={8}
         className={cn(
-          "glass-panel z-50 min-w-44 origin-[var(--radix-dropdown-menu-content-transform-origin)] rounded-panel p-1.5 data-[state=open]:animate-pop-in",
+          "glass-panel z-50 min-w-44 origin-[var(--radix-dropdown-menu-content-transform-origin)] rounded-panel p-1.5",
           className
         )}
         {...props}

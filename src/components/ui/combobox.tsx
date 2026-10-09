@@ -92,7 +92,7 @@ export function Combobox({
           align="start"
           sideOffset={6}
           collisionPadding={8}
-          className="z-50 w-[var(--radix-popover-trigger-width)] origin-[var(--radix-popover-content-transform-origin)] overflow-hidden rounded-nested border border-border bg-card shadow-floating inset-shadow-highlight data-[state=open]:animate-pop-in"
+          className="z-50 w-[var(--radix-popover-trigger-width)] origin-[var(--radix-popover-content-transform-origin)] overflow-hidden rounded-nested border border-border bg-card shadow-floating inset-shadow-highlight"
         >
           <div className="flex items-center gap-2 border-b border-border px-3 py-2">
             <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />

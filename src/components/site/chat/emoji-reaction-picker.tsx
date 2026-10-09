@@ -24,7 +24,7 @@ export function EmojiReactionPicker({ onPick }: { onPick: (emoji: string) => voi
           align="start"
           sideOffset={6}
           collisionPadding={8}
-          className="z-50 grid w-56 grid-cols-6 gap-1 rounded-nested border border-border bg-card p-2 shadow-floating inset-shadow-highlight data-[state=open]:animate-pop-in"
+          className="z-50 grid w-56 grid-cols-6 gap-1 rounded-nested border border-border bg-card p-2 shadow-floating inset-shadow-highlight"
         >
           {CHAT_EMOJI.map((emoji) => (
             <PopoverPrimitive.Close asChild key={emoji}>

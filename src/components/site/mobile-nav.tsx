@@ -6,8 +6,6 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { LogOut, Menu, Send, User as UserIcon, X } from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { duration, ease, spring, transition } from "@/lib/motion";
 import type { SiteSettings } from "@/lib/settings-schema";
 import { NAV_LINKS } from "@/lib/nav";
 import { Button, buttonClasses } from "@/components/ui/button";
@@ -17,7 +15,6 @@ export function MobileNav({ settings }: { settings: SiteSettings }) {
   const [open, setOpen] = React.useState(false);
   const pathname = usePathname();
   const { data: session } = useSession();
-  const reduce = useReducedMotion();
 
   React.useEffect(() => {
     setOpen(false);
@@ -30,39 +27,12 @@ export function MobileNav({ settings }: { settings: SiteSettings }) {
           <Menu className="h-5 w-5" />
         </Button>
       </DialogPrimitive.Trigger>
-      <AnimatePresence>
-        {open && (
-          <DialogPrimitive.Portal forceMount>
-            <DialogPrimitive.Overlay asChild forceMount>
-              <motion.div
-                className="fixed inset-0 z-50 bg-[oklch(0.13_0.02_285_/_0.55)]"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: reduce ? 0 : duration.fast, ease: ease.standard }}
-              />
-            </DialogPrimitive.Overlay>
-            <DialogPrimitive.Content asChild forceMount>
-              <motion.div
-                // `pr` picks up the right-hand safe-area inset: the drawer is
-                // pinned to the right edge, and with `viewport-fit=cover` a notched
-                // iPhone in landscape can put the notch or the home indicator over
-                // exactly that edge.
-                className="glass-panel fixed top-0 right-0 z-50 flex h-dvh w-[min(20rem,88vw)] flex-col overflow-y-auto rounded-none border-y-0 border-r-0 p-6 pr-[max(1.5rem,env(safe-area-inset-right))] pb-[calc(1.5rem+env(safe-area-inset-bottom))] focus:outline-none"
-                initial={{ x: "100%" }}
-                animate={{ x: 0 }}
-                // Enter on the heavy spring — a full-height surface should feel
-                // weighty arriving. Exit on a short accelerating curve instead:
-                // lib/motion.ts states the rule ("exits run at ~65% of their
-                // enter duration, so dismissal feels immediate") but this drawer
-                // used `spring.heavy` in both directions, so tapping Close or
-                // pressing Escape left it drifting off screen for well over half
-                // a second — measured still mounted at 500ms, gone by 700ms. A
-                // transition on the exit target overrides the shared one for that
-                // direction only, so no extra state is needed to tell them apart.
-                exit={{ x: "100%", transition: reduce ? { duration: 0 } : transition.exit }}
-                transition={reduce ? { duration: 0 } : spring.heavy}
-              >
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-[oklch(0.13_0.02_285_/_0.55)]" />
+        {/* `pr` picks up the right-hand safe-area inset: the drawer is pinned to
+            the right edge, and with `viewport-fit=cover` a notched iPhone in
+            landscape can put the notch or home indicator over exactly that edge. */}
+        <DialogPrimitive.Content className="glass-panel fixed top-0 right-0 z-50 flex h-dvh w-[min(20rem,88vw)] flex-col overflow-y-auto rounded-none border-y-0 border-r-0 p-6 pr-[max(1.5rem,env(safe-area-inset-right))] pb-[calc(1.5rem+env(safe-area-inset-bottom))] focus:outline-none">
                 <DialogPrimitive.Title className="sr-only">Menu</DialogPrimitive.Title>
                 <div className="mb-6 flex items-center justify-between">
                   <span className="font-display text-subheading">{settings.siteName}</span>
@@ -148,11 +118,8 @@ export function MobileNav({ settings }: { settings: SiteSettings }) {
                     </>
                   )}
                 </div>
-              </motion.div>
-            </DialogPrimitive.Content>
-          </DialogPrimitive.Portal>
-        )}
-      </AnimatePresence>
+              </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
   );
 }

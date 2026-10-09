@@ -39,7 +39,7 @@ export function SelectContent({
         position="popper"
         sideOffset={6}
         className={cn(
-          "glass-panel z-50 max-h-72 min-w-[var(--radix-select-trigger-width)] origin-[var(--radix-select-content-transform-origin)] overflow-y-auto rounded-panel p-1.5 data-[state=open]:animate-pop-in",
+          "glass-panel z-50 max-h-72 min-w-[var(--radix-select-trigger-width)] origin-[var(--radix-select-content-transform-origin)] overflow-y-auto rounded-panel p-1.5",
           className
         )}
         {...props}
