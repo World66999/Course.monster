@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import {
   motion,
-  useReducedMotion,
   useInView,
   AnimatePresence,
 } from "framer-motion";
@@ -19,7 +18,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonClasses } from "@/components/ui/button";
-import { AnimatedCounter } from "@/components/site/animated-counter";
 
 /* ─── Types ───────────────────────────────────────────────────────────────── */
 
@@ -62,14 +60,16 @@ const EASE_BOOK_OPEN = [0.16, 1, 0.3, 1] as const;
 /* ─── Book Hero ───────────────────────────────────────────────────────────── */
 
 export function BookHero({ siteName, description, stats }: BookHeroProps) {
-  const reduce = useReducedMotion();
+  // Forced on: this disables the book-opening sequence, autoplay page-flips and
+  // the flip transition through the component's existing reduced-motion paths,
+  // so the hero renders open and static for everyone (no motion on page load).
+  const reduce = true;
 
   /* ── State ── */
   const [phase, setPhase] = React.useState<"closed" | "opening" | "open">(
     reduce ? "open" : "closed"
   );
   const [[activePage, direction], setPage] = React.useState([0, 1]);
-  const [hasEntrance, setHasEntrance] = React.useState(!!reduce);
   const [isPaused, setIsPaused] = React.useState(false);
 
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -106,20 +106,7 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
   const leftFlipVariants = flipVariants;
   const rightFlipVariants = flipVariants;
 
-  /* ── Animation sequence ── */
-  React.useEffect(() => {
-    if (reduce) {
-      setHasEntrance(true);
-      setPhase("open");
-      return;
-    }
-    const t1 = setTimeout(() => setHasEntrance(true), 100);
-    const t2 = setTimeout(() => setPhase("opening"), 800);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, [reduce]);
+  /* ── Book opens with no entrance sequence — it starts in the "open" phase. ── */
 
   /* ── Page navigation ── */
   const paginate = React.useCallback((newDirection: number) => {
@@ -177,9 +164,7 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
       {/* Ambient glow: three offset radials for dimension */}
       <motion.div
         className="pointer-events-none absolute inset-0 -z-20"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 2.5, delay: 0.1 }}
+        initial={false}
         aria-hidden
       >
         <div
@@ -217,12 +202,7 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
         className="relative flex min-h-[100dvh] flex-col items-center justify-center px-4 py-20 sm:px-6 lg:py-24"
       >
         {/* ── Badge ── */}
-        <motion.div
-          className="mb-8 sm:mb-12"
-          initial={{ opacity: 0, y: 16 }}
-          animate={hasEntrance ? { opacity: 1, y: 0 } : undefined}
-          transition={{ duration: 0.8, ease: EASE_CINEMATIC, delay: 0.15 }}
-        >
+        <motion.div className="mb-8 sm:mb-12" initial={false}>
           <span className="glass-veil inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium text-muted-foreground shadow-soft">
             <Sparkles className="h-4 w-4 text-accent" aria-hidden />
             <span className="numeric font-semibold text-foreground">{stats.courses}+</span>
@@ -237,13 +217,7 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
             perspective: "2200px",
             perspectiveOrigin: "50% 42%",
           }}
-          initial={{ opacity: 0, scale: 0.94 }}
-          animate={
-            hasEntrance
-              ? { opacity: 1, scale: 1 }
-              : undefined
-          }
-          transition={{ duration: 0.7, ease: EASE_CINEMATIC, delay: 0.2 }}
+          initial={false}
         >
           {/* Book assembly */}
           <div
@@ -268,12 +242,8 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
                   background:
                     "radial-gradient(ellipse at center, rgba(0,0,0,0.3), transparent 70%)",
                 }}
-                animate={{
-                  opacity: isOpen ? 0.25 : 0.5,
-                  scaleX: isOpen ? 1.25 : 1,
-                  scaleY: isOpen ? 0.8 : 1,
-                }}
-                transition={{ duration: 2, ease: EASE_BOOK_OPEN }}
+                initial={false}
+                animate={{ opacity: 0.25, scaleX: 1.25, scaleY: 0.8 }}
                 aria-hidden
               />
 
@@ -486,14 +456,8 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
               <motion.div
                 className="absolute inset-0 overflow-hidden rounded-r-lg rounded-l-[4px]"
                 style={{ transformStyle: "preserve-3d" }}
-                animate={{
-                  opacity: phase === "closed" ? 0 : 1,
-                }}
-                transition={{
-                  duration: reduce ? 0 : 0.25,
-                  delay: phase === "closed" ? 0 : 0.12,
-                  ease: EASE_CINEMATIC,
-                }}
+                initial={false}
+                animate={{ opacity: 1 }}
               >
                 {/* ── Left page (Desktop only) ── */}
                 <div
@@ -708,7 +672,7 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
                                 </span>
                                 <div>
                                   <dd className="numeric text-lg font-bold tracking-tight sm:text-2xl">
-                                    <AnimatedCounter value={value} />
+                                    {value.toLocaleString()}
                                   </dd>
                                   <dt className="text-[0.625rem] font-semibold tracking-[0.08em] text-muted-foreground uppercase sm:text-eyebrow">
                                     {label}
@@ -821,8 +785,8 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
               {/* ── Glass reflection overlay (whole book surface) ── */}
               <motion.div
                 className="pointer-events-none absolute inset-0 rounded-r-lg rounded-l-[4px] overflow-hidden"
-                animate={{ opacity: isOpen ? 0.4 : 0.7 }}
-                transition={{ duration: 2 }}
+                initial={false}
+                animate={{ opacity: 0.4 }}
                 aria-hidden
               >
                 <div
@@ -862,15 +826,8 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
         <motion.nav
           className="mt-8 flex items-center gap-3 sm:mt-10"
           aria-label="Book pages"
-          initial={{ opacity: 0, y: 16 }}
-          animate={
-            isOpen ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }
-          }
-          transition={{
-            duration: 0.6,
-            ease: EASE_CINEMATIC,
-            delay: isOpen ? 0.4 : 0,
-          }}
+          initial={false}
+          animate={{ opacity: 1, y: 0 }}
         >
         <div className="absolute inset-x-0 bottom-6 flex justify-center">
           <div className="glass-chrome flex items-center gap-4 rounded-full px-5 py-2.5">
@@ -925,27 +882,18 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
         {/* ── Scroll indicator ── */}
         <motion.div
           className="absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2 sm:bottom-8"
-          initial={{ opacity: 0 }}
-          animate={isOpen ? { opacity: 1 } : { opacity: 0 }}
-          transition={{ duration: 0.5, delay: isOpen ? 1 : 0 }}
+          initial={false}
+          animate={{ opacity: 1 }}
         >
           <span className="text-[0.625rem] font-medium text-muted-foreground/50 uppercase tracking-[0.2em]">
             Scroll to explore
           </span>
-          <motion.div
+          <div
             className="flex h-7 w-[18px] items-start justify-center rounded-full border-[1.5px] border-muted-foreground/25 pt-1.5"
             aria-hidden
           >
-            <motion.div
-              className="h-1 w-1 rounded-full bg-muted-foreground/40"
-              animate={{ y: [0, 7, 0] }}
-              transition={{
-                duration: 1.6,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-          </motion.div>
+            <div className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+          </div>
         </motion.div>
       </div>
     </div>
