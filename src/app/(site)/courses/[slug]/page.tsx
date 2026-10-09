@@ -471,7 +471,7 @@ export default async function CoursePage({ params }: Props) {
           set in the root layout, a notched iPhone held in landscape puts the notch
           over this bar's leading edge, and a flat 12px gutter let the button slide
           under it. */}
-      <div className="glass fixed inset-x-0 bottom-0 z-30 border-x-0 border-b-0 py-3 pr-[max(0.75rem,env(safe-area-inset-right))] pl-[max(0.75rem,env(safe-area-inset-left))] pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
+      <div className="surface fixed inset-x-0 bottom-0 z-30 border-x-0 border-b-0 py-3 pr-[max(0.75rem,env(safe-area-inset-right))] pl-[max(0.75rem,env(safe-area-inset-left))] pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
         <Link
           href={`/download/${course.slug}`}
           className={buttonClasses("primary", "lg", "w-full")}

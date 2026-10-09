@@ -35,7 +35,11 @@ export function AuthCard({
       <div className="bg-aurora absolute inset-0" aria-hidden />
       <div
         aria-hidden
-        className="absolute -top-40 left-1/2 h-80 w-[34rem] -translate-x-1/2 rounded-full bg-primary/15 blur-[110px]"
+        className="absolute -top-40 left-1/2 h-80 w-[34rem] -translate-x-1/2 rounded-full"
+        style={{
+          background:
+            "radial-gradient(closest-side, color-mix(in oklab, var(--primary) 15%, transparent), transparent)",
+        }}
       />
 
       <motion.div {...motionProps} className={`relative ${wide ? "w-full max-w-md" : "w-full max-w-sm"}`}>

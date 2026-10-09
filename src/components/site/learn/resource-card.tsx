@@ -78,7 +78,7 @@ export function ResourceCard({ resource }: { resource: ResourceCardDTO }) {
             <PlayCircle className="h-10 w-10" aria-hidden />
           </div>
         )}
-        <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur">
+        <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white">
           {resource.resourceType === "PLAYLIST" ? (
             <>
               <ListVideo className="h-3 w-3" aria-hidden /> PLAYLIST
@@ -90,7 +90,7 @@ export function ResourceCard({ resource }: { resource: ResourceCardDTO }) {
           )}
         </span>
         {resource.durationMinutes && (
-          <span className="absolute right-2 bottom-2 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-xs text-white backdrop-blur">
+          <span className="absolute right-2 bottom-2 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-xs text-white">
             <Clock className="h-3 w-3" aria-hidden />
             {resource.durationMinutes}m
           </span>

@@ -189,7 +189,7 @@ export function ChatPanel({
 
  <div ref={bottomRef} />
 
- <div className="sticky bottom-4 rounded-card border border-border bg-card/95 p-3 shadow-elevated backdrop-blur">
+ <div className="sticky bottom-4 rounded-card border border-border bg-card p-3 shadow-elevated">
  <Composer replyTo={replyTo} onCancelReply={() => setReplyTo(null)} onPosted={onPosted} />
  </div>
  </div>
