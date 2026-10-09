@@ -18,7 +18,7 @@ export function DialogContent({
 }: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>) {
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-[oklch(0.13_0.02_285_/_0.55)] backdrop-blur-[3px] data-[state=closed]:animate-overlay-out data-[state=open]:animate-overlay-in" />
+      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-[oklch(0.13_0.02_285_/_0.55)] data-[state=closed]:animate-overlay-out data-[state=open]:animate-overlay-in" />
       <DialogPrimitive.Content
         className={cn(
           "glass-panel fixed top-1/2 left-1/2 z-50 max-h-[85dvh] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-panel p-6 focus:outline-none data-[state=closed]:animate-dialog-out data-[state=open]:animate-dialog-in",

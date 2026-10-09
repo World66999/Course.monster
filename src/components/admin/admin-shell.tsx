@@ -147,7 +147,7 @@ export function AdminShell({
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/50"
             onClick={() => setSidebarOpen(false)}
             aria-hidden
           />

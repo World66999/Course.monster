@@ -35,7 +35,7 @@ export function MobileNav({ settings }: { settings: SiteSettings }) {
           <DialogPrimitive.Portal forceMount>
             <DialogPrimitive.Overlay asChild forceMount>
               <motion.div
-                className="fixed inset-0 z-50 bg-[oklch(0.13_0.02_285_/_0.55)] backdrop-blur-[3px]"
+                className="fixed inset-0 z-50 bg-[oklch(0.13_0.02_285_/_0.55)]"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
