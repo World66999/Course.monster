@@ -481,8 +481,8 @@ h4,
 
 @utility glass {
   background-color: var(--glass);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(10px) saturate(130%);
+  -webkit-backdrop-filter: blur(10px) saturate(130%);
   border: 1px solid var(--glass-border);
 }
 
@@ -552,8 +552,8 @@ h4,
 /* Floating chrome: header, sticky bars. Blur strong enough to separate. */
 @utility glass-chrome {
   background-color: var(--glass);
-  backdrop-filter: blur(18px) saturate(180%);
-  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  backdrop-filter: blur(12px) saturate(130%);
+  -webkit-backdrop-filter: blur(12px) saturate(130%);
   border: 1px solid var(--glass-border);
   box-shadow: inset 0 1px 0 0 var(--edge-light);
 }
@@ -561,19 +561,50 @@ h4,
 /* Overlay surfaces: dialogs, popovers, drawers. More opaque, since real text
    sits on them and 4.5:1 has to survive whatever is scrolling underneath. */
 @utility glass-panel {
-  background-color: color-mix(in srgb, var(--card) 88%, transparent);
-  backdrop-filter: blur(24px) saturate(170%);
-  -webkit-backdrop-filter: blur(24px) saturate(170%);
+  background-color: color-mix(in srgb, var(--card) 92%, transparent);
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
   border: 1px solid var(--glass-border);
   box-shadow: var(--sh-floating), inset 0 1px 0 0 var(--edge-light);
 }
 
 /* Decorative only — never put body copy on this one. */
 @utility glass-veil {
-  background-color: color-mix(in srgb, var(--card) 55%, transparent);
-  backdrop-filter: blur(12px) saturate(150%);
-  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  background-color: color-mix(in srgb, var(--card) 60%, transparent);
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
   border: 1px solid var(--glass-border);
+}
+
+/* ---------- Glass fallbacks (performance & accessibility) ----------
+
+   backdrop-filter is the single most expensive paint on the page and the main
+   cause of scroll jank on low-end mobile GPUs. Two cases drop it entirely and
+   fall back to a near-opaque fill, which keeps text contrast and the surface
+   boundary while removing the per-frame blur cost:
+
+   1. Browsers without backdrop-filter support (older / low-end devices).
+   2. Users who ask the OS for reduced transparency.                       */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass,
+  .glass-chrome,
+  .glass-veil {
+    background-color: var(--card);
+  }
+  .glass-panel {
+    background-color: var(--card);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass-chrome,
+  .glass-panel,
+  .glass-veil {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background-color: var(--card);
+  }
 }
 
 /* A hairline gradient edge. Painted with a mask on a pseudo-element so it works

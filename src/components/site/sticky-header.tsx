@@ -28,10 +28,10 @@ export function StickyHeader({ children, className }: { children: React.ReactNod
     <header
       data-scrolled={scrolled ? "true" : "false"}
       className={cn(
-        "sticky top-0 z-40 transition-[background-color,box-shadow,border-color,backdrop-filter] duration-300",
+        "sticky top-0 z-40 transition-[background-color,box-shadow,border-color] duration-300",
         scrolled
           ? "glass-chrome border-x-0 border-t-0 border-b border-border shadow-elevated"
-          : "border-x-0 border-t-0 border-b border-transparent bg-background/80 backdrop-blur-sm",
+          : "border-x-0 border-t-0 border-b border-transparent bg-background/80",
         className
       )}
     >
