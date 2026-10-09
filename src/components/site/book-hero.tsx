@@ -5,9 +5,7 @@ import Link from "next/link";
 import {
   motion,
   useReducedMotion,
-  useMotionValue,
-  useSpring,
-  useTransform,
+  useInView,
   AnimatePresence,
 } from "framer-motion";
 import {
@@ -61,25 +59,10 @@ const BOOK_PAGES = [
 const EASE_CINEMATIC = [0.22, 1, 0.36, 1] as const;
 const EASE_BOOK_OPEN = [0.16, 1, 0.3, 1] as const;
 
-/* ─── Fine pointer detection (shared with interactive.tsx pattern) ─────── */
-
-function useFinePointer() {
-  const [fine, setFine] = React.useState(false);
-  React.useEffect(() => {
-    const mq = window.matchMedia("(hover: hover) and (pointer: fine)");
-    const on = () => setFine(mq.matches);
-    on();
-    mq.addEventListener("change", on);
-    return () => mq.removeEventListener("change", on);
-  }, []);
-  return fine;
-}
-
 /* ─── Book Hero ───────────────────────────────────────────────────────────── */
 
 export function BookHero({ siteName, description, stats }: BookHeroProps) {
   const reduce = useReducedMotion();
-  const finePointer = useFinePointer();
 
   /* ── State ── */
   const [phase, setPhase] = React.useState<"closed" | "opening" | "open">(
@@ -89,84 +72,52 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
   const [hasEntrance, setHasEntrance] = React.useState(!!reduce);
   const [isPaused, setIsPaused] = React.useState(false);
 
-
-  /* ── Mouse tracking for parallax ── */
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const smoothX = useSpring(mouseX, { stiffness: 50, damping: 20, mass: 1 });
-  const smoothY = useSpring(mouseY, { stiffness: 50, damping: 20, mass: 1 });
-
-  // Book tilt from mouse
-  const bookRotateY = useTransform(smoothX, [-1, 1], [5, -5]);
-  const bookRotateX = useTransform(smoothY, [-1, 1], [-3, 3]);
-
-  // Light position follows mouse
-  const lightX = useTransform(smoothX, [-1, 1], ["30%", "70%"]);
-  const lightY = useTransform(smoothY, [-1, 1], ["20%", "60%"]);
-
-  // Reflection streak position
-  const reflectionPos = useTransform(smoothX, [-1, 1], ["-20%", "120%"]);
-
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const isHeroInView = useInView(containerRef, { amount: 0.15 });
 
-  /* ── 3D Page Turn Physics ── */
-  /* ── Premium Smooth Fade-Through Transition ── */
-  const cinematicTransition = { duration: 0.7, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] };
-  
+  /*
+   * Page changes only animate transform and opacity. Filters on two full book
+   * pages forced a large repaint on every frame, which was especially costly
+   * while the old and new pages overlapped.
+   */
   const flipVariants = {
     enter: (d: number) => ({
       opacity: 0,
-      x: d > 0 ? 30 : -30,
-      scale: 0.95,
-      filter: "blur(8px)",
+      x: reduce ? 0 : d > 0 ? 10 : -10,
     }),
     center: {
       opacity: 1,
       x: 0,
-      scale: 1,
-      filter: "blur(0px)",
-      transition: cinematicTransition,
+      transition: {
+        duration: reduce ? 0 : 0.22,
+        ease: EASE_CINEMATIC,
+      },
     },
     exit: (d: number) => ({
       opacity: 0,
-      x: d > 0 ? -30 : 30,
-      scale: 0.95,
-      filter: "blur(8px)",
-      transition: cinematicTransition,
+      x: reduce ? 0 : d > 0 ? -8 : 8,
+      transition: {
+        duration: reduce ? 0 : 0.14,
+        ease: EASE_CINEMATIC,
+      },
     }),
   };
 
   const leftFlipVariants = flipVariants;
   const rightFlipVariants = flipVariants;
 
-  const handleMouseMove = React.useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (reduce || !finePointer) return;
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      const y = ((e.clientY - rect.top) / rect.height) * 2 - 1;
-      mouseX.set(x);
-      mouseY.set(y);
-    },
-    [reduce, finePointer, mouseX, mouseY]
-  );
-
-  const handleMouseLeave = React.useCallback(() => {
-    mouseX.set(0);
-    mouseY.set(0);
-  }, [mouseX, mouseY]);
-
   /* ── Animation sequence ── */
   React.useEffect(() => {
-    if (reduce) return;
-    const t1 = setTimeout(() => setHasEntrance(true), 200);
-    const t2 = setTimeout(() => setPhase("opening"), 2000);
-    const t3 = setTimeout(() => setPhase("open"), 4200);
+    if (reduce) {
+      setHasEntrance(true);
+      setPhase("open");
+      return;
+    }
+    const t1 = setTimeout(() => setHasEntrance(true), 100);
+    const t2 = setTimeout(() => setPhase("opening"), 800);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
-      clearTimeout(t3);
     };
   }, [reduce]);
 
@@ -189,7 +140,7 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
 
   /* ── Autoplay ── */
   React.useEffect(() => {
-    if (phase !== "open" || reduce || isPaused) return;
+    if (phase !== "open" || reduce || isPaused || !isHeroInView) return;
     // Paused while the tab is hidden. Left running, the carousel kept firing
     // state updates for a hero nobody was looking at, and a visitor coming back
     // from another tab found it several pages along from where they left it.
@@ -211,14 +162,12 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
       stop();
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [phase, reduce, isPaused, paginate]);
+  }, [phase, reduce, isPaused, isHeroInView, paginate]);
 
   const isOpen = phase === "open";
-  const canTrackMouse = finePointer && !reduce;
 
   /* ── Cover rotation angle ── */
-  const coverAngle =
-    phase === "closed" ? 0 : phase === "opening" ? -100 : -175;
+  const coverAngle = phase === "closed" ? 0 : -175;
 
   return (
     <div className="relative isolate min-h-[100dvh] overflow-hidden">
@@ -266,14 +215,12 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
       <div
         ref={containerRef}
         className="relative flex min-h-[100dvh] flex-col items-center justify-center px-4 py-20 sm:px-6 lg:py-24"
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
       >
         {/* ── Badge ── */}
         <motion.div
           className="mb-8 sm:mb-12"
-          initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
-          animate={hasEntrance ? { opacity: 1, y: 0, filter: "blur(0px)" } : undefined}
+          initial={{ opacity: 0, y: 16 }}
+          animate={hasEntrance ? { opacity: 1, y: 0 } : undefined}
           transition={{ duration: 0.8, ease: EASE_CINEMATIC, delay: 0.15 }}
         >
           <span className="glass-veil inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium text-muted-foreground shadow-soft">
@@ -290,41 +237,21 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
             perspective: "2200px",
             perspectiveOrigin: "50% 42%",
           }}
-          initial={{ opacity: 0, scale: 0.8, filter: "blur(12px)" }}
+          initial={{ opacity: 0, scale: 0.94 }}
           animate={
             hasEntrance
-              ? { opacity: 1, scale: 1, filter: "blur(0px)" }
+              ? { opacity: 1, scale: 1 }
               : undefined
           }
-          transition={{ duration: 1.6, ease: EASE_CINEMATIC, delay: 0.35 }}
+          transition={{ duration: 0.7, ease: EASE_CINEMATIC, delay: 0.2 }}
         >
-          {/* Mouse-following ambient light */}
-          {canTrackMouse && (
-            <motion.div
-              className="pointer-events-none absolute -z-10 h-[35rem] w-[45rem] rounded-full opacity-15 blur-[120px]"
-              style={{
-                background:
-                  "radial-gradient(ellipse at center, color-mix(in srgb, var(--primary) 40%, transparent), transparent 65%)",
-                left: lightX,
-                top: lightY,
-                transform: "translate(-50%, -50%)",
-              }}
-              aria-hidden
-            />
-          )}
-
-          {/* Book assembly — the 3D-transformed group */}
-          <motion.div
+          {/* Book assembly */}
+          <div
             className="relative mx-auto"
-            style={{
-              transformStyle: "preserve-3d",
-              ...(canTrackMouse
-                ? { rotateY: bookRotateY, rotateX: bookRotateX }
-                : {}),
-            }}
+            style={{ transformStyle: "preserve-3d" }}
           >
             {/* ── Book body ── */}
-            <motion.div
+            <div
               onMouseEnter={() => setIsPaused(true)}
               onMouseLeave={() => setIsPaused(false)}
               className={cn(
@@ -333,21 +260,6 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
                 "aspect-[4/5] sm:aspect-[3/2]"
               )}
               style={{ transformStyle: "preserve-3d" }}
-              animate={
-                reduce
-                  ? {}
-                  : {
-                      y: [0, -10, 0],
-                    }
-              }
-              transition={{
-                y: {
-                  duration: 7,
-                  ease: "easeInOut",
-                  repeat: Infinity,
-                  repeatType: "loop",
-                },
-              }}
             >
               {/* ── Ground shadow ── */}
               <motion.div
@@ -396,46 +308,42 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
               </div>
 
               {/* ── Page stack edges (3D depth) ── */}
-              {[5, 4, 3, 2, 1].map((i) => (
-                <motion.div
-                  key={`page-${i}`}
-                  className="absolute inset-0 rounded-r-md rounded-l-[3px]"
-                  style={{
-                    transformStyle: "preserve-3d",
-                    transform: `translateZ(${-i * 1.3}px)`,
-                    background: `linear-gradient(90deg,
-                      color-mix(in srgb, var(--card) 95%, var(--primary)) 0%,
-                      var(--card) 100%)`,
-                    border: "1px solid var(--glass-border)",
-                    opacity: 0.3 + i * 0.12,
-                  }}
-                  animate={{
-                    opacity: isOpen ? 0 : 0.3 + i * 0.12,
-                  }}
-                  transition={{
-                    duration: 0.9,
-                    delay: i * 0.04,
-                    ease: EASE_CINEMATIC,
-                  }}
-                />
-              ))}
+              {!isOpen &&
+                [5, 4, 3, 2, 1].map((i) => (
+                  <div
+                    key={`page-${i}`}
+                    className="absolute inset-0 rounded-r-md rounded-l-[3px]"
+                    style={{
+                      transform: `translateZ(${-i * 1.3}px)`,
+                      background: `linear-gradient(90deg,
+                        color-mix(in srgb, var(--card) 95%, var(--primary)) 0%,
+                        var(--card) 100%)`,
+                      border: "1px solid var(--glass-border)",
+                      opacity: 0.3 + i * 0.12,
+                    }}
+                  />
+                ))}
 
               {/* ── FRONT COVER (hinges open from left) ── */}
-              <motion.div
-                className="absolute inset-0 overflow-hidden rounded-r-lg rounded-l-[4px]"
-                style={{
-                  transformStyle: "preserve-3d",
-                  transformOrigin: "left center",
-                  backfaceVisibility: "hidden",
-                  WebkitBackfaceVisibility: "hidden",
-                  willChange: "transform",
-                }}
-                animate={{ rotateY: coverAngle }}
-                transition={{
-                  duration: reduce ? 0 : 2.5,
-                  ease: EASE_BOOK_OPEN,
-                }}
-              >
+              {phase !== "open" && (
+                <motion.div
+                  className="absolute inset-0 overflow-hidden rounded-r-lg rounded-l-[4px]"
+                  style={{
+                    transformStyle: "preserve-3d",
+                    transformOrigin: "left center",
+                    backfaceVisibility: "hidden",
+                    WebkitBackfaceVisibility: "hidden",
+                    willChange: "transform",
+                  }}
+                  animate={{ rotateY: coverAngle }}
+                  transition={{
+                    duration: reduce ? 0 : 0.9,
+                    ease: EASE_BOOK_OPEN,
+                  }}
+                  onAnimationComplete={() => {
+                    if (phase === "opening") setPhase("open");
+                  }}
+                >
                 {/* Cover glass surface */}
                 <div
                   className="absolute inset-0"
@@ -445,8 +353,6 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
                       color-mix(in srgb, var(--card) 70%, transparent) 35%,
                       color-mix(in srgb, var(--primary) 8%, var(--card)) 70%,
                       color-mix(in srgb, var(--accent) 5%, var(--card)) 100%)`,
-                    backdropFilter: "blur(24px) saturate(170%)",
-                    WebkitBackdropFilter: "blur(24px) saturate(170%)",
                     border: "1px solid var(--glass-border)",
                     boxShadow: `
                       inset 0 1px 0 0 var(--edge-light),
@@ -549,10 +455,10 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
                     transition={{ duration: 0.8 }}
                     aria-hidden
                   >
-                    <motion.div
+                    <div
                       className="absolute inset-y-0 w-[30%]"
                       style={{
-                        left: canTrackMouse ? reflectionPos : "45%",
+                        left: "45%",
                         background: `linear-gradient(90deg,
                           transparent,
                           rgba(255,255,255,0.06) 30%,
@@ -569,18 +475,12 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
                 {phase === "closed" && (
                   <button
                     className="absolute inset-0 cursor-pointer z-10"
-                    onClick={() => {
-                      if (reduce) {
-                        setPhase("open");
-                      } else {
-                        setPhase("opening");
-                        setTimeout(() => setPhase("open"), 2400);
-                      }
-                    }}
+                    onClick={() => setPhase(reduce ? "open" : "opening")}
                     aria-label="Open the book"
                   />
                 )}
-              </motion.div>
+                </motion.div>
+              )}
 
               {/* ── Inner pages (revealed as book opens) ── */}
               <motion.div
@@ -590,8 +490,8 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
                   opacity: phase === "closed" ? 0 : 1,
                 }}
                 transition={{
-                  duration: 0.8,
-                  delay: phase === "closed" ? 0 : 0.6,
+                  duration: reduce ? 0 : 0.25,
+                  delay: phase === "closed" ? 0 : 0.12,
                   ease: EASE_CINEMATIC,
                 }}
               >
@@ -600,10 +500,8 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
                   className="hidden sm:block absolute inset-y-0 left-0 w-1/2 overflow-hidden"
                   style={{
                     background: `linear-gradient(100deg,
-                      color-mix(in srgb, var(--card) 96%, transparent) 0%,
-                      color-mix(in srgb, var(--card) 90%, transparent) 100%)`,
-                    backdropFilter: "blur(28px) saturate(160%)",
-                    WebkitBackdropFilter: "blur(28px) saturate(160%)",
+                      color-mix(in srgb, var(--card) 98%, var(--primary)) 0%,
+                      color-mix(in srgb, var(--card) 96%, var(--primary)) 100%)`,
                     borderRight: "1px solid var(--glass-border)",
                     boxShadow: `
                       inset 0 1px 0 0 var(--edge-light),
@@ -632,21 +530,19 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
                   />
 
                   {/* Left page content */}
-                  <div className="relative flex h-full flex-col items-center justify-center p-5 sm:p-10" style={{ perspective: "1200px" }}>
-                    <AnimatePresence custom={direction} initial={false}>
+                  <div
+                    className="relative flex h-full flex-col items-center justify-center p-5 sm:p-10"
+                    style={{ contain: "layout paint" }}
+                  >
+                    <AnimatePresence custom={direction} initial={false} mode="wait">
                       <motion.div
                         key={`left-${activePage}`}
                         custom={direction}
                         className="absolute inset-0 flex flex-col items-center text-center origin-right p-5 sm:p-10 justify-center"
-                        style={{ backfaceVisibility: "hidden" }}
                         variants={leftFlipVariants}
                         initial="enter"
                         animate="center"
                         exit="exit"
-                        transition={{
-                          duration: 0.7,
-                          ease: [0.22, 1, 0.36, 1],
-                        }}
                       >
                         <p className="text-eyebrow text-primary uppercase tracking-[0.15em]">
                           {BOOK_PAGES[activePage].eyebrow}
@@ -691,10 +587,8 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
                   className="absolute inset-0 sm:inset-y-0 sm:left-auto sm:right-0 sm:w-1/2 overflow-hidden"
                   style={{
                     background: `linear-gradient(260deg,
-                      color-mix(in srgb, var(--card) 96%, transparent) 0%,
-                      color-mix(in srgb, var(--card) 90%, transparent) 100%)`,
-                    backdropFilter: "blur(28px) saturate(160%)",
-                    WebkitBackdropFilter: "blur(28px) saturate(160%)",
+                      color-mix(in srgb, var(--card) 98%, var(--primary)) 0%,
+                      color-mix(in srgb, var(--card) 96%, var(--primary)) 100%)`,
                     boxShadow: `
                       inset 0 1px 0 0 var(--edge-light),
                       inset 3px 0 12px rgba(0,0,0,0.02)
@@ -731,21 +625,20 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
                   />
 
                   {/* Right page content (Mobile: Stacked Text + Stats, Desktop: Stats only) */}
-                  <div className="relative flex h-full flex-col p-5 sm:items-center sm:justify-center sm:p-10" style={{ perspective: "1200px" }}>
-                    <AnimatePresence custom={direction} initial={false}>
+                  <div
+                    className="relative flex h-full flex-col p-5 sm:items-center sm:justify-center sm:p-10"
+                    style={{ contain: "layout paint" }}
+                  >
+                    <AnimatePresence custom={direction} initial={false} mode="wait">
                       <motion.div
                         key={`right-${activePage}`}
                         custom={direction}
                         className="absolute inset-0 flex w-full flex-col gap-5 sm:gap-5 overflow-y-auto sm:overflow-visible pb-6 sm:pb-0 origin-left p-5 sm:p-10"
-                        style={{ scrollbarWidth: "none", backfaceVisibility: "hidden" }}
+                        style={{ scrollbarWidth: "none" }}
                         variants={rightFlipVariants}
                         initial="enter"
                         animate="center"
                         exit="exit"
-                        transition={{
-                          duration: 0.7,
-                          ease: [0.22, 1, 0.36, 1],
-                        }}
                       >
                         {/* ── Mobile-only Intro Text ── */}
                         <div className="flex flex-col items-center text-center sm:hidden mt-2 mb-2">
@@ -961,8 +854,8 @@ export function BookHero({ siteName, description, stats }: BookHeroProps) {
                 }}
                 aria-hidden
               />
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         </motion.div>
 
         {/* ── Page navigation dots ── */}

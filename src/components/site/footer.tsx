@@ -86,22 +86,22 @@ export function Footer({ settings }: { settings: SiteSettings }) {
           <FooterHeading>Explore</FooterHeading>
           <ul className="space-y-2.5 text-sm text-muted-foreground">
             <li>
-              <Link href="/courses" className={footerLinkClass}>
+              <Link href="/courses" className={footerLinkClass} prefetch={false}>
                 All Courses
               </Link>
             </li>
             <li>
-              <Link href="/courses?sort=popular" className={footerLinkClass}>
+              <Link href="/courses?sort=popular" className={footerLinkClass} prefetch={false}>
                 Most Popular
               </Link>
             </li>
             <li>
-              <Link href="/courses?sort=newest" className={footerLinkClass}>
+              <Link href="/courses?sort=newest" className={footerLinkClass} prefetch={false}>
                 Recently Added
               </Link>
             </li>
             <li>
-              <Link href="/how-to-download" className={footerLinkClass}>
+              <Link href="/how-to-download" className={footerLinkClass} prefetch={false}>
                 How to Download
               </Link>
             </li>
@@ -119,27 +119,27 @@ export function Footer({ settings }: { settings: SiteSettings }) {
           <FooterHeading>Free stuff</FooterHeading>
           <ul className="space-y-2.5 text-sm text-muted-foreground">
             <li>
-              <Link href="/free-resources" className={footerLinkClass}>
+              <Link href="/free-resources" className={footerLinkClass} prefetch={false}>
                 Free Resources
               </Link>
             </li>
             <li>
-              <Link href="/ai-platforms" className={footerLinkClass}>
+              <Link href="/ai-platforms" className={footerLinkClass} prefetch={false}>
                 Free AI Platforms
               </Link>
             </li>
             <li>
-              <Link href="/apps" className={footerLinkClass}>
+              <Link href="/apps" className={footerLinkClass} prefetch={false}>
                 Apps Hub
               </Link>
             </li>
             <li>
-              <Link href="/learn" className={footerLinkClass}>
+              <Link href="/learn" className={footerLinkClass} prefetch={false}>
                 Free Learning
               </Link>
             </li>
             <li>
-              <Link href="/coding-channels" className={footerLinkClass}>
+              <Link href="/coding-channels" className={footerLinkClass} prefetch={false}>
                 Coding Channels
               </Link>
             </li>
@@ -165,7 +165,7 @@ export function Footer({ settings }: { settings: SiteSettings }) {
             <ul className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted-foreground">
               {GENERIC_PAGES.map((page) => (
                 <li key={page.slug}>
-                  <Link href={page.path} className={footerLinkClass}>
+                  <Link href={page.path} className={footerLinkClass} prefetch={false}>
                     {page.title}
                   </Link>
                 </li>
