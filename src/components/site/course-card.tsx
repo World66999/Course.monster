@@ -1,6 +1,6 @@
 import * as React from "react";
 import Link from "next/link";
-import { ArrowUpRight, BarChart3, Clock3, Download, Film, HardDrive, Sparkles, Timer, TrendingUp } from "lucide-react";
+import { Download, Film, HardDrive, Sparkles, Timer, TrendingUp } from "lucide-react";
 import type { CourseCard as CourseCardData } from "@/lib/courses";
 import { Badge } from "@/components/ui/badge";
 import { CourseImage } from "@/components/site/course-image";

@@ -86,6 +86,7 @@ export function NavLinks({ links }: { links: ReadonlyArray<NavEntry> }) {
             key={link.href}
             href={link.href}
             aria-current={active ? "page" : undefined}
+            prefetch={false}
             className={cn(
               itemBase,
               active ? "text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
