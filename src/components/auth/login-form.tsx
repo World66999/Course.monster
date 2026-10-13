@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { loginFormSchema, type LoginFormValues } from "@/lib/validation";
 import { precheckLoginAction } from "@/server/actions/public-auth";
 import { safeAction } from "@/lib/safe-action";
+import { safeInternalPath } from "@/lib/safe-url";
 import { Button } from "@/components/ui/button";
 import { Input, Label, FieldError } from "@/components/ui/input";
 import { PasswordField } from "@/components/auth/password-field";
@@ -50,7 +51,7 @@ export function LoginForm() {
     // does (default `broadcast: true`), so this is what makes sign-in sync
     // across already-open tabs/windows too.
     await getSession();
-    router.push("/");
+    router.push(safeInternalPath(searchParams.get("next")));
     router.refresh();
   }
 

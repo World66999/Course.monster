@@ -218,32 +218,33 @@ export default async function CoursePage({ params }: Props) {
       </div>
 
       <Section className="relative -mt-24 pb-28 lg:pb-16">
+        {/* Sits over the bottom of the banner, so it gets its own opaque
+            backing (no blur) to stay legible on any artwork. Separators live
+            inside the <li>s: an <ol> may only contain list items. */}
         <nav aria-label="Breadcrumb" className="mb-4">
-          <ol className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+          <ol className="inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full bg-background/90 px-3.5 py-1.5 text-sm text-muted-foreground shadow-soft ring-1 ring-border/60">
             <li>
               <Link href="/" className="hover:text-primary">
                 Home
               </Link>
             </li>
-            <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-            <li>
+            <li className="flex items-center gap-1.5">
+              <ChevronRight className="h-3.5 w-3.5" aria-hidden />
               <Link href="/courses" className="hover:text-primary">
                 Courses
               </Link>
             </li>
             {course.category && (
-              <>
+              <li className="flex items-center gap-1.5">
                 <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-                <li>
-                  <Link href={`/courses?category=${course.category.slug}`} className="hover:text-primary">
-                    {course.category.name}
-                  </Link>
-                </li>
-              </>
+                <Link href={`/courses?category=${course.category.slug}`} className="hover:text-primary">
+                  {course.category.name}
+                </Link>
+              </li>
             )}
-            <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-            <li aria-current="page" className="max-w-48 truncate font-medium text-foreground sm:max-w-72">
-              {course.title}
+            <li aria-current="page" className="flex min-w-0 items-center gap-1.5">
+              <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span className="max-w-40 truncate font-medium text-foreground sm:max-w-72">{course.title}</span>
             </li>
           </ol>
         </nav>

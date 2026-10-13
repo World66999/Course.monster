@@ -19,7 +19,7 @@ import { CourseCard } from "@/components/site/course-card";
 import { Section, SectionHeading } from "@/components/site/section";
 import { Reveal, Stagger, StaggerItem } from "@/components/site/reveal";
 import { Spotlight } from "@/components/motion/interactive";
-import { BookHero } from "@/components/site/book-hero";
+import { HomeHero } from "@/components/site/home-hero";
 
 export const revalidate = 120;
 
@@ -127,12 +127,7 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: safeJsonLd([websiteLd, organizationLd]) }}
       />
 
-      {/* ---------- Cinematic Book Hero ---------- */}
-      <BookHero
-        siteName={settings.siteName}
-        description={settings.description}
-        stats={stats}
-      />
+      <HomeHero siteName={settings.siteName} description={settings.description} stats={stats} />
 
       {/* ---------- Categories ---------- */}
       {categories.length > 0 && (

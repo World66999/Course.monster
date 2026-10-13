@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Download, Loader2, Link2, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Download, Loader2, Link2, AlertTriangle, CheckCircle2, LogIn } from "lucide-react";
+import { Button, buttonClasses } from "@/components/ui/button";
 import { Input, Label, FieldHint } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -234,10 +234,20 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
               className="sm:flex-1"
               disabled={busy}
             />
-            <Button type="submit" disabled={busy || !url.trim() || !signedIn} className="sm:w-auto">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Download className="h-4 w-4" aria-hidden />}
-              {busy ? "Working…" : "Download"}
-            </Button>
+            {signedIn ? (
+              <Button type="submit" disabled={busy || !url.trim()} className="sm:w-auto">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Download className="h-4 w-4" aria-hidden />}
+                {busy ? "Working…" : "Download"}
+              </Button>
+            ) : (
+              // A disabled button with the reason printed further down read as
+              // "broken". Signed-out visitors get the one action that helps,
+              // and land back here afterwards.
+              <Link href="/login?next=%2Fdownloader" className={buttonClasses("primary", "md", "sm:w-auto")}>
+                <LogIn className="h-4 w-4" aria-hidden />
+                Sign in to download
+              </Link>
+            )}
           </div>
         </div>
 
@@ -256,12 +266,6 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
           Audio only (smaller file)
         </label>
 
-        {!signedIn && (
-          <p className="rounded-nested border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
-            Please <Link href="/login" className="font-medium text-primary hover:underline">sign in</Link> to
-            use the downloader.
-          </p>
-        )}
       </form>
 
       {busy && (
