@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-const securityHeaders = [
+export const securityHeaders = [
  { key: "X-Content-Type-Options", value: "nosniff" },
  { key: "X-Frame-Options", value: "DENY" },
  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -10,7 +10,13 @@ const securityHeaders = [
  value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
  },
  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
- { key: "Cross-Origin-Embedder-Policy", value: "require-corp" },
+ // No Cross-Origin-Embedder-Policy. `require-corp` was added on 2026-09-11 and
+ // silently broke every cross-origin embed that does not send a CORP header:
+ // the YouTube player on /learn (iframe blocked, clicking play showed an error
+ // frame), Google profile photos in reviews/comments/chat, and the Turnstile
+ // frame. COEP only buys cross-origin isolation (SharedArrayBuffer and
+ // friends), which this site does not use — so it cost features for nothing.
+ // tests/security-headers.test.ts keeps it out.
  {
  // Allows self-hosted assets, Cloudflare Turnstile + Web Analytics and Google
  // Analytics only.
