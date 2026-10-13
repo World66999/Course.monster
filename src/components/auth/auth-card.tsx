@@ -1,9 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
 import { GraduationCap } from "lucide-react";
-import { transition, travel } from "@/lib/motion";
 
 export function AuthCard({
   title,
@@ -18,15 +16,6 @@ export function AuthCard({
   footer?: React.ReactNode;
   wide?: boolean;
 }) {
-  const reduce = useReducedMotion();
-  // Always a motion component — swapping to a plain <div> strands framer's
-  // imperative inline opacity on a reused DOM node. See reveal.tsx.
-  const motionProps = {
-    initial: reduce ? { opacity: 1, y: 0 } : { opacity: 0, y: travel.md },
-    animate: { opacity: 1, y: 0 },
-    transition: reduce ? { duration: 0 } : transition.slow,
-  };
-
   return (
     <div className="relative isolate flex min-h-[calc(100dvh-4rem)] items-center justify-center overflow-hidden px-4 py-12">
       {/* Auth pages get the same two background layers as the hero, so signing
@@ -42,7 +31,10 @@ export function AuthCard({
         }}
       />
 
-      <motion.div {...motionProps} className={`relative ${wide ? "w-full max-w-md" : "w-full max-w-sm"}`}>
+      {/* No entrance animation: the card used to be server-rendered at
+          opacity 0 and faded in only after hydration, so on a slow phone the
+          form stayed invisible until all of the page's JS had run. */}
+      <div className={`relative ${wide ? "w-full max-w-md" : "w-full max-w-sm"}`}>
         <div className="mb-7 flex flex-col items-center gap-4 text-center">
           <Link
             href="/"
@@ -63,7 +55,7 @@ export function AuthCard({
         </div>
 
         {footer && <p className="mt-6 text-center text-sm text-muted-foreground">{footer}</p>}
-      </motion.div>
+      </div>
     </div>
   );
 }

@@ -4,9 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
 import { Dropdown, DropdownContent, DropdownItem, DropdownTrigger } from "@/components/ui/dropdown";
-import { spring } from "@/lib/motion";
 import type { NavEntry } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
@@ -20,25 +18,22 @@ const itemBase =
   "focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 /**
- * The active pill is a single shared `layoutId` element rather than a
- * background class on whichever link is current, so navigating slides the pill
- * from the old item to the new one. It is the one piece of motion in the header
- * and it earns its place: it answers "where am I now" during the transition.
+ * Static "you are here" pill behind the current item. It used to be a shared
+ * framer-motion `layoutId` element that slid between items, but the header is
+ * on every page, so that one flourish put the whole motion runtime into every
+ * public page's bundle.
  */
 function ActivePill() {
   return (
-    <motion.span
-      layoutId="nav-active-pill"
+    <span
       aria-hidden
       className="absolute inset-0 -z-10 rounded-control bg-muted ring-1 ring-inset ring-border"
-      transition={spring.crisp}
     />
   );
 }
 
 export function NavLinks({ links }: { links: ReadonlyArray<NavEntry> }) {
   const pathname = usePathname();
-  const reduce = useReducedMotion();
 
   return (
     <>
@@ -56,10 +51,7 @@ export function NavLinks({ links }: { links: ReadonlyArray<NavEntry> }) {
                     groupActive ? "text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                   )}
                 >
-                  {groupActive && !reduce && <ActivePill />}
-                  {groupActive && reduce && (
-                    <span aria-hidden className="absolute inset-0 -z-10 rounded-control bg-muted ring-1 ring-inset ring-border" />
-                  )}
+                  {groupActive && <ActivePill />}
                   {link.label}
                   <ChevronDown
                     className="h-3.5 w-3.5 transition-transform duration-200 group-data-[state=open]:rotate-180"
@@ -92,10 +84,7 @@ export function NavLinks({ links }: { links: ReadonlyArray<NavEntry> }) {
               active ? "text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
             )}
           >
-            {active && !reduce && <ActivePill />}
-            {active && reduce && (
-              <span aria-hidden className="absolute inset-0 -z-10 rounded-control bg-muted ring-1 ring-inset ring-border" />
-            )}
+            {active && <ActivePill />}
             {link.label}
           </Link>
         );

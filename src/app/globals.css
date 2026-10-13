@@ -228,8 +228,6 @@
   --animate-dialog-in: dialog-in 0.26s var(--ease-emphasis);
   --animate-dialog-out: dialog-out 0.15s var(--ease-exit);
   --animate-pop-in: pop-in 0.16s var(--ease-emphasis);
-  --animate-float: float 22s ease-in-out infinite;
-  --animate-float-delayed: float 26s ease-in-out -11s infinite;
 
   @keyframes shimmer {
     from {
@@ -287,15 +285,6 @@
       opacity: 1;
       scale: 1;
       translate: 0 0;
-    }
-  }
-  @keyframes float {
-    0%,
-    100% {
-      transform: translate3d(0, 0, 0);
-    }
-    50% {
-      transform: translate3d(0, -14px, 0);
     }
   }
 }
@@ -475,6 +464,28 @@ h4,
   @media (width >= 64rem) {
     .page-gutter {
       padding-inline: max(2rem, env(safe-area-inset-left)) max(2rem, env(safe-area-inset-right));
+    }
+  }
+}
+
+/* Reading-progress bar (components/motion/scroll-progress.tsx). Driven by the
+   document scroll timeline, so it runs on the compositor with no JS. Where
+   scroll timelines are unsupported it stays hidden rather than stuck at 0. */
+@layer components {
+  .scroll-progress {
+    display: none;
+  }
+  @supports (animation-timeline: scroll()) {
+    .scroll-progress {
+      display: block;
+      transform: scaleX(0);
+      animation: scroll-progress linear both;
+      animation-timeline: scroll(root block);
+    }
+  }
+  @keyframes scroll-progress {
+    to {
+      transform: scaleX(1);
     }
   }
 }
