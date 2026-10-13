@@ -18,7 +18,6 @@ import {
   Send,
   UserRound,
 } from "lucide-react";
-import { db } from "@/lib/db";
 import { getPublishedCourse, getRelatedCourses } from "@/lib/courses";
 import { getSiteSettings } from "@/lib/settings";
 import { absoluteUrl, formatDate, formatNumber, safeJsonLd } from "@/lib/utils";
@@ -30,9 +29,24 @@ import { Markdown } from "@/components/site/markdown";
 import { Section, SectionHeading } from "@/components/site/section";
 import { ReviewsSection } from "@/components/site/reviews/reviews-section";
 import { CommentsSection } from "@/components/site/comments/comments-section";
+import { CourseViewBeacon } from "@/components/site/view-beacon";
 
 interface Props {
   params: Promise<{ slug: string }>;
+}
+
+/**
+ * Cached (ISR) and identical for every visitor. Nothing on this page reads the
+ * session any more: the viewer's own review and comment likes are fetched on
+ * the client, and the view count comes from a beacon. Admin edits revalidate
+ * the whole site; review/comment writes revalidate this path
+ * (server/revalidate-course.ts); 120s bounds anything else, like like-counts.
+ */
+export const revalidate = 120;
+
+/** No pages are pre-built; each course is cached on its first request. */
+export function generateStaticParams() {
+  return [];
 }
 
 const SKILL_LABELS: Record<string, string> = {
@@ -87,19 +101,6 @@ export default async function CoursePage({ params }: Props) {
   const { slug } = await params;
   const [course, settings] = await Promise.all([getPublishedCourse(slug), getSiteSettings()]);
   if (!course) notFound();
-
-  // Count the view without delaying the response.
-  //
-  // Deliberately NOT wrapped in `after()`: this page streams children
-  // (ReviewsSection/CommentsSection) that call auth() -> headers(), and those
-  // resolve while the after() callback's async context is still active, which
-  // makes Next.js throw `Route used "headers" inside "after(...)"` and render
-  // the error boundary instead of the page (seen in production with digests
-  // 1385834900 / 1233773012). Fire-and-forget matches what the request/
-  // channel/resource/app detail pages already do.
-  db.course
-    .update({ where: { id: course.id }, data: { views: { increment: 1 } } })
-    .catch(() => undefined);
 
   const related = await getRelatedCourses(course);
   const telegramUrl = course.telegramUrl || settings.telegramUrl;
@@ -208,6 +209,7 @@ export default async function CoursePage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLd([jsonLd, breadcrumbLd]) }}
       />
+      <CourseViewBeacon slug={course.slug} />
 
       {/* Banner */}
       <div className="relative h-56 w-full overflow-hidden sm:h-72 lg:h-80">

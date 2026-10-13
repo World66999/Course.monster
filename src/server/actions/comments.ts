@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
+import { revalidateCoursePage } from "@/server/revalidate-course";
 import { requireUserSafe } from "@/server/auth-helpers";
 import { getClientIp, hashIp } from "@/lib/ip";
 import { checkContent } from "@/lib/profanity";
@@ -105,6 +106,7 @@ export async function createCommentAction(
     });
   }
 
+  await revalidateCoursePage(courseId);
   return { ok: true, id: comment.id, comment };
 }
 
@@ -148,6 +150,7 @@ export async function editCommentAction(
     select: commentSelect,
   });
 
+  await revalidateCoursePage(existing.courseId);
   return { ok: true, id: parsedId.data, comment };
 }
 
@@ -158,11 +161,15 @@ export async function deleteCommentAction(commentId: unknown): Promise<ActionRes
   const parsed = idSchema.safeParse(commentId);
   if (!parsed.success) return { ok: false, error: "Invalid comment" };
 
-  const existing = await db.comment.findUnique({ where: { id: parsed.data }, select: { userId: true } });
+  const existing = await db.comment.findUnique({
+    where: { id: parsed.data },
+    select: { userId: true, courseId: true },
+  });
   if (!existing) return { ok: false, error: "Comment not found." };
   if (existing.userId !== user.id) return { ok: false, error: "You can only delete your own comments." };
 
   await db.comment.update({ where: { id: parsed.data }, data: { status: "DELETED" } });
+  await revalidateCoursePage(existing.courseId);
   return { ok: true };
 }
 

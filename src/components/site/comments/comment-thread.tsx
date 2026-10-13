@@ -72,6 +72,28 @@ export function CommentThread({
     setCursor(initialCursor);
   }, [initialItems, initialCursor, total]);
 
+  // The page is cached and identical for every visitor, so the server renders
+  // every comment as not-liked. Once we know who is looking, fetch their
+  // like state for the first page and merge just that flag into what is on
+  // screen. Later pages and replies already come from the API with it.
+  const viewerId = session?.user?.id ?? null;
+  React.useEffect(() => {
+    if (!viewerId) return;
+    const controller = new AbortController();
+    const qs = new URLSearchParams({ courseId, sort: "newest" });
+    fetch(`/api/comments?${qs}`, { cache: "no-store", signal: controller.signal })
+      .then((res) => (res.ok ? (res.json() as Promise<{ items: CommentWithMeta[] }>) : null))
+      .then((data) => {
+        if (!data) return;
+        const liked = new Map(data.items.map((c) => [c.id, c.likedByMe]));
+        setItems((prev) =>
+          prev.map((c) => (liked.has(c.id) ? { ...c, likedByMe: liked.get(c.id) ?? false } : c))
+        );
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [courseId, viewerId]);
+
   function submitComment(body: string): Promise<{ ok: boolean; error?: string }> {
     return new Promise((resolve) => {
       startTransition(async () => {
