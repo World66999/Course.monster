@@ -136,27 +136,6 @@ gtag('config', '${gaId}');`}
             </Script>
           </>
         ) : null}
-        {/* Monetag MultiTag.
-            `afterInteractive`, deliberately, NOT `beforeInteractive`. Next
-            implements beforeInteractive by pushing the script into
-            `self.__next_s` and loading it *before hydration* — so React
-            interactivity waited on a third-party ad host. Measured against a
-            30s stall on quge5.com: hydration completed at 31.0s desktop /
-            32.2s mobile, versus 2.0s / 2.2s normally. The page painted quickly
-            either way, so it looked loaded while every button and form was
-            dead. Outright failures (blocked, 500, 404, DNS) were never the
-            problem: they error fast. A merely *slow* response was.
-            afterInteractive still loads the tag on every page load, once, with
-            the same zone and attributes — it just cannot hold the UI hostage.
-            data-cfasync="false" is carried over from the vendor snippet so
-            Cloudflare Rocket Loader leaves the tag alone. */}
-        <Script
-          src="https://quge5.com/88/tag.min.js"
-          data-zone="269101"
-          data-cfasync="false"
-          strategy="afterInteractive"
-          async
-        />
       </body>
     </html>
   );

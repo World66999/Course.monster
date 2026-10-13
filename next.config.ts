@@ -12,17 +12,17 @@ const securityHeaders = [
  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
  { key: "Cross-Origin-Embedder-Policy", value: "require-corp" },
  {
- // Allows self-hosted assets, Cloudflare Turnstile + Web Analytics, Google
- // Analytics and Monetag only.
+ // Allows self-hosted assets, Cloudflare Turnstile + Web Analytics and Google
+ // Analytics only.
  key: "Content-Security-Policy",
  value: [
  "default-src 'self'",
- "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://www.googletagmanager.com https://static.cloudflareinsights.com https://quge5.com https://e2ertt.com https://6opo.com https://3nbf4.com https://auqot.com https://ekhay.com https://b3mny.com",
+ "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://www.googletagmanager.com https://static.cloudflareinsights.com",
  "style-src 'self' 'unsafe-inline'",
  "img-src 'self' data: blob: https:",
  "font-src 'self' data:",
- "connect-src 'self' https://challenges.cloudflare.com https://www.google-analytics.com https://cloudflareinsights.com https://quge5.com https://e2ertt.com https://6opo.com https://3nbf4.com https://auqot.com https://094kk.com https://jmosl.com",
- "frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com https://quge5.com https://e2ertt.com https://6opo.com",
+ "connect-src 'self' https://challenges.cloudflare.com https://www.google-analytics.com https://cloudflareinsights.com",
+ "frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com",
  "object-src 'none'",
  "base-uri 'self'",
  "form-action 'self'",
@@ -41,6 +41,12 @@ const nextConfig: NextConfig = {
  {
  source: "/:path*",
  headers: securityHeaders,
+ },
+ {
+ // Retirement worker for the old Monetag push worker (see public/sw.js):
+ // never cache it, so installed copies pick up the replacement promptly.
+ source: "/sw.js",
+ headers: [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }],
  },
  {
  source: "/go/:token*",

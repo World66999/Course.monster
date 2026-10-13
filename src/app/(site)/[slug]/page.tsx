@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { GENERIC_PAGES } from "@/lib/pages";
+import { SLUG_ROUTE_PAGES } from "@/lib/pages";
 import { formatDate } from "@/lib/utils";
 import { Markdown } from "@/components/site/markdown";
 import { Section } from "@/components/site/section";
@@ -13,11 +13,11 @@ interface Props {
 }
 
 function getMeta(slug: string) {
-  return GENERIC_PAGES.find((p) => p.slug === slug);
+  return SLUG_ROUTE_PAGES.find((p) => p.slug === slug);
 }
 
 export function generateStaticParams() {
-  return GENERIC_PAGES.map((p) => ({ slug: p.slug }));
+  return SLUG_ROUTE_PAGES.map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

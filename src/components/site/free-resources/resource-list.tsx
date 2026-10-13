@@ -19,10 +19,6 @@ interface Props {
  * Cursor-paginated grid. Same contract as InfiniteAppList: the server renders
  * page one so the section is useful with JavaScript still loading, and this
  * only ever *appends*.
- *
- * Nothing here depends on the ad script: Monetag is loaded once in the root
- * layout with strategy="afterInteractive" and is never awaited, so whether it
- * is slow, blocked or absent has no bearing on this list rendering.
  */
 export function InfiniteResourceList({ initialItems, initialCursor, total, queryString }: Props) {
   const [items, setItems] = React.useState(initialItems);

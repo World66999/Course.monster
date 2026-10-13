@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { Send } from "lucide-react";
+import { Mail, Send } from "lucide-react";
 import type { SiteSettings } from "@/lib/settings-schema";
-import { GENERIC_PAGES } from "@/lib/pages";
+import { CONTACT_EMAIL, GENERIC_PAGES } from "@/lib/pages";
 import { SiteLogo } from "@/components/site/header";
 import { NewsletterForm } from "@/components/site/newsletter-form";
 import {
@@ -53,6 +53,16 @@ export function Footer({ settings }: { settings: SiteSettings }) {
           <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
             {settings.footerText}
           </p>
+          <div className="text-sm">
+            <p className="mb-1 text-muted-foreground">Business &amp; contact</p>
+            <a
+              href={`mailto:${CONTACT_EMAIL}`}
+              className={`${footerLinkClass} inline-flex items-center gap-2 font-medium text-foreground`}
+            >
+              <Mail className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+              <span className="break-all">{CONTACT_EMAIL}</span>
+            </a>
+          </div>
           {(socials.length > 0 || settings.telegramUrl) && (
             <div className="flex flex-wrap items-center gap-2 pt-1">
               {settings.telegramUrl && (
