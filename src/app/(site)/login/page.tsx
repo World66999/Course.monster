@@ -23,8 +23,11 @@ export default async function LoginPage() {
     if (user && !user.disabled) redirect("/account");
   }
 
+  // The fallback reserves exactly the AuthCard's own height. Without one the
+  // boundary streamed in empty, the footer painted mid-screen and was then
+  // shoved off it when the card arrived — a 0.75 CLS on a throttled phone.
   return (
-    <Suspense>
+    <Suspense fallback={<div aria-hidden className="min-h-[calc(100dvh-4rem)]" />}>
       <LoginForm />
     </Suspense>
   );
