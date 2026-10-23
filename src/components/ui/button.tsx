@@ -2,7 +2,7 @@ import * as React from "react";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Variant = "primary" | "secondary" | "outline" | "ghost" | "destructive" | "accent";
+type Variant = "primary" | "secondary" | "outline" | "ghost" | "destructive" | "accent" | "brand";
 type Size = "sm" | "md" | "lg" | "icon" | "icon-sm";
 
 /**
@@ -13,18 +13,22 @@ type Size = "sm" | "md" | "lg" | "icon" | "icon-sm";
 const variants: Record<Variant, string> = {
   primary:
     "lit bg-primary text-primary-foreground shadow-primary inset-shadow-highlight " +
-    "hover:bg-primary-hover hover:-translate-y-px hover:shadow-elevated " +
+    "hover:bg-primary-hover hover:-translate-y-0.5 hover:shadow-glow " +
     "active:translate-y-0 active:shadow-soft",
   accent:
     "lit bg-accent text-accent-foreground shadow-soft inset-shadow-highlight " +
-    "hover:bg-accent-hover hover:-translate-y-px hover:shadow-elevated " +
+    "hover:bg-accent-hover hover:-translate-y-0.5 hover:shadow-elevated " +
     "active:translate-y-0 active:shadow-soft",
+  brand:
+    "bg-brand text-white shadow-primary inset-shadow-highlight " +
+    "hover:-translate-y-0.5 hover:shadow-glow hover:brightness-110 " +
+    "active:translate-y-0 active:brightness-95",
   secondary:
     "bg-muted text-foreground ring-1 ring-inset ring-border " +
     "hover:bg-border/60 hover:ring-border-strong/50 active:bg-border/80",
   outline:
     "border border-border bg-card shadow-soft " +
-    "hover:border-primary/45 hover:bg-primary-soft/60 hover:-translate-y-px " +
+    "hover:border-primary/45 hover:bg-primary-soft/60 hover:-translate-y-0.5 " +
     "active:translate-y-0 active:bg-primary-soft",
   ghost: "text-muted-foreground hover:bg-muted hover:text-foreground active:bg-border/60",
   destructive:
@@ -33,17 +37,19 @@ const variants: Record<Variant, string> = {
     "active:translate-y-0 active:brightness-95",
 };
 
+/* Pills throughout: a fully rounded button reads as the one thing on a card
+   or form you can press, against rounded-rect inputs and surfaces. */
 const sizes: Record<Size, string> = {
-  sm: "h-8 px-3 text-sm gap-1.5 rounded-[0.5rem]",
-  md: "h-10 px-4 text-sm gap-2 rounded-control",
-  lg: "h-12 px-6 text-base gap-2 rounded-control",
-  icon: "h-10 w-10 rounded-control",
-  "icon-sm": "h-8 w-8 rounded-[0.5rem]",
+  sm: "h-8 px-3.5 text-sm gap-1.5 rounded-full",
+  md: "h-10 px-5 text-sm gap-2 rounded-full",
+  lg: "h-12 px-7 text-base gap-2 rounded-full",
+  icon: "h-10 w-10 rounded-full",
+  "icon-sm": "h-8 w-8 rounded-full",
 };
 
 const base =
-  "relative inline-flex items-center justify-center font-medium whitespace-nowrap " +
-  "transition-[background-color,border-color,color,box-shadow,transform,filter] duration-200 " +
+  "relative inline-flex items-center justify-center font-semibold whitespace-nowrap " +
+  "transition-[background-color,border-color,color,box-shadow,transform,filter] duration-300 " +
   "ease-[cubic-bezier(0.22,1,0.36,1)] cursor-pointer touch-manipulation select-none " +
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 " +
   "focus-visible:ring-offset-background " +

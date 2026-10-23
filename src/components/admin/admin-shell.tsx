@@ -193,7 +193,7 @@ export function AdminShell({
             </div>
             <span
               aria-hidden
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-accent to-primary text-sm font-semibold text-white shadow-sm shadow-primary/30 inset-shadow-[0_1px_0_0_rgba(255,255,255,0.25)]"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-violet to-primary text-sm font-semibold text-white shadow-sm shadow-primary/30 inset-shadow-[0_1px_0_0_rgba(255,255,255,0.25)]"
             >
               {user.name.trim().charAt(0).toUpperCase() || "A"}
             </span>

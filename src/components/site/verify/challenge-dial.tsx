@@ -143,7 +143,7 @@ export function ChallengeDial({
             cx={targetX}
             cy={targetY}
             r={7}
-            className={cn("transition-colors", inZone ? "fill-success" : "fill-accent")}
+            className={cn("transition-colors", inZone ? "fill-success" : "fill-accent-ink")}
           />
           {/* needle */}
           <g style={{ transformOrigin: `${CENTER}px ${CENTER}px`, transform: `rotate(${needleAngle}deg)` }}>

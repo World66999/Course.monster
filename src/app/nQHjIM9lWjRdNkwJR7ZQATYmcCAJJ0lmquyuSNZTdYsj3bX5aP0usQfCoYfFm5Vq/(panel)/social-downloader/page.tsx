@@ -75,7 +75,7 @@ export default async function SocialDownloaderPage() {
           >
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">{label}</p>
-              <span className="flex h-9 w-9 items-center justify-center rounded-nested bg-gradient-to-br from-accent to-primary text-white shadow-sm shadow-primary/30">
+              <span className="flex h-9 w-9 items-center justify-center rounded-nested bg-gradient-to-br from-violet to-primary text-white shadow-sm shadow-primary/30">
                 <Icon className="h-4.5 w-4.5" aria-hidden />
               </span>
             </div>

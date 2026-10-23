@@ -121,7 +121,7 @@ export function ChallengeSlider({
         <div
           aria-hidden
           className={cn(
-            "absolute inset-y-0 rounded-full bg-gradient-to-r from-accent/40 to-primary/40 transition-colors",
+            "absolute inset-y-0 rounded-full bg-gradient-to-r from-violet/40 to-primary/40 transition-colors",
             inZone && "from-success/50 to-success/50"
           )}
           style={{

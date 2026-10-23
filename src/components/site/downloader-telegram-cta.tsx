@@ -22,7 +22,7 @@ export function DownloaderTelegramCta({
     <div className="mt-6 rounded-feature border border-border bg-card p-6 shadow-soft sm:p-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-nested bg-gradient-to-br from-accent to-primary text-white shadow-sm shadow-primary/30">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-nested bg-gradient-to-br from-violet to-primary text-white shadow-sm shadow-primary/30">
             <Send className="h-5 w-5" aria-hidden />
           </span>
           <div className="min-w-0">

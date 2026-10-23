@@ -24,7 +24,7 @@ export default async function ChatPage() {
   return (
     <Section className="max-w-2xl py-10 sm:py-14">
       <div className="mb-6 flex items-center gap-2.5">
-        <span className="flex h-10 w-10 items-center justify-center rounded-card bg-gradient-to-br from-accent to-primary text-white shadow-sm shadow-primary/30">
+        <span className="flex h-10 w-10 items-center justify-center rounded-card bg-gradient-to-br from-violet to-primary text-white shadow-sm shadow-primary/30">
           <MessageCircle className="h-5 w-5" aria-hidden />
         </span>
         <div>

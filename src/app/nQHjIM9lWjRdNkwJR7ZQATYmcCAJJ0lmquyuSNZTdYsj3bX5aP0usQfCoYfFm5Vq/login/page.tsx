@@ -19,7 +19,7 @@ export default async function AdminLoginPage() {
       />
       <div className="glass relative w-full max-w-sm rounded-feature p-8 shadow-floating inset-shadow-highlight">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-card bg-gradient-to-br from-accent to-primary text-white shadow-md shadow-primary/30 inset-shadow-[0_1px_0_0_rgba(255,255,255,0.25)]">
+          <span className="flex h-12 w-12 items-center justify-center rounded-card bg-gradient-to-br from-violet to-primary text-white shadow-md shadow-primary/30 inset-shadow-[0_1px_0_0_rgba(255,255,255,0.25)]">
             <GraduationCap className="h-6 w-6" aria-hidden />
           </span>
           <div>

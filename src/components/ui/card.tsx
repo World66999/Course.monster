@@ -16,8 +16,8 @@ import { cn } from "@/lib/utils";
 export function cardClasses(className?: string) {
   return cn(
     "group surface relative flex flex-col rounded-card",
-    "transition-[transform,box-shadow,border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-    "hover:-translate-y-1 hover:border-primary/40 hover:shadow-elevated",
+    "transition-[transform,box-shadow,border-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+    "hover:-translate-y-1.5 hover:border-primary/35 hover:shadow-glow",
     // Touch feedback. globals.css clears `-webkit-tap-highlight-color`
     // app-wide, and the states above are all `hover:` — which a phone never
     // triggers — so tapping a card used to produce no acknowledgement at all

@@ -44,7 +44,7 @@ function Avatar({ author, size = 32 }: { author: RequestCommentDTO["author"]; si
       <span
         aria-hidden
         style={{ width: size, height: size }}
-        className="flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-primary text-white shadow-sm shadow-primary/30"
+        className="flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet to-primary text-white shadow-sm shadow-primary/30"
       >
         <ShieldCheck className="h-4 w-4" />
       </span>

@@ -19,7 +19,8 @@ type Variant =
  */
 const variants: Record<Variant, string> = {
   default: "bg-primary-soft text-primary ring-1 ring-inset ring-primary/20",
-  accent: "bg-accent-soft text-accent ring-1 ring-inset ring-accent/25",
+  // Citrus is a fill colour (see globals.css): solid lime carrying ink text.
+  accent: "bg-accent text-accent-foreground ring-1 ring-inset ring-black/5",
   secondary: "bg-muted text-muted-foreground ring-1 ring-inset ring-border",
   outline: "border border-border text-muted-foreground",
   success: "bg-success-soft text-success ring-1 ring-inset ring-success/20",
