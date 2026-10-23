@@ -4,19 +4,21 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * Sticky header shell that gains a border and elevation only once the page has
- * actually scrolled. A header that is permanently outlined looks like it is
- * floating over nothing at the top of the page; one that never changes looks
- * detached once content slides under it. Scroll state is read with a passive
- * listener and a boolean guard, so this does no work on the vast majority of
- * scroll events.
+ * Sticky header that turns into a floating pill once the page has scrolled.
+ *
+ * The header's own box never changes size: the pill is an absolutely
+ * positioned backdrop layer behind the content that fades and scales in
+ * (opacity + transform only), so the transition cannot shift layout. The
+ * pill is opaque (`glass-chrome`): backdrop-filter was removed app-wide as the
+ * main source of mobile scroll jank. Scroll state is read with a passive
+ * listener and a boolean guard, so almost every scroll event is a no-op.
  */
 export function StickyHeader({ children, className }: { children: React.ReactNode; className?: string }) {
   const [scrolled, setScrolled] = React.useState(false);
 
   React.useEffect(() => {
     const onScroll = () => {
-      const next = window.scrollY > 8;
+      const next = window.scrollY > 12;
       setScrolled((prev) => (prev === next ? prev : next));
     };
     onScroll();
@@ -27,15 +29,21 @@ export function StickyHeader({ children, className }: { children: React.ReactNod
   return (
     <header
       data-scrolled={scrolled ? "true" : "false"}
-      className={cn(
-        "sticky top-0 z-40 transition-[background-color,box-shadow,border-color] duration-300",
-        scrolled
-          ? "glass-chrome border-x-0 border-t-0 border-b border-border shadow-elevated"
-          : "border-x-0 border-t-0 border-b border-transparent bg-background/80",
-        className
-      )}
+      className={cn("group/header sticky top-0 z-40 pt-2", className)}
     >
-      {children}
+      <div className="relative mx-auto max-w-7xl px-2 sm:px-3">
+        <div
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute inset-x-2 inset-y-0 rounded-full sm:inset-x-3",
+            "transition-[opacity,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+            scrolled
+              ? "glass-chrome scale-100 opacity-100 shadow-elevated"
+              : "scale-[0.98] opacity-0"
+          )}
+        />
+        <div className="relative">{children}</div>
+      </div>
     </header>
   );
 }

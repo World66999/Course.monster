@@ -13,7 +13,7 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 const itemBase =
-  "relative inline-flex shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded-control px-2 py-2 text-sm font-medium " +
+  "relative inline-flex shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold " +
   "transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 " +
   "focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
@@ -27,7 +27,7 @@ function ActivePill() {
   return (
     <span
       aria-hidden
-      className="absolute inset-0 -z-10 rounded-control bg-muted ring-1 ring-inset ring-border"
+      className="absolute inset-0 -z-10 rounded-full bg-primary-soft ring-1 ring-inset ring-primary/15"
     />
   );
 }
@@ -48,7 +48,7 @@ export function NavLinks({ links }: { links: ReadonlyArray<NavEntry> }) {
                   className={cn(
                     itemBase,
                     "group",
-                    groupActive ? "text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                    groupActive ? "text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   )}
                 >
                   {groupActive && <ActivePill />}
@@ -81,7 +81,7 @@ export function NavLinks({ links }: { links: ReadonlyArray<NavEntry> }) {
             prefetch={false}
             className={cn(
               itemBase,
-              active ? "text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+              active ? "text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
           >
             {active && <ActivePill />}

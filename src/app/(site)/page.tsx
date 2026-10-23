@@ -1,5 +1,7 @@
 import Link from "next/link";
 import {
+  ArrowRight,
+  ArrowUpRight,
   BarChart3,
   BookOpen,
   Briefcase,
@@ -14,12 +16,13 @@ import {
 import type { Metadata } from "next";
 import { getHomepageData } from "@/lib/courses";
 import { getSiteSettings } from "@/lib/settings";
-import { absoluteUrl, cn, safeJsonLd } from "@/lib/utils";
+import { absoluteUrl, cn, formatNumber, safeJsonLd } from "@/lib/utils";
 import { CourseCard } from "@/components/site/course-card";
 import { Section, SectionHeading } from "@/components/site/section";
 import { Reveal, Stagger, StaggerItem } from "@/components/site/reveal";
 import { Spotlight } from "@/components/motion/interactive";
 import { HomeHero } from "@/components/site/home-hero";
+import { buttonClasses } from "@/components/ui/button";
 
 export const revalidate = 120;
 
@@ -37,6 +40,14 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>
   briefcase: Briefcase,
   smartphone: Smartphone,
 };
+
+/** Icon-tile tones cycled across the category grid, so the brand hues share the load. */
+const CATEGORY_TONES = [
+  "bg-primary/12 text-primary group-hover:bg-primary group-hover:text-primary-foreground",
+  "bg-violet/12 text-violet group-hover:bg-violet group-hover:text-white",
+  "bg-pink/12 text-pink group-hover:bg-pink group-hover:text-white",
+  "bg-accent/40 text-accent-ink group-hover:bg-accent group-hover:text-accent-foreground",
+] as const;
 
 /**
  * Column classes keyed by how many cards a rail actually has.
@@ -127,7 +138,12 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: safeJsonLd([websiteLd, organizationLd]) }}
       />
 
-      <HomeHero siteName={settings.siteName} description={settings.description} stats={stats} />
+      <HomeHero
+        siteName={settings.siteName}
+        description={settings.description}
+        stats={stats}
+        categories={categories.slice(0, 3).map(({ name, slug }) => ({ name, slug }))}
+      />
 
       {/* ---------- Categories ---------- */}
       {categories.length > 0 && (
@@ -141,26 +157,37 @@ export default async function HomePage() {
               linkLabel="View all categories"
             />
           </Reveal>
-          <Stagger stagger={0.035} className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {categories.slice(0, CATEGORY_GRID_LIMIT).map((category) => {
+          <Stagger stagger={0.04} className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+            {categories.slice(0, CATEGORY_GRID_LIMIT).map((category, i) => {
               const Icon = CATEGORY_ICONS[category.icon ?? ""] ?? BookOpen;
               return (
                 <StaggerItem key={category.id}>
                   <Spotlight className="h-full overflow-hidden rounded-card" radius={220}>
-                  <Link
-                    href={`/courses?category=${category.slug}`}
-                    className="group surface flex h-full flex-col items-center gap-3 rounded-card p-5 text-center transition-[transform,box-shadow,border-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:shadow-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                  >
-                    <span className="flex h-11 w-11 items-center justify-center rounded-control bg-primary/10 text-primary transition-[transform,background-color,color,box-shadow] duration-500 group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground group-hover:shadow-[0_0_20px_color-mix(in_srgb,var(--primary)_30%,transparent)]">
-                      <Icon className="h-5 w-5" aria-hidden />
-                    </span>
-                    <span className="text-sm leading-tight font-semibold text-balance">
-                      {category.name}
-                    </span>
-                    <span className="numeric mt-auto text-xs text-muted-foreground">
-                      {category._count.courses} courses
-                    </span>
-                  </Link>
+                    <Link
+                      href={`/courses?category=${category.slug}`}
+                      className="group surface flex h-full flex-col items-start gap-3 rounded-card p-4 sm:flex-row sm:items-center sm:gap-4 transition-[transform,box-shadow,border-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:border-primary/30 hover:shadow-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    >
+                      <span
+                        className={cn(
+                          "flex h-12 w-12 shrink-0 items-center justify-center rounded-nested transition-[transform,background-color,color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:-rotate-6 group-hover:scale-110",
+                          CATEGORY_TONES[i % CATEGORY_TONES.length]
+                        )}
+                      >
+                        <Icon className="h-5 w-5" aria-hidden />
+                      </span>
+                      <span className="flex w-full min-w-0 flex-1 flex-col">
+                        <span className="font-display line-clamp-2 leading-snug font-bold tracking-[-0.01em] break-words sm:line-clamp-1">
+                          {category.name}
+                        </span>
+                        <span className="numeric text-sm text-muted-foreground">
+                          {category._count.courses} courses
+                        </span>
+                      </span>
+                      <ArrowUpRight
+                        className="hidden h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition sm:block-[opacity,translate,color] duration-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary group-hover:opacity-100"
+                        aria-hidden
+                      />
+                    </Link>
                   </Spotlight>
                 </StaggerItem>
               );
@@ -200,50 +227,83 @@ export default async function HomePage() {
         columns="four"
       />
 
-      {/* ---------- Value props ---------- */}
+      {/* ---------- Value props: bento ---------- */}
       <Section rhythm="loose">
-        <div className="surface relative overflow-hidden rounded-feature p-8 sm:p-12 shadow-floating">
-          <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,var(--primary)_15%,transparent),transparent_70%)]" aria-hidden />
-          <div className="noise pointer-events-none absolute inset-0 -z-10 opacity-20" aria-hidden />
-          <Reveal>
-            <SectionHeading
-              align="center"
-              eyebrow="Why here"
-              title="Built for people who actually finish courses"
-              subtitle="No paywalls, no drip-feed, no account required to download."
-            />
+        <div className="grid gap-4 lg:grid-cols-5">
+          {/* Feature panel: the one saturated block on the page. */}
+          <Reveal variant="scale" className="lg:col-span-3">
+            <div className="bg-brand noise relative flex h-full flex-col justify-between overflow-hidden rounded-feature p-8 text-white shadow-floating sm:p-12">
+              <div
+                aria-hidden
+                className="animate-float-slow pointer-events-none absolute -top-16 -right-16 h-64 w-64 rounded-full border-[28px] border-white/10"
+              />
+              <div
+                aria-hidden
+                className="animate-float pointer-events-none absolute right-24 -bottom-10 h-28 w-28 rounded-full bg-accent/90"
+                style={{ animationDelay: "-4s" }}
+              />
+              <div className="relative">
+                <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-eyebrow uppercase ring-1 ring-inset ring-white/25">
+                  Why here
+                </p>
+                <h2 className="text-title max-w-lg text-balance">
+                  Built for people who actually finish courses
+                </h2>
+                <p className="mt-4 max-w-md text-lg text-pretty text-white/85">
+                  No paywalls, no drip-feed, no account required to download.
+                </p>
+              </div>
+              <div className="relative mt-10 flex flex-wrap gap-3">
+                <Link
+                  href="/courses"
+                  className="group inline-flex h-12 items-center gap-2 rounded-full bg-white px-6 font-semibold text-[#0e1022] shadow-elevated transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:shadow-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
+                >
+                  Start browsing
+                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" aria-hidden />
+                </Link>
+                <Link
+                  href="/how-to-download"
+                  className="inline-flex h-12 items-center rounded-full px-6 font-semibold text-white ring-1 ring-inset ring-white/40 transition-[background-color] duration-300 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                >
+                  How it works
+                </Link>
+              </div>
+            </div>
           </Reveal>
-          <Stagger stagger={0.08} className="grid gap-8 sm:grid-cols-3">
+
+          <Stagger stagger={0.1} className="grid gap-4 sm:grid-cols-3 lg:col-span-2 lg:grid-cols-1">
             {[
               {
                 icon: Zap,
+                tone: "bg-accent text-accent-foreground",
                 title: "Fast downloads",
                 text: "Every course goes through a quick, protected download flow — no signup required.",
               },
               {
                 icon: ShieldCheck,
+                tone: "bg-primary text-primary-foreground",
                 title: "Verified content",
                 text: "Courses are checked and organised by category so you always know what you get.",
               },
               {
                 icon: Sparkles,
+                tone: "bg-pink text-white",
                 title: "Always free",
                 text: "Every course on this platform is free to download. Forever.",
               },
-            ].map(({ icon: Icon, title, text }) => (
+            ].map(({ icon: Icon, tone, title, text }) => (
               <StaggerItem key={title}>
-                {/* `surface`, not `glass-veil`: these three cards carry real body
-                    copy, and globals.css marks glass-veil "decorative only —
-                    never put body copy on this one" precisely because its blur
-                    muddies text. They also sat inside a glass-panel, so this was
-                    a blurred backdrop nested inside another blurred backdrop —
-                    the most expensive compositing case there is. */}
-                <div className="group surface relative flex h-full flex-col items-start gap-4 rounded-card p-6 transition-[transform,box-shadow,border-color] duration-500 hover:-translate-y-1 hover:shadow-elevated">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-nested bg-primary/10 text-primary ring-1 ring-inset ring-primary/20 transition-[transform,background-color,color,box-shadow] duration-500 group-hover:bg-primary group-hover:text-primary-foreground group-hover:ring-primary group-hover:shadow-[0_0_20px_color-mix(in_srgb,var(--primary)_30%,transparent)] group-hover:scale-110">
+                <div className="group surface flex h-full gap-4 rounded-card p-5 transition-[transform,box-shadow,border-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:border-primary/30 hover:shadow-glow sm:flex-col lg:flex-row">
+                  <span
+                    className={cn(
+                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-nested shadow-soft transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:-rotate-6 group-hover:scale-110",
+                      tone
+                    )}
+                  >
                     <Icon className="h-5 w-5" aria-hidden />
                   </span>
                   <div>
-                    <h3 className="text-subheading mb-2">{title}</h3>
+                    <h3 className="text-subheading mb-1.5">{title}</h3>
                     <p className="text-sm leading-relaxed text-muted-foreground">{text}</p>
                   </div>
                 </div>
@@ -251,6 +311,33 @@ export default async function HomePage() {
             ))}
           </Stagger>
         </div>
+      </Section>
+
+      {/* ---------- Closing CTA ---------- */}
+      <Section rhythm="tight" className="pb-4 sm:pb-6">
+        <Reveal>
+          <div className="surface relative overflow-hidden rounded-feature px-6 py-12 text-center sm:px-12 sm:py-16">
+            <div aria-hidden className="bg-aurora pointer-events-none absolute inset-0" />
+            <div aria-hidden className="bg-dots pointer-events-none absolute inset-0 opacity-70" />
+            <div className="relative mx-auto max-w-2xl">
+              <h2 className="text-heading text-balance">
+                Your next skill is <span className="text-gradient">one search away</span>
+              </h2>
+              <p className="mt-3 text-pretty text-muted-foreground sm:text-lg">
+                {formatNumber(stats.courses)} courses across {stats.categories} categories, free to download.
+              </p>
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+                <Link href="/courses" className={buttonClasses("brand", "lg", "group")}>
+                  Explore courses
+                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" aria-hidden />
+                </Link>
+                <Link href="/requests" className={buttonClasses("outline", "lg")}>
+                  Request a course
+                </Link>
+              </div>
+            </div>
+          </div>
+        </Reveal>
       </Section>
     </>
   );

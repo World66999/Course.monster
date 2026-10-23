@@ -27,17 +27,17 @@ export function SiteLogo({ settings, className }: { settings: SiteSettings; clas
         // eslint-disable-next-line @next/next/no-img-element
         <img src={settings.logoUrl} alt="" className="h-7 w-auto shrink-0" />
       ) : (
-        // The mark carries both brand hues, which is what makes iris+gold read
-        // as a deliberate pairing rather than an accent colour used once.
-        <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-control bg-primary text-primary-foreground shadow-primary inset-shadow-highlight transition-transform duration-300 group-hover:scale-105">
+        // Brand-gradient tile with a citrus spark: the one place all the brand
+        // hues meet, so the palette reads as deliberate from the first glance.
+        <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-[0.8rem] bg-brand text-white shadow-primary inset-shadow-highlight transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:-rotate-6 group-hover:scale-110">
           <span
             aria-hidden
-            className="absolute -right-2 -bottom-2 h-6 w-6 rounded-full bg-accent/70 blur-[6px]"
+            className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-accent ring-2 ring-white/40"
           />
           <GraduationCap className="relative h-5 w-5" aria-hidden />
         </span>
       )}
-      <span className="truncate text-lg tracking-[-0.02em]">{settings.siteName}</span>
+      <span className="font-display truncate text-lg font-extrabold tracking-[-0.035em]">{settings.siteName}</span>
     </Link>
   );
 }
@@ -46,17 +46,13 @@ export function AnnouncementBar({ settings }: { settings: SiteSettings }) {
   const { announcement } = settings;
   if (!announcement.enabled || !announcement.text) return null;
   return (
-    <div className="relative overflow-hidden bg-primary text-primary-foreground">
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-[radial-gradient(28rem_8rem_at_20%_50%,var(--accent),transparent_70%)] opacity-25"
-      />
+    <div className="bg-brand relative overflow-hidden text-white">
       <p className="page-gutter relative mx-auto max-w-7xl py-2 text-center text-sm font-medium">
         {announcement.text}
         {announcement.linkUrl && (
           <a
             href={announcement.linkUrl}
-            className="ml-2 underline decoration-current/40 underline-offset-4 transition-colors hover:decoration-current"
+            className="ml-2 inline-flex items-center rounded-full bg-white/15 px-2.5 py-0.5 font-semibold ring-1 ring-inset ring-white/25 transition-[background-color] duration-300 hover:bg-white/25"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -79,10 +75,10 @@ export function Header({ settings }: { settings: SiteSettings }) {
       </a>
       <AnnouncementBar settings={settings} />
       <StickyHeader>
-        <div className="page-gutter mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 sm:gap-4">
+        <div className="flex h-16 items-center justify-between gap-2 px-[max(0.75rem,env(safe-area-inset-left))] sm:gap-4 sm:px-5">
           <div className="flex min-w-0 items-center gap-3 xl:gap-5">
             <SiteLogo settings={settings} className="min-w-0" />
-            <nav aria-label="Main" className="hidden items-center gap-0.5 xl:flex">
+            <nav aria-label="Main" className="hidden items-center gap-1 xl:flex">
               <NavLinks links={NAV_LINKS} />
             </nav>
           </div>

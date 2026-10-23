@@ -28,11 +28,14 @@ export function MobileNav({ settings }: { settings: SiteSettings }) {
         </Button>
       </DialogPrimitive.Trigger>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-[oklch(0.13_0.02_285_/_0.55)]" />
-        {/* `pr` picks up the right-hand safe-area inset: the drawer is pinned to
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-[oklch(0.16_0.03_270_/_0.5)] data-[state=closed]:animate-overlay-out data-[state=open]:animate-overlay-in" />
+        {/* Slides in from the right (transform only); Radix keeps it mounted
+            until the closing animation ends. Links then rise in sequence via
+            `rise-in` + a per-item `--d`. Reduced motion collapses both.
+            `pr` picks up the right-hand safe-area inset: the drawer is pinned to
             the right edge, and with `viewport-fit=cover` a notched iPhone in
             landscape can put the notch or home indicator over exactly that edge. */}
-        <DialogPrimitive.Content className="glass-panel fixed top-0 right-0 z-50 flex h-dvh w-[min(20rem,88vw)] flex-col overflow-y-auto rounded-none border-y-0 border-r-0 p-6 pr-[max(1.5rem,env(safe-area-inset-right))] pb-[calc(1.5rem+env(safe-area-inset-bottom))] focus:outline-none">
+        <DialogPrimitive.Content className="glass-panel fixed top-0 right-0 z-50 flex h-dvh w-[min(21rem,90vw)] flex-col overflow-y-auto *:shrink-0 rounded-l-panel rounded-r-none border-y-0 border-r-0 p-6 shadow-floating data-[state=closed]:animate-drawer-out data-[state=open]:animate-drawer-in pr-[max(1.5rem,env(safe-area-inset-right))] pb-[calc(1.5rem+env(safe-area-inset-bottom))] focus:outline-none">
                 <DialogPrimitive.Title className="sr-only">Menu</DialogPrimitive.Title>
                 <div className="mb-6 flex items-center justify-between">
                   <span className="font-display text-subheading">{settings.siteName}</span>
@@ -43,9 +46,13 @@ export function MobileNav({ settings }: { settings: SiteSettings }) {
                   </DialogPrimitive.Close>
                 </div>
                 <nav aria-label="Mobile" className="flex flex-col gap-1">
-                  {NAV_LINKS.map((link) =>
+                  {NAV_LINKS.map((link, i) =>
                     "children" in link ? (
-                      <div key={link.label} className="py-1">
+                      <div
+                        key={link.label}
+                        className="rise-in py-1"
+                        style={{ "--d": `${80 + i * 45}ms` } as React.CSSProperties}
+                      >
                         <p className="px-3 pt-2 pb-1 text-eyebrow text-muted-foreground uppercase">
                           {link.label}
                         </p>
@@ -54,7 +61,7 @@ export function MobileNav({ settings }: { settings: SiteSettings }) {
                             key={child.href}
                             href={child.href}
                             className={cn(
-                              "block rounded-control px-3 py-3 text-sm font-medium transition-colors hover:bg-muted",
+                              "block rounded-control px-3 py-3 text-base font-semibold transition-[background-color,color,transform] duration-300 hover:translate-x-1 hover:bg-muted",
                               pathname === child.href
                                 ? "bg-primary-soft text-primary ring-1 ring-inset ring-primary/20"
                                 : "text-foreground"
@@ -68,8 +75,9 @@ export function MobileNav({ settings }: { settings: SiteSettings }) {
                       <Link
                         key={link.href}
                         href={link.href}
+                        style={{ "--d": `${80 + i * 45}ms` } as React.CSSProperties}
                         className={cn(
-                          "rounded-control px-3 py-3 text-sm font-medium transition-colors hover:bg-muted",
+                          "rise-in rounded-control px-3 py-3 text-base font-semibold transition-[background-color,color,transform] duration-300 hover:translate-x-1 hover:bg-muted",
                           pathname === link.href
                             ? "bg-primary-soft text-primary ring-1 ring-inset ring-primary/20"
                             : "text-foreground"
@@ -85,7 +93,7 @@ export function MobileNav({ settings }: { settings: SiteSettings }) {
                     href={settings.telegramUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={buttonClasses("primary", "md", "mt-6 w-full")}
+                    className={buttonClasses("brand", "md", "mt-6 w-full")}
                   >
                     <Send className="h-4 w-4" aria-hidden />
                     Join Telegram

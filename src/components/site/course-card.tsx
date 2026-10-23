@@ -1,6 +1,6 @@
 import * as React from "react";
 import Link from "next/link";
-import { Download, Film, HardDrive, Sparkles, Timer, TrendingUp } from "lucide-react";
+import { ArrowUpRight, Download, Film, HardDrive, Sparkles, Timer, TrendingUp } from "lucide-react";
 import type { CourseCard as CourseCardData } from "@/lib/courses";
 import { Badge } from "@/components/ui/badge";
 import { CourseImage } from "@/components/site/course-image";
@@ -28,25 +28,31 @@ const CourseCard = React.memo(function CourseCard({ course, priority = false }: 
  <Link
  href={`/courses/${course.slug}`}
  className={cn(
- "group surface relative flex h-full flex-col overflow-hidden rounded-card",
+ "group surface relative flex h-full flex-col overflow-hidden rounded-card p-2",
  "transition-[transform,box-shadow,border-color] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
- "hover:-translate-y-1 hover:shadow-elevated",
+ "hover:-translate-y-1.5 hover:border-primary/35 hover:shadow-glow",
  "active:scale-[0.99] active:shadow-soft",
  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
- course.featured ? "edge-gradient shadow-elevated ring-1 ring-inset ring-primary/20" : ""
+ course.featured ? "edge-gradient shadow-elevated" : ""
  )}
  >
- <div className="relative aspect-video overflow-hidden bg-muted">
+ <div className="relative aspect-video overflow-hidden rounded-nested bg-muted">
  <CourseImage
  src={course.thumbnail}
  title={course.title}
  loading={priority ? "eager" : "lazy"}
- className="transition-transform duration-500 ease-out group-hover:scale-[1.05]"
+ className="transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.06]"
  />
  <div
  aria-hidden
- className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+ className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"
  />
+ <span
+ aria-hidden
+ className="absolute right-3 bottom-3 flex h-9 w-9 translate-y-2 items-center justify-center rounded-full bg-white text-[#0e1022] opacity-0 shadow-elevated transition-[opacity,translate] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100"
+ >
+ <ArrowUpRight className="h-4 w-4" />
+ </span>
  <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
  {course.featured && (
  <Badge variant="accent" className="shadow-soft">
@@ -62,15 +68,15 @@ const CourseCard = React.memo(function CourseCard({ course, priority = false }: 
  )}
  </div>
  <div className="absolute top-3 right-3">
- <Badge variant="secondary" className="bg-white/90 text-foreground dark:bg-black/70 dark:text-foreground">
+ <Badge variant="secondary" className="bg-white/90 font-semibold text-[#0e1022] ring-0 dark:bg-black/70 dark:text-foreground">
  {course.skillLevel ? SKILL_LABELS[course.skillLevel] : "-"}
  </Badge>
  </div>
  </div>
- <div className="flex flex-1 flex-col p-4">
+ <div className="flex flex-1 flex-col px-2.5 pt-4 pb-2">
  <div className="flex items-start gap-3">
  <div className="flex-1 min-w-0">
- <h3 className="line-clamp-2 font-semibold text-card-foreground group-hover:text-primary transition-colors">
+ <h3 className="font-display line-clamp-2 text-[1.0625rem] leading-snug font-bold tracking-[-0.015em] text-card-foreground transition-colors duration-300 group-hover:text-primary">
  {course.title}
  </h3>
  {course.shortDescription && (
@@ -94,10 +100,14 @@ const CourseCard = React.memo(function CourseCard({ course, priority = false }: 
  </span>
  </div>
  )}
- <div className="mt-3 flex items-center justify-between gap-2">
- <Badge variant="outline" className="truncate">
- {course.category?.name ?? ""}
+ <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+ {course.category?.name ? (
+ <Badge variant="default" className="truncate">
+ {course.category.name}
  </Badge>
+ ) : (
+ <span />
+ )}
  <span className="text-xs text-muted-foreground" suppressHydrationWarning>
  {formatDistanceToNow(course.contentUpdatedAt, { addSuffix: true })}
  </span>

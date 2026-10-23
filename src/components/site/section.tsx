@@ -16,7 +16,7 @@ export function Section({
   const rhythms = {
     none: "",
     tight: "py-10 sm:py-12",
-    default: "py-14 sm:py-18",
+    default: "py-14 sm:py-20",
     loose: "py-20 sm:py-28",
   } as const;
   return (
@@ -26,6 +26,21 @@ export function Section({
     >
       {children}
     </section>
+  );
+}
+
+/** Small pill label above a heading: a citrus dot plus letter-spaced text. */
+export function Eyebrow({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <p
+      className={cn(
+        "mb-3 inline-flex items-center gap-2 rounded-full bg-primary-soft px-3 py-1 text-eyebrow text-primary uppercase ring-1 ring-inset ring-primary/15",
+        className
+      )}
+    >
+      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-accent ring-2 ring-accent/30" />
+      {children}
+    </p>
   );
 }
 
@@ -60,27 +75,21 @@ export function SectionHeading({
       )}
     >
       <div className={cn("min-w-0", align === "center" && "max-w-2xl")}>
-        {eyebrow && (
-          <p className="mb-2 flex items-center gap-2 text-eyebrow text-primary uppercase">
-            {align === "start" && <span aria-hidden className="h-px w-6 bg-primary/50" />}
-            {eyebrow}
-          </p>
-        )}
+        {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
         <h2 className="text-heading text-balance">{title}</h2>
         {subtitle && (
-          <p className="mt-2 max-w-prose text-pretty text-muted-foreground">{subtitle}</p>
+          <p className="mt-3 max-w-prose text-pretty text-muted-foreground sm:text-lg">{subtitle}</p>
         )}
       </div>
       {href && (
         <Link
           href={href}
-          className="group hidden shrink-0 items-center gap-1.5 rounded-control px-1 py-1 text-sm font-medium text-primary transition-colors hover:text-primary-hover sm:inline-flex"
+          className="group hidden shrink-0 items-center gap-2 rounded-full border border-border bg-card py-2 pr-2 pl-4 text-sm font-semibold shadow-soft transition-[border-color,box-shadow,color] duration-300 hover:border-primary/40 hover:text-primary hover:shadow-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:inline-flex"
         >
           {linkLabel}
-          <ArrowRight
-            className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1"
-            aria-hidden
-          />
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-x-0.5 group-hover:-rotate-45">
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+          </span>
         </Link>
       )}
     </div>
@@ -120,21 +129,32 @@ export function PageHeader({
           pointer-transparent. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 -top-24 -bottom-8 -z-10 bg-[radial-gradient(38rem_16rem_at_12%_35%,color-mix(in_srgb,var(--primary)_10%,transparent),transparent_70%)]"
+        className="pointer-events-none absolute inset-x-0 -top-32 -bottom-10 -z-10 bg-[radial-gradient(36rem_16rem_at_10%_30%,var(--wash-1),transparent_70%),radial-gradient(28rem_14rem_at_70%_10%,var(--wash-3),transparent_70%)]"
       />
+      {/* CSS-only entrance (`rise-in`): page titles are above the fold, where a
+          scroll reveal would have nothing to wait for. */}
       <div className="min-w-0">
-        {eyebrow && (
-          <p className="mb-2 flex items-center gap-2 text-eyebrow text-primary uppercase">
-            <span aria-hidden className="h-px w-6 bg-primary/50" />
-            {eyebrow}
+        {eyebrow && <Eyebrow className="rise-in">{eyebrow}</Eyebrow>}
+        <h1 className="rise-in text-title text-balance" style={{ "--d": "60ms" } as React.CSSProperties}>
+          {title}
+        </h1>
+        {description && (
+          <p
+            className="rise-in mt-3 max-w-2xl text-pretty text-muted-foreground sm:text-lg"
+            style={{ "--d": "140ms" } as React.CSSProperties}
+          >
+            {description}
           </p>
         )}
-        <h1 className="text-title text-balance">{title}</h1>
-        {description && (
-          <p className="mt-3 max-w-2xl text-pretty text-muted-foreground">{description}</p>
-        )}
       </div>
-      {actions && <div className="flex shrink-0 flex-wrap items-center gap-3">{actions}</div>}
+      {actions && (
+        <div
+          className="rise-in flex shrink-0 flex-wrap items-center gap-3"
+          style={{ "--d": "200ms" } as React.CSSProperties}
+        >
+          {actions}
+        </div>
+      )}
     </div>
   );
 }
