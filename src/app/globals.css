@@ -9,122 +9,144 @@
 @custom-variant pointer-coarse (@media (pointer: coarse));
 
 /* ============================================================================
-   DESIGN TOKENS
+   DESIGN TOKENS — "Daylight"
 
-   Two-tone brand: Iris (primary, cool) + Gold (accent, warm).
-   The previous palette was indigo-600 + blue-500 — two neighbouring cool hues
-   that read as generic SaaS and left nothing to signal achievement/featured
-   state. Gold now carries "featured / trending / rated"; iris carries "action".
+   Ultra Blue (primary, action) + Citrus (accent, highlight) over warm
+   off-white neutrals, with a blue → violet → pink gradient family for washes
+   and decoration. Citrus is a *fill* colour: it is far too light to be text on
+   a light surface, so it always carries ink (`accent-foreground`) and anything
+   that needs accent-coloured text or strokes uses `accent-ink`, which is the
+   contrast-checked version of the same hue.
 
-   Every token name below is unchanged from the previous system, so the ~90
-   components already consuming --shadow-soft, --color-primary etc. re-skin
-   without edits. New tokens are purely additive.
+   Token names are shared with every component in the app, so the whole
+   product (admin included) re-skins from this block. New tokens are additive.
+   Text pairs below are AA against `--background` and `--card`.
    ========================================================================= */
 
 :root {
   color-scheme: light;
 
-  /* Surfaces: a real elevation ladder, not one flat card colour. */
-  --background: #f6f6fa;
-  --surface-sunken: #eeeef5;
+  /* Surfaces */
+  --background: #fafaf7;
+  --surface-sunken: #f2f2ec;
   --card: #ffffff;
   --surface-raised: #ffffff;
-  --foreground: #14141f;
-  --card-foreground: #14141f;
-  --muted: #f0f0f6;
-  --muted-foreground: #55556b;
-  --border: #e3e3ee;
-  --border-strong: #87879d;
-  --input: #87879d;
+  --foreground: #0e1022;
+  --card-foreground: #0e1022;
+  --muted: #f1f1eb;
+  --muted-foreground: #565a70;
+  --border: #e7e7df;
+  --border-strong: #8a8d9f;
+  --input: #8a8d9f;
 
   /* Brand */
-  --primary: #4c3fd9;
-  --primary-hover: #3f33bd;
+  --primary: #2f5bff;
+  --primary-hover: #1e47e8;
   --primary-foreground: #ffffff;
-  --primary-soft: #eeecfd;
-  --accent: #9a6510;
-  --accent-hover: #815310;
-  --accent-foreground: #ffffff;
-  --accent-soft: #fbf1de;
-  --ring: #4c3fd9;
+  --primary-soft: #ebefff;
+  --accent: #c6f432;
+  --accent-hover: #b6e81c;
+  --accent-foreground: #0e1022;
+  --accent-soft: #f2fbd2;
+  --accent-ink: #4a6400;
+  --violet: #7c4dff;
+  --pink: #ff4f9a;
+  --ring: #2f5bff;
 
   /* Semantic status */
-  --success: #04785d;
-  --success-soft: #dff5ee;
+  --success: #037a5a;
+  --success-soft: #ddf5ec;
   --warning: #9a5b06;
   --warning-soft: #fcefdb;
-  --destructive: #cf2c2c;
-  --destructive-soft: #fdeaea;
+  --destructive: #d12d3a;
+  --destructive-soft: #fdeaec;
   --info: #1f4fd8;
   --info-soft: #e7edfe;
 
-  /* Effects */
-  --glass: rgba(255, 255, 255, 0.74);
-  --glass-border: rgba(20, 20, 31, 0.07);
-  --edge-light: rgba(255, 255, 255, 0.7);
+  /* Gradient family. `--grad-brand` is the one saturated gradient (CTAs,
+     headline highlight); the wash stops are low-alpha for backgrounds. */
+  --grad-brand: linear-gradient(115deg, #2f5bff 0%, #7c4dff 52%, #ff4f9a 100%);
+  --wash-1: rgb(47 91 255 / 0.16);
+  --wash-2: rgb(124 77 255 / 0.13);
+  --wash-3: rgb(255 79 154 / 0.11);
+  --wash-4: rgb(198 244 50 / 0.22);
 
-  /* Elevation: a tight contact shadow plus a wide ambient shadow at every
-     step. That pairing is what separates a designed surface from a single
-     blurry drop shadow. */
-  --sh-soft: 0 1px 1px rgb(20 20 45 / 0.04), 0 2px 6px -1px rgb(20 20 45 / 0.06);
+  /* Effects */
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(14, 16, 34, 0.07);
+  --edge-light: rgba(255, 255, 255, 0.75);
+
+  /* Elevation: contact shadow + wide ambient shadow at every step. Tinted
+     toward the ink hue rather than pure black so they read soft, not dirty. */
+  --sh-soft: 0 1px 1px rgb(14 16 60 / 0.04), 0 2px 8px -2px rgb(14 16 60 / 0.06);
   --sh-elevated:
-    0 1px 2px rgb(20 20 45 / 0.05), 0 8px 20px -6px rgb(20 20 45 / 0.12),
-    0 18px 36px -18px rgb(20 20 45 / 0.14);
+    0 1px 2px rgb(14 16 60 / 0.05), 0 10px 24px -8px rgb(14 16 60 / 0.12),
+    0 24px 44px -22px rgb(14 16 60 / 0.16);
   --sh-floating:
-    0 2px 4px rgb(20 20 45 / 0.06), 0 16px 32px -10px rgb(20 20 45 / 0.16),
-    0 40px 64px -24px rgb(20 20 45 / 0.24);
-  --sh-primary: 0 1px 2px rgb(76 63 217 / 0.24), 0 8px 20px -6px rgb(76 63 217 / 0.36);
+    0 2px 4px rgb(14 16 60 / 0.05), 0 20px 40px -12px rgb(14 16 60 / 0.16),
+    0 48px 80px -28px rgb(14 16 60 / 0.22);
+  --sh-primary: 0 1px 2px rgb(47 91 255 / 0.25), 0 10px 24px -8px rgb(47 91 255 / 0.45);
+  --sh-glow: 0 0 0 1px rgb(47 91 255 / 0.18), 0 14px 40px -12px rgb(47 91 255 / 0.35);
 }
 
 .dark {
   color-scheme: dark;
 
-  --background: #08080f;
-  --surface-sunken: #05050b;
-  --card: #101019;
-  --surface-raised: #16161f;
-  --foreground: #e9e9f2;
-  --card-foreground: #e9e9f2;
-  --muted: #191922;
-  --muted-foreground: #9a9ab2;
-  --border: #23232f;
-  --border-strong: #62627a;
-  --input: #62627a;
+  --background: #0a0b14;
+  --surface-sunken: #06070d;
+  --card: #12131f;
+  --surface-raised: #181a28;
+  --foreground: #eef0f8;
+  --card-foreground: #eef0f8;
+  --muted: #1a1c2a;
+  --muted-foreground: #a0a4bd;
+  --border: #252838;
+  --border-strong: #63677e;
+  --input: #63677e;
 
-  /* Dark mode uses lighter, less saturated brand tones — never the same hex as
-     light mode — so contrast is earned rather than assumed. Primary is light
-     enough here that its foreground flips to ink. */
-  --primary: #8f81ff;
-  --primary-hover: #a79cff;
-  --primary-foreground: #0a0a12;
-  --primary-soft: #191634;
-  --accent: #e8b34a;
-  --accent-hover: #f0c667;
-  --accent-foreground: #14140a;
-  --accent-soft: #2a2110;
-  --ring: #8f81ff;
+  /* Lighter, less saturated brand tones in dark mode; primary is light enough
+     here that its foreground flips to ink. */
+  --primary: #7c9bff;
+  --primary-hover: #9cb3ff;
+  --primary-foreground: #0a0b14;
+  --primary-soft: #151c3b;
+  --accent: #d4ff4f;
+  --accent-hover: #e1ff7d;
+  --accent-foreground: #0e1022;
+  --accent-soft: #20280b;
+  --accent-ink: #d4ff4f;
+  --violet: #a68bff;
+  --pink: #ff7ab4;
+  --ring: #7c9bff;
 
   --success: #3ddba6;
   --success-soft: #0d2a21;
   --warning: #f3b34d;
   --warning-soft: #2c2010;
-  --destructive: #ff6b6b;
-  --destructive-soft: #2e1416;
+  --destructive: #ff6b78;
+  --destructive-soft: #2e1418;
   --info: #7ea6ff;
   --info-soft: #131c33;
 
-  --glass: rgba(16, 16, 25, 0.72);
-  --glass-border: rgba(154, 154, 178, 0.14);
+  --grad-brand: linear-gradient(115deg, #7c9bff 0%, #a68bff 52%, #ff7ab4 100%);
+  --wash-1: rgb(124 155 255 / 0.16);
+  --wash-2: rgb(166 139 255 / 0.13);
+  --wash-3: rgb(255 122 180 / 0.09);
+  --wash-4: rgb(212 255 79 / 0.08);
+
+  --glass: rgba(18, 19, 31, 0.72);
+  --glass-border: rgba(160, 164, 189, 0.14);
   --edge-light: rgba(255, 255, 255, 0.06);
 
-  --sh-soft: 0 1px 1px rgb(0 0 0 / 0.5), 0 2px 6px -1px rgb(0 0 0 / 0.4);
+  --sh-soft: 0 1px 1px rgb(0 0 0 / 0.5), 0 2px 8px -2px rgb(0 0 0 / 0.4);
   --sh-elevated:
-    0 1px 2px rgb(0 0 0 / 0.5), 0 8px 20px -6px rgb(0 0 0 / 0.55),
-    0 18px 36px -18px rgb(0 0 0 / 0.6);
+    0 1px 2px rgb(0 0 0 / 0.5), 0 10px 24px -8px rgb(0 0 0 / 0.55),
+    0 24px 44px -22px rgb(0 0 0 / 0.6);
   --sh-floating:
-    0 2px 4px rgb(0 0 0 / 0.55), 0 16px 32px -10px rgb(0 0 0 / 0.6),
-    0 40px 64px -24px rgb(0 0 0 / 0.7);
-  --sh-primary: 0 1px 2px rgb(143 129 255 / 0.3), 0 8px 20px -6px rgb(143 129 255 / 0.4);
+    0 2px 4px rgb(0 0 0 / 0.55), 0 20px 40px -12px rgb(0 0 0 / 0.6),
+    0 48px 80px -28px rgb(0 0 0 / 0.7);
+  --sh-primary: 0 1px 2px rgb(124 155 255 / 0.3), 0 10px 24px -8px rgb(124 155 255 / 0.4);
+  --sh-glow: 0 0 0 1px rgb(124 155 255 / 0.25), 0 14px 40px -12px rgb(124 155 255 / 0.35);
 }
 
 @theme inline {
@@ -148,6 +170,9 @@
   --color-accent-hover: var(--accent-hover);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-violet: var(--violet);
+  --color-pink: var(--pink);
   --color-ring: var(--ring);
 
   --color-success: var(--success);
@@ -159,59 +184,61 @@
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
 
-  --font-sans: var(--font-geist-sans);
-  --font-display: var(--font-jakarta);
+  --font-sans: var(--font-figtree);
+  --font-display: var(--font-bricolage);
   --font-mono: var(--font-geist-mono);
 
   /* Type scale — a real 1.2/1.25 ramp with tracking and leading baked in, so
      a heading is one class instead of three guessed ones. */
   --text-eyebrow: 0.6875rem;
   --text-eyebrow--line-height: 1rem;
-  --text-eyebrow--letter-spacing: 0.09em;
-  --text-eyebrow--font-weight: 600;
+  --text-eyebrow--letter-spacing: 0.1em;
+  --text-eyebrow--font-weight: 700;
 
-  --text-display: clamp(2.5rem, 1.4rem + 4.6vw, 4.5rem);
-  --text-display--line-height: 1.02;
-  --text-display--letter-spacing: -0.022em;
-  --text-display--font-weight: 700;
+  /* Bricolage is set tight and heavy at display sizes. */
+  --text-display: clamp(2.75rem, 1.3rem + 6vw, 5.5rem);
+  --text-display--line-height: 0.98;
+  --text-display--letter-spacing: -0.04em;
+  --text-display--font-weight: 800;
 
-  --text-title: clamp(1.875rem, 1.35rem + 2.1vw, 2.75rem);
-  --text-title--line-height: 1.1;
-  --text-title--letter-spacing: -0.02em;
-  --text-title--font-weight: 700;
+  --text-title: clamp(2rem, 1.3rem + 2.8vw, 3.25rem);
+  --text-title--line-height: 1.04;
+  --text-title--letter-spacing: -0.035em;
+  --text-title--font-weight: 800;
 
-  --text-heading: clamp(1.375rem, 1.15rem + 0.95vw, 1.75rem);
-  --text-heading--line-height: 1.2;
-  --text-heading--letter-spacing: -0.015em;
-  --text-heading--font-weight: 650;
+  --text-heading: clamp(1.625rem, 1.2rem + 1.5vw, 2.375rem);
+  --text-heading--line-height: 1.1;
+  --text-heading--letter-spacing: -0.03em;
+  --text-heading--font-weight: 750;
 
-  --text-subheading: 1.125rem;
-  --text-subheading--line-height: 1.4;
-  --text-subheading--letter-spacing: -0.012em;
-  --text-subheading--font-weight: 600;
+  --text-subheading: 1.1875rem;
+  --text-subheading--line-height: 1.35;
+  --text-subheading--letter-spacing: -0.015em;
+  --text-subheading--font-weight: 650;
 
-  --text-lead: 1.0625rem;
-  --text-lead--line-height: 1.65;
+  --text-lead: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
+  --text-lead--line-height: 1.6;
 
   /* Radius ladder. Every surface picks a rung and nothing is hand-guessed;
      the codebase previously mixed rounded-md/lg/xl/2xl/3xl with no rule about
      which belonged where. Nesting goes inward: a feature panel holds cards,
      a card holds nested tiles, a tile holds controls.
-       control  0.625  buttons, inputs, selects, menu rows, nav pills
-       nested   0.75   thumbnails and icon tiles *inside* a card
-       card     1.00   the standard content card
-       panel    1.25   dialogs, popovers, drawers, stat panels
-       feature  1.75   full-width marketing/feature blocks */
-  --radius-control: 0.625rem;
-  --radius-nested: 0.75rem;
-  --radius-card: 1rem;
-  --radius-panel: 1.25rem;
-  --radius-feature: 1.75rem;
+       control  0.75   inputs, selects, menu rows (buttons are pills)
+       nested   0.875  thumbnails and icon tiles *inside* a card
+       card     1.25   the standard content card
+       panel    1.5    dialogs, popovers, drawers, stat panels
+       feature  2.00   full-width marketing/feature blocks */
+  --radius-control: 0.75rem;
+  --radius-nested: 0.875rem;
+  --radius-card: 1.25rem;
+  --radius-panel: 1.5rem;
+  --radius-feature: 2rem;
 
   --shadow-soft: var(--sh-soft);
   --shadow-elevated: var(--sh-elevated);
   --shadow-floating: var(--sh-floating);
   --shadow-primary: var(--sh-primary);
+  --shadow-glow: var(--sh-glow);
   --inset-shadow-highlight: inset 0 1px 0 0 var(--edge-light);
 
   /* Motion tokens. One rhythm for the whole product: shared durations and a
@@ -228,6 +255,80 @@
   --animate-dialog-in: dialog-in 0.26s var(--ease-emphasis);
   --animate-dialog-out: dialog-out 0.15s var(--ease-exit);
   --animate-pop-in: pop-in 0.16s var(--ease-emphasis);
+  --animate-drawer-in: drawer-in 0.5s var(--ease-emphasis);
+  --animate-drawer-out: drawer-out 0.28s var(--ease-exit);
+  --animate-page-in: page-in 0.45s var(--ease-emphasis);
+  --animate-rise: rise 0.8s var(--ease-emphasis) both;
+  --animate-float: float 9s ease-in-out infinite;
+  --animate-float-slow: float 14s ease-in-out infinite;
+  --animate-drift: drift 22s ease-in-out infinite alternate;
+
+  @keyframes drawer-in {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+  @keyframes drawer-out {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
+  /* Client-side route change only (see (site)/template.tsx). Never on the
+     first paint, so it cannot delay LCP. Opacity only: a transform on the
+     route wrapper would make it the containing block for `position: fixed`
+     descendants (the course page's mobile download bar) mid-transition. */
+  @keyframes page-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  /* Above-the-fold entrance. Starts at 0.01 opacity rather than 0: Chrome
+     does not consider an opacity:0 element for LCP, so a true zero would push
+     the hero's LCP back by the animation delay. Pure CSS, so it plays (and
+     finishes) with JavaScript disabled too. */
+  @keyframes rise {
+    from {
+      opacity: 0.01;
+      transform: translateY(0.45em);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  /* Literal values only: keyframes that read a custom property cannot run
+     on the compositor, so a var() here re-ran style on the main thread every
+     frame for every floating element. Tilt goes on the element's own static
+     `rotate` instead. */
+  @keyframes float {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+    50% {
+      transform: translate3d(0, -14px, 0);
+    }
+  }
+  @keyframes drift {
+    0% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(6%, 4%, 0) scale(1.08);
+    }
+    100% {
+      transform: translate3d(-4%, 8%, 0) scale(0.96);
+    }
+  }
 
   @keyframes shimmer {
     from {
@@ -326,14 +427,15 @@ body {
   color: var(--foreground);
   /* Reference the next/font variable directly. Going through Tailwind's
      --font-sans does not work here: that token is declared on :root with the
-     value var(--font-geist-sans), but next/font only defines
-     --font-geist-sans on <body>, so at :root it resolves to the
+     value var(--font-figtree), but next/font only defines
+     --font-figtree on <body>, so at :root it resolves to the
      guaranteed-invalid value and the whole declaration is dropped. */
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-figtree), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  /* Slightly tighter default tracking reads as more considered at body size. */
-  letter-spacing: -0.006em;
+  /* Figtree is open and round; a hair of negative tracking keeps body copy
+     from looking loose next to the tight display face. */
+  letter-spacing: -0.005em;
 }
 
 /* Headings carry the display face. Applying it here rather than per-component
@@ -344,8 +446,7 @@ h2,
 h3,
 h4,
 .font-display {
-  font-family: var(--font-jakarta), var(--font-geist-sans), system-ui, sans-serif;
-  font-feature-settings: "ss01" 1;
+  font-family: var(--font-bricolage), var(--font-figtree), system-ui, sans-serif;
 }
 
 ::selection {
@@ -496,11 +597,7 @@ h4,
 }
 
 @utility text-gradient {
-  background: linear-gradient(
-    100deg,
-    var(--primary) 0%,
-    color-mix(in oklab, var(--primary) 78%, var(--accent) 22%) 100%
-  );
+  background: var(--grad-brand);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -517,8 +614,39 @@ h4,
 /* Soft radial glow overlay; background-image only so it layers over any surface. */
 @utility bg-aurora {
   background-image:
-    radial-gradient(38rem 20rem at 18% 0%, color-mix(in srgb, var(--primary) 13%, transparent), transparent 70%),
-    radial-gradient(34rem 20rem at 84% 12%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 70%);
+    radial-gradient(38rem 20rem at 18% 0%, var(--wash-1), transparent 70%),
+    radial-gradient(34rem 20rem at 84% 12%, var(--wash-3), transparent 70%);
+}
+
+/* The brand gradient as a fill (CTAs, feature panels, icon tiles). */
+@utility bg-brand {
+  background-image: var(--grad-brand);
+}
+
+/* Animated underline for text links: the line grows from the left on hover
+   and focus. Transform-only, so it never repaints the text. */
+@utility link-underline {
+  position: relative;
+  text-decoration: none;
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -2px;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.45s var(--ease-emphasis);
+  }
+  &:hover::after,
+  &:focus-visible::after,
+  &[aria-current="page"]::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
 }
 
 /* A card that reads as a physical surface: hairline border, inner top
@@ -756,6 +884,73 @@ h4,
 @utility numeric {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
+}
+
+/* ---------- Scroll reveal (components/site/reveal.tsx) ----------
+
+   Server HTML is always fully visible. After hydration the Reveal/Stagger
+   components mark only the elements that are still *below the fold* as
+   `pending`, then flip them to `in` as they scroll into view — so nothing
+   already on screen ever blinks, and a page with JavaScript disabled or late
+   simply shows everything. Only opacity and transform are animated. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-reveal="pending"],
+  [data-stagger="pending"] > * {
+    opacity: 0;
+    transform: var(--reveal-from, translate3d(0, 28px, 0));
+  }
+  [data-reveal-variant="scale"] {
+    --reveal-from: scale(0.94);
+  }
+  [data-reveal-variant="left"] {
+    --reveal-from: translate3d(-36px, 0, 0);
+  }
+  [data-reveal-variant="right"] {
+    --reveal-from: translate3d(36px, 0, 0);
+  }
+  [data-reveal-variant="fade"] {
+    --reveal-from: none;
+  }
+  [data-reveal="in"],
+  [data-stagger="in"] > * {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 0.7s var(--ease-emphasis),
+      transform 0.8s var(--ease-emphasis);
+    transition-delay: calc(var(--reveal-delay, 0ms) + var(--i, 0) * var(--stagger-step, 70ms));
+  }
+}
+
+/* Above-the-fold entrance helper: children rise in sequence with no JS.
+   `--d` on a child offsets its delay. */
+@utility rise-in {
+  animation: var(--animate-rise);
+  animation-delay: var(--d, 0ms);
+}
+
+/* Scroll-linked parallax for decorative layers, on the compositor via a
+   scroll timeline. Browsers without scroll timelines just don't move them. */
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .parallax-slow,
+    .parallax-fast {
+      animation: parallax linear both;
+      animation-timeline: scroll(root block);
+      animation-range: 0 100vh;
+    }
+    .parallax-slow {
+      --parallax: 90px;
+    }
+    .parallax-fast {
+      --parallax: 180px;
+    }
+  }
+}
+@keyframes parallax {
+  to {
+    translate: 0 var(--parallax, 120px);
+  }
 }
 
 /* ---------- Markdown content ---------- */

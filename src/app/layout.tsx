@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { Bricolage_Grotesque, Figtree, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import { ThemeProvider } from "next-themes";
 import { SessionProvider } from "next-auth/react";
@@ -8,9 +8,13 @@ import { getSiteSettings } from "@/lib/settings";
 import { absoluteUrl } from "@/lib/utils";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Body face. Figtree is a friendly geometric sans with open apertures, which
+// keeps long course descriptions readable while matching the brighter brand.
+// Variable font: one file covers every weight in use.
+const figtree = Figtree({
+  variable: "--font-figtree",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
@@ -18,16 +22,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Display face for headings only. Geist stays the body face: it is a superb UI
-// sans but its headline voice is neutral to the point of anonymous, which is
-// most of why the old pages read as generic. Jakarta's tighter apertures and
-// higher contrast give headings a distinct personality without a second body
-// font's readability cost. Weights are pinned to the three actually used so
-// this adds ~3 subset files, not a family.
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
+// Display face for headings only. Weight axis only: adding the optical-size
+// axis tripled the preloaded file (77 kB vs ~25 kB) and measurably added to
+// mobile blocking time, for a difference only visible at hero sizes. Geist
+// Mono stays for figures and code.
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
   display: "swap",
 });
 
@@ -56,8 +57,8 @@ export const viewport: Viewport = {
   // Colours the browser chrome to match the page instead of leaving a white bar
   // above a dark page. Values are the light/dark `--background` tokens.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f6f6fa" },
-    { media: "(prefers-color-scheme: dark)", color: "#08080f" },
+    { media: "(prefers-color-scheme: light)", color: "#fafaf7" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0b14" },
   ],
 };
 
@@ -93,7 +94,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} ${jakarta.variable} antialiased`}>
+      <body className={`${figtree.variable} ${geistMono.variable} ${bricolage.variable} antialiased`}>
         {/* Safety net for scripting-disabled visitors.
 
             Every scroll reveal and the hero headline are server-rendered by

@@ -1,12 +1,27 @@
+"use client";
+
+import * as React from "react";
+
 /**
- * Public-site route boundary.
+ * Module-level, so it survives the template remounting on each navigation.
+ * Only ever set on the client, inside an effect: server renders and the first
+ * hydration both see `false`, which keeps their markup identical.
+ */
+let hasNavigated = false;
+
+/**
+ * Public-site route transition.
  *
- * This used to animate a fade/slide on every navigation and on first page
- * load (the page-entrance "flip" motion). That has been removed per request —
- * pages now render immediately with no transition. Kept as a `template.tsx`
- * seam (rather than deleted) so a transition can be reintroduced later without
- * restructuring the route tree.
+ * A `template.tsx` remounts on every client-side navigation, so a CSS
+ * animation on its wrapper plays once per route change. It is skipped on the
+ * first page load on purpose: a fade there would only delay LCP and would
+ * replay the old "entrance on open" behaviour that was removed. CSS only, and
+ * the global reduced-motion rule collapses it to nothing.
  */
 export default function SiteTemplate({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  const animate = hasNavigated;
+  React.useEffect(() => {
+    hasNavigated = true;
+  }, []);
+  return <div className={animate ? "animate-page-in" : undefined}>{children}</div>;
 }
