@@ -169,6 +169,10 @@ cat > "$UPSTREAM_CONF" <<CONF
 upstream coursevault_app {
     server 127.0.0.1:$TARGET_PORT;   # slot: $TARGET
     keepalive 32;
+    # Node closes idle connections after ~5 s; keep nginx's idle reuse shorter
+    # so a request is never sent on a socket Node is closing (Oct 2026: 34
+    # 'upstream prematurely closed'/'reset by peer' errors, one visible 502).
+    keepalive_timeout 4s;
 }
 CONF
 if ! nginx -t 2>/dev/null; then
