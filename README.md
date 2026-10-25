@@ -1,3 +1,5 @@
+# Course.monster
+
 # CourseVault — Free Courses Platform
 
 A production-ready platform for browsing, searching and downloading free courses through a
