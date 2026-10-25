@@ -4,6 +4,7 @@ import type { SiteSettings } from "@/lib/settings-schema";
 import { CONTACT_EMAIL, GENERIC_PAGES } from "@/lib/pages";
 import { SiteLogo } from "@/components/site/header";
 import { NewsletterForm } from "@/components/site/newsletter-form";
+import { CommunityLinks } from "@/components/site/community-links";
 import {
   DiscordIcon,
   FacebookIcon,
@@ -71,6 +72,10 @@ export function Footer({ settings }: { settings: SiteSettings }) {
                 <Mail className="h-4 w-4 shrink-0 text-primary" aria-hidden />
                 <span className="break-all">{CONTACT_EMAIL}</span>
               </a>
+            </div>
+            <div className="pt-1 text-sm">
+              <p className="mb-2 text-muted-foreground">Talk courses with everyone on Telegram</p>
+              <CommunityLinks size="sm" />
             </div>
             {(socials.length > 0 || settings.telegramUrl) && (
               <div className="flex flex-wrap items-center gap-2 pt-1">

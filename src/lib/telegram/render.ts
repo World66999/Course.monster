@@ -1,3 +1,4 @@
+import { COMMUNITY_LINKS } from "@/lib/community";
 import type { InlineButton, InlineKeyboard } from "./api";
 import { encode } from "./callback";
 import type { BotCourse, Page } from "./catalog";
@@ -89,7 +90,24 @@ export function welcome(b: Branding, siteUrl: string): Screen {
       [btn(b, { label: "btn_upcoming", icon: "upcoming", callback: encode({ kind: "upcoming", page: 1 }) })],
       [btn(b, { label: "btn_website", icon: "website", url: siteUrl })],
       [btn(b, { label: "btn_donate", icon: "donate", callback: "dn:menu" })],
+      communityRow(),
     ],
+  };
+}
+
+/** Public channel + group. Plain URL buttons: no gate, no Premium check. */
+function communityRow(): InlineButton[] {
+  return COMMUNITY_LINKS.map((l) => ({ text: l.key === "channel" ? "📢 Channel" : "💬 Community Group", url: l.url }));
+}
+
+export function community(): Screen {
+  return {
+    text:
+      "💬 <b>Join the Courses Monster community</b>\n\n" +
+      "Free for everyone:\n" +
+      "• <b>Channel</b> — new courses and updates\n" +
+      "• <b>Community Group</b> — ask for courses, share tips and discuss them with other learners",
+    keyboard: COMMUNITY_LINKS.map((l) => [{ text: `${l.key === "channel" ? "📢" : "💬"} ${l.label}`, url: l.url }]),
   };
 }
 
@@ -300,6 +318,7 @@ export function help(b: Branding, siteUrl: string): Screen {
       "/courses — browse the catalog\n" +
       "/search — search for a course\n" +
       "/upcoming — what's coming next\n" +
+      "/community — our channel and community group\n" +
       "/website — open courses.monster\n" +
       "/help — this message\n\n" +
       "You can also just send me a word to search for it.",

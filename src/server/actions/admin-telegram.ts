@@ -157,6 +157,7 @@ export async function registerWebhookAction(): Promise<ActionResult> {
     { command: "upcoming", description: "See what's coming next" },
     { command: "premium", description: "Premium plans and benefits" },
     { command: "mystatus", description: "Your plan and expiry date" },
+    { command: "community", description: "Join our channel and community group" },
     { command: "website", description: "Open courses.monster" },
     { command: "donate", description: "Support the project with Telegram Stars" },
     { command: "paysupport", description: "Help with a payment" },

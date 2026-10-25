@@ -396,6 +396,10 @@ async function handleMessage(m: Message): Promise<void> {
     if (cmd === "premium") {
       return void (await show(chatId, null, premiumScreen(siteUrl())));
     }
+    // Public links: never behind the channel gate or Premium.
+    if (cmd === "community") {
+      return void (await show(chatId, null, render.community()));
+    }
     if (cmd === "mystatus") {
       const linked = await db.user.findFirst({
         where: { telegramId, disabled: false },
