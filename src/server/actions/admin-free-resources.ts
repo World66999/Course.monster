@@ -8,7 +8,7 @@ import { requireAdmin } from "@/server/auth-helpers";
 import { logAudit } from "@/lib/audit";
 import { freeResourceFormSchema, parseTags } from "@/lib/validation";
 import { detectSourceType } from "@/lib/external-resource";
-import { deleteUpload } from "@/lib/uploads";
+import { deleteOrphanedUploads, deleteUpload } from "@/lib/uploads";
 import type { ActionResult } from "@/server/actions/courses";
 
 const idSchema = z.string().cuid();
@@ -115,13 +115,16 @@ export async function deleteFreeResourcesAction(ids: unknown): Promise<ActionRes
   });
   const { count } = await db.freeResource.deleteMany({ where: { id: { in: parsed.data } } });
 
-  const candidates = new Set(
-    doomed.map((r) => r.thumbnail).filter((p): p is string => typeof p === "string" && p.startsWith("/uploads/"))
+  await deleteOrphanedUploads(
+    doomed.map((r) => r.thumbnail),
+    async (paths) => {
+      const rows = await db.freeResource.findMany({
+        where: { thumbnail: { in: paths } },
+        select: { thumbnail: true },
+      });
+      return rows.map((r) => r.thumbnail).filter((p): p is string => Boolean(p));
+    }
   );
-  for (const path of candidates) {
-    const stillUsed = await db.freeResource.count({ where: { thumbnail: path } });
-    if (stillUsed === 0) await deleteUpload(path);
-  }
 
   await logAudit({ userId: user.id, action: "freeResource.delete", entity: "freeResource", meta: { count } });
   revalidateSite();

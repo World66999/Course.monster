@@ -42,3 +42,18 @@ export function isSafeExternalUrl(value: string): boolean {
 }
 
 export const SAFE_URL_MESSAGE = "Must be an http:// or https:// URL without embedded credentials";
+
+/**
+ * A same-site path to return to after sign-in, or "/".
+ *
+ * Only a plain absolute path on this site passes: it must start with a single
+ * "/" — never "//host" or "/\host", which browsers resolve to another origin —
+ * and contain no backslashes or control characters. Anything else falls back
+ * to the homepage, so a crafted ?next= can never become an open redirect.
+ */
+export function safeInternalPath(raw: string | null | undefined): string {
+  if (typeof raw !== "string" || raw.length === 0 || raw.length > 512) return "/";
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/";
+  if (/[\\\u0000-\u001f\u007f]/.test(raw)) return "/";
+  return raw;
+}

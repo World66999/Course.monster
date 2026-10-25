@@ -2,87 +2,351 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Touch-only variant. Several controls are correctly sized for a mouse and short
+   of the 44px touch minimum; where the fix is to grow the control for real
+   (filter pills, chips in tight rows) rather than to overlay an invisible hit
+   area with `tap-target`, this keeps the desktop design untouched. */
+@custom-variant pointer-coarse (@media (pointer: coarse));
+
+/* ============================================================================
+   DESIGN TOKENS — "Midnight Gold"
+
+   Dark-first premium palette: deep violet-black surfaces, Royal Purple
+   (primary, action) and Gold (accent, and the one colour reserved for
+   Premium — membership badges, locks, the crown). A purple → orchid → gold
+   gradient carries washes and decoration. Gold is a *fill* in light mode: it
+   carries ink (`accent-foreground`), and accent-coloured text or strokes use
+   `accent-ink` / `gold-ink`, the contrast-checked versions of the same hue.
+
+   Token names are shared with every component in the app, so the whole
+   product (admin included) re-skins from this block. New tokens are additive.
+   Text pairs below are AA against `--background` and `--card`
+   (scripts/check-contrast.mjs).
+   ========================================================================= */
+
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  color-scheme: light;
+
+  /* Surfaces */
+  --background: #fbfaf7;
+  --surface-sunken: #f3f1ec;
   --card: #ffffff;
-  --card-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #5b6675;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --primary: #4f46e5;
-  --primary-hover: #4338ca;
+  --surface-raised: #ffffff;
+  --foreground: #15112a;
+  --card-foreground: #15112a;
+  --muted: #f3f1ec;
+  --muted-foreground: #5b5670;
+  --border: #e9e5dc;
+  --border-strong: #8c879e;
+  --input: #8c879e;
+
+  /* Brand */
+  --primary: #6d3df5;
+  --primary-hover: #5b2ee0;
   --primary-foreground: #ffffff;
-  --accent: #3b82f6;
-  --ring: #6366f1;
-  --success: #059669;
-  --warning: #d97706;
-  --destructive: #dc2626;
+  --primary-soft: #efe9ff;
+  --accent: #f2b929;
+  --accent-hover: #e5aa12;
+  --accent-foreground: #1a1206;
+  --accent-soft: #fdf3d6;
+  --accent-ink: #7a5600;
+  --violet: #8b5cf6;
+  --pink: #d946ef;
+  --ring: #6d3df5;
+
+  /* Premium gold */
+  --gold: #d99a0b;
+  --gold-soft: #fdf3d6;
+  --gold-ink: #7a5600;
+  --grad-gold: linear-gradient(135deg, #f7d774 0%, #e3a514 55%, #b7790a 100%);
+
+  /* Semantic status */
+  --success: #037a5a;
+  --success-soft: #ddf5ec;
+  --warning: #9a5b06;
+  --warning-soft: #fcefdb;
+  --destructive: #d12d3a;
+  --destructive-soft: #fdeaec;
+  --info: #4f3bd8;
+  --info-soft: #ece9fe;
+
+  /* Gradient family. `--grad-brand` is the one saturated gradient (CTAs,
+     headline highlight); the wash stops are low-alpha for backgrounds. */
+  --grad-brand: linear-gradient(115deg, #6d3df5 0%, #a855f7 50%, #e0a106 100%);
+  --wash-1: rgb(109 61 245 / 0.14);
+  --wash-2: rgb(168 85 247 / 0.12);
+  --wash-3: rgb(217 70 239 / 0.08);
+  --wash-4: rgb(242 185 41 / 0.18);
+
+  /* Effects */
   --glass: rgba(255, 255, 255, 0.72);
-  --glass-border: rgba(15, 23, 42, 0.08);
-  --edge-light: rgba(255, 255, 255, 0.65);
-  --sh-soft: 0 1px 2px rgb(13 18 32 / 0.05), 0 2px 8px -2px rgb(13 18 32 / 0.06);
-  --sh-elevated: 0 2px 4px rgb(13 18 32 / 0.04), 0 10px 24px -6px rgb(13 18 32 / 0.1);
-  --sh-floating: 0 4px 12px rgb(13 18 32 / 0.06), 0 24px 48px -12px rgb(13 18 32 / 0.2);
+  --glass-border: rgba(21, 17, 42, 0.08);
+  --edge-light: rgba(255, 255, 255, 0.75);
+
+  /* Elevation: contact shadow + wide ambient shadow at every step, tinted
+     toward the ink hue rather than pure black so they read soft, not dirty. */
+  --sh-soft: 0 1px 1px rgb(21 17 60 / 0.04), 0 2px 8px -2px rgb(21 17 60 / 0.06);
+  --sh-elevated:
+    0 1px 2px rgb(21 17 60 / 0.05), 0 10px 24px -8px rgb(21 17 60 / 0.12),
+    0 24px 44px -22px rgb(21 17 60 / 0.16);
+  --sh-floating:
+    0 2px 4px rgb(21 17 60 / 0.05), 0 20px 40px -12px rgb(21 17 60 / 0.16),
+    0 48px 80px -28px rgb(21 17 60 / 0.22);
+  --sh-primary: 0 1px 2px rgb(109 61 245 / 0.25), 0 10px 24px -8px rgb(109 61 245 / 0.45);
+  --sh-glow: 0 0 0 1px rgb(109 61 245 / 0.18), 0 14px 40px -12px rgb(109 61 245 / 0.35);
+  --sh-gold: 0 0 0 1px rgb(217 154 11 / 0.35), 0 14px 40px -14px rgb(217 154 11 / 0.45);
 }
 
 .dark {
-  --background: #060913;
-  --foreground: #e2e8f0;
-  --card: #0c1120;
-  --card-foreground: #e2e8f0;
-  --muted: #131a2e;
-  --muted-foreground: #8b98b3;
-  --border: #1c2540;
-  --input: #232e4f;
-  --primary: #6366f1;
-  --primary-hover: #818cf8;
-  --primary-foreground: #ffffff;
-  --accent: #60a5fa;
-  --ring: #818cf8;
-  --success: #34d399;
-  --warning: #fbbf24;
-  --destructive: #f87171;
-  --glass: rgba(12, 17, 32, 0.66);
-  --glass-border: rgba(148, 163, 184, 0.12);
+  color-scheme: dark;
+
+  --background: #0b0a12;
+  --surface-sunken: #07060c;
+  --card: #14121f;
+  --surface-raised: #1b1829;
+  --foreground: #f2effa;
+  --card-foreground: #f2effa;
+  --muted: #1c1a2a;
+  --muted-foreground: #a9a3c2;
+  --border: #2a2640;
+  --border-strong: #6b6488;
+  --input: #6b6488;
+
+  /* Lighter brand tones in dark mode; primary is light enough here that its
+     foreground flips to ink. */
+  --primary: #a78bfa;
+  --primary-hover: #c4b5fd;
+  --primary-foreground: #0b0a12;
+  --primary-soft: #221b3d;
+  --accent: #f5c451;
+  --accent-hover: #ffd572;
+  --accent-foreground: #1a1206;
+  --accent-soft: #2a2110;
+  --accent-ink: #f5c451;
+  --violet: #c4b5fd;
+  --pink: #f0abfc;
+  --ring: #a78bfa;
+
+  --gold: #f5c451;
+  --gold-soft: #2a2110;
+  --gold-ink: #f7cf6a;
+  --grad-gold: linear-gradient(135deg, #fde68a 0%, #f5c451 50%, #d99a0b 100%);
+
+  --success: #3ddba6;
+  --success-soft: #0d2a21;
+  --warning: #f3b34d;
+  --warning-soft: #2c2010;
+  --destructive: #ff6b78;
+  --destructive-soft: #2e1418;
+  --info: #b4a5ff;
+  --info-soft: #1d1838;
+
+  --grad-brand: linear-gradient(115deg, #8b5cf6 0%, #c084fc 48%, #f5c451 100%);
+  --wash-1: rgb(139 92 246 / 0.18);
+  --wash-2: rgb(192 132 252 / 0.12);
+  --wash-3: rgb(240 171 252 / 0.07);
+  --wash-4: rgb(245 196 81 / 0.09);
+
+  --glass: rgba(20, 18, 31, 0.66);
+  --glass-border: rgba(196, 181, 253, 0.13);
   --edge-light: rgba(255, 255, 255, 0.07);
-  --sh-soft: 0 1px 2px rgb(0 0 0 / 0.45), 0 2px 8px -2px rgb(0 0 0 / 0.35);
-  --sh-elevated: 0 2px 6px rgb(0 0 0 / 0.45), 0 12px 28px -6px rgb(0 0 0 / 0.5);
-  --sh-floating: 0 6px 16px rgb(0 0 0 / 0.5), 0 28px 56px -12px rgb(0 0 0 / 0.6);
+
+  --sh-soft: 0 1px 1px rgb(0 0 0 / 0.5), 0 2px 8px -2px rgb(0 0 0 / 0.4);
+  --sh-elevated:
+    0 1px 2px rgb(0 0 0 / 0.5), 0 10px 24px -8px rgb(0 0 0 / 0.55),
+    0 24px 44px -22px rgb(0 0 0 / 0.6);
+  --sh-floating:
+    0 2px 4px rgb(0 0 0 / 0.55), 0 20px 40px -12px rgb(0 0 0 / 0.6),
+    0 48px 80px -28px rgb(0 0 0 / 0.7);
+  --sh-primary: 0 1px 2px rgb(167 139 250 / 0.3), 0 10px 24px -8px rgb(167 139 250 / 0.4);
+  --sh-glow: 0 0 0 1px rgb(167 139 250 / 0.25), 0 14px 40px -12px rgb(167 139 250 / 0.35);
+  --sh-gold: 0 0 0 1px rgb(245 196 81 / 0.3), 0 14px 40px -14px rgb(245 196 81 / 0.35);
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-raised: var(--surface-raised);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-input: var(--input);
+
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
   --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-violet: var(--violet);
+  --color-pink: var(--pink);
   --color-ring: var(--ring);
+
   --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
   --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
   --color-destructive: var(--destructive);
-  --font-sans: var(--font-geist-sans);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-gold-ink: var(--gold-ink);
+
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-sora);
   --font-mono: var(--font-geist-mono);
+
+  /* Type scale — a real 1.2/1.25 ramp with tracking and leading baked in, so
+     a heading is one class instead of three guessed ones. */
+  --text-eyebrow: 0.6875rem;
+  --text-eyebrow--line-height: 1rem;
+  --text-eyebrow--letter-spacing: 0.1em;
+  --text-eyebrow--font-weight: 700;
+
+  /* Bricolage is set tight and heavy at display sizes. */
+  --text-display: clamp(2.75rem, 1.3rem + 6vw, 5.5rem);
+  --text-display--line-height: 0.98;
+  --text-display--letter-spacing: -0.04em;
+  --text-display--font-weight: 800;
+
+  --text-title: clamp(2rem, 1.3rem + 2.8vw, 3.25rem);
+  --text-title--line-height: 1.04;
+  --text-title--letter-spacing: -0.035em;
+  --text-title--font-weight: 800;
+
+  --text-heading: clamp(1.625rem, 1.2rem + 1.5vw, 2.375rem);
+  --text-heading--line-height: 1.1;
+  --text-heading--letter-spacing: -0.03em;
+  --text-heading--font-weight: 750;
+
+  --text-subheading: 1.1875rem;
+  --text-subheading--line-height: 1.35;
+  --text-subheading--letter-spacing: -0.015em;
+  --text-subheading--font-weight: 650;
+
+  --text-lead: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
+  --text-lead--line-height: 1.6;
+
+  /* Radius ladder. Every surface picks a rung and nothing is hand-guessed;
+     the codebase previously mixed rounded-md/lg/xl/2xl/3xl with no rule about
+     which belonged where. Nesting goes inward: a feature panel holds cards,
+     a card holds nested tiles, a tile holds controls.
+       control  0.75   inputs, selects, menu rows (buttons are pills)
+       nested   0.875  thumbnails and icon tiles *inside* a card
+       card     1.25   the standard content card
+       panel    1.5    dialogs, popovers, drawers, stat panels
+       feature  2.00   full-width marketing/feature blocks */
+  --radius-control: 0.75rem;
+  --radius-nested: 0.875rem;
+  --radius-card: 1.25rem;
+  --radius-panel: 1.5rem;
+  --radius-feature: 2rem;
+
   --shadow-soft: var(--sh-soft);
   --shadow-elevated: var(--sh-elevated);
   --shadow-floating: var(--sh-floating);
+  --shadow-primary: var(--sh-primary);
+  --shadow-glow: var(--sh-glow);
+  --shadow-gold: var(--sh-gold);
   --inset-shadow-highlight: inset 0 1px 0 0 var(--edge-light);
-  --animate-shimmer: shimmer 1.6s infinite linear;
-  --animate-overlay-in: overlay-in 0.2s ease-out;
-  --animate-overlay-out: overlay-out 0.15s ease-in;
-  --animate-dialog-in: dialog-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  --animate-dialog-out: dialog-out 0.15s ease-in;
-  --animate-pop-in: pop-in 0.16s cubic-bezier(0.16, 1, 0.3, 1);
-  --animate-float: float 16s ease-in-out infinite;
-  --animate-float-delayed: float 18s ease-in-out -8s infinite;
+
+  /* Motion tokens. One rhythm for the whole product: shared durations and a
+     single pair of easings. `emphasis` is the decelerate curve used for
+     anything arriving on screen; `exit` accelerates away and is deliberately
+     shorter (~65% of enter) so dismissal feels immediate. */
+  --ease-emphasis: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --animate-shimmer: shimmer 2.1s infinite cubic-bezier(0.45, 0, 0.55, 1);
+  --animate-overlay-in: overlay-in 0.2s var(--ease-standard);
+  --animate-overlay-out: overlay-out 0.13s var(--ease-exit);
+  --animate-dialog-in: dialog-in 0.26s var(--ease-emphasis);
+  --animate-dialog-out: dialog-out 0.15s var(--ease-exit);
+  --animate-pop-in: pop-in 0.16s var(--ease-emphasis);
+  --animate-drawer-in: drawer-in 0.5s var(--ease-emphasis);
+  --animate-drawer-out: drawer-out 0.28s var(--ease-exit);
+  --animate-page-in: page-in 0.45s var(--ease-emphasis);
+  --animate-rise: rise 0.8s var(--ease-emphasis) both;
+  --animate-float: float 9s ease-in-out infinite;
+  --animate-float-slow: float 14s ease-in-out infinite;
+  --animate-drift: drift 22s ease-in-out infinite alternate;
+
+  @keyframes drawer-in {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+  @keyframes drawer-out {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
+  /* Client-side route change only (see (site)/template.tsx). Never on the
+     first paint, so it cannot delay LCP. Opacity only: a transform on the
+     route wrapper would make it the containing block for `position: fixed`
+     descendants (the course page's mobile download bar) mid-transition. */
+  @keyframes page-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  /* Above-the-fold entrance. Starts at 0.01 opacity rather than 0: Chrome
+     does not consider an opacity:0 element for LCP, so a true zero would push
+     the hero's LCP back by the animation delay. Pure CSS, so it plays (and
+     finishes) with JavaScript disabled too. */
+  @keyframes rise {
+    from {
+      opacity: 0.01;
+      transform: translateY(0.45em);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  /* Literal values only: keyframes that read a custom property cannot run
+     on the compositor, so a var() here re-ran style on the main thread every
+     frame for every floating element. Tilt goes on the element's own static
+     `rotate` instead. */
+  @keyframes float {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+    50% {
+      transform: translate3d(0, -14px, 0);
+    }
+  }
+  @keyframes drift {
+    0% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(6%, 4%, 0) scale(1.08);
+    }
+    100% {
+      transform: translate3d(-4%, 8%, 0) scale(0.96);
+    }
+  }
 
   @keyframes shimmer {
     from {
@@ -111,11 +375,13 @@
   @keyframes dialog-in {
     from {
       opacity: 0;
-      scale: 0.97;
+      scale: 0.96;
+      translate: 0 8px;
     }
     to {
       opacity: 1;
       scale: 1;
+      translate: 0 0;
     }
   }
   @keyframes dialog-out {
@@ -140,35 +406,69 @@
       translate: 0 0;
     }
   }
-  @keyframes float {
-    0%,
-    100% {
-      transform: translate3d(0, 0, 0);
-    }
-    50% {
-      transform: translate3d(0, -18px, 0);
-    }
-  }
 }
 
-* {
-  border-color: var(--border);
+/* Default border colour, deliberately inside `@layer base`.
+
+   Unlayered, this rule silently beat every `border-*` utility in the app.
+   Tailwind v4 emits all utilities inside `@layer utilities`, and the cascade
+   ranks layers BEFORE specificity — an unlayered declaration outranks anything
+   in a layer no matter how specific. So `* { border-color }` (specificity 0,0,0)
+   was overriding `.hover\:border-primary\/40:hover`, and the hover border on
+   every card, the outline button's `hover:border-primary/45`, and every other
+   border-colour utility in the product did nothing at all.
+
+   In `base` it does what it was written to do: supply the default so `border`
+   alone reads as a hairline, while any utility that names a colour still wins. */
+@layer base {
+  * {
+    border-color: var(--border);
+  }
 }
 
 html {
   scroll-behavior: smooth;
+  /* iOS Safari inflates font sizes when a phone is rotated to landscape unless
+     this is pinned, which silently breaks the clamp()-based type scale above:
+     headings jump a step on rotation only on iPhone. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* The header is sticky, so an anchor target scrolled to the very top lands
+     underneath it. Individual `.markdown h2` rules already set their own
+     scroll-margin; this covers every other in-page anchor, including the skip
+     link's #main-content. */
+  scroll-padding-top: 5rem;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  /* Reference the next/font variable directly. Going through Tailwind's
+     --font-sans does not work here: that token is declared on :root with the
+     value var(--font-inter), but next/font only defines
+     --font-inter on <body>, so at :root it resolves to the
+     guaranteed-invalid value and the whole declaration is dropped. */
+  font-family: var(--font-inter), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* A hair of negative tracking keeps Inter body copy from looking loose
+     next to the tight display face. */
+  letter-spacing: -0.005em;
+}
+
+/* Headings carry the display face. Applying it here rather than per-component
+   means every h1-h4 in the app — including ones inside markdown and admin
+   tables — inherits the same voice without 130 edits. */
+h1,
+h2,
+h3,
+h4,
+.font-display {
+  font-family: var(--font-sora), var(--font-inter), system-ui, sans-serif;
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--primary) 30%, transparent);
+  background: color-mix(in srgb, var(--primary) 26%, transparent);
 }
 
 /* Slim, unobtrusive scrollbars that match the theme. */
@@ -200,7 +500,12 @@ body {
 :focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
-  border-radius: 4px;
+  /* No `border-radius` here. This rule is unlayered, so it outranked every
+     `rounded-*` utility (Tailwind puts those in `@layer utilities`, and layers
+     are resolved before specificity) — which meant focusing a card snapped its
+     corners from 1rem to 4px, and every button jumped from 0.625rem to 4px, for
+     as long as the focus ring was showing. Browsers already follow the element's
+     own border-radius when drawing an outline, so nothing is needed. */
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -218,15 +523,99 @@ body {
 
 /* ---------- Utilities ---------- */
 
+/* Widens a control's hit area to the 44px touch minimum without changing how big
+   it looks. Measured across nine viewports, the site had ~15 interactive
+   controls under 40px on a phone — pagination arrows at 32px, the password
+   reveal at 24px, bookmark toggles at 28px, footer social links and the header
+   search trigger at 36px — all of which are perfectly sized for a mouse and
+   genuinely hard to hit with a thumb.
+
+   Growing them outright would wreck the layouts they sit in (a 44px pagination
+   pill is a different design), so the visible box is untouched and a centred,
+   invisible pseudo-element carries the extra reach. Only applied where nothing
+   sits close enough for the larger box to steal a neighbour's taps.
+
+   `pointer: coarse` only: on a mouse the visible edge should be the real edge,
+   otherwise hover states fire while the cursor is demonstrably outside the
+   control. `min-height/width` rather than fixed, so it never shrinks a target
+   that is already big enough (e.g. the header search pill is 38x36 — it needs
+   height, not width). */
+@utility tap-target {
+  position: relative;
+  @media (pointer: coarse) {
+    &::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      translate: -50% -50%;
+      min-width: 44px;
+      min-height: 44px;
+      width: 100%;
+      height: 100%;
+    }
+  }
+}
+
+/* The one page gutter. Five containers (Section, both footer rows, the
+   announcement bar, the header nav row) each repeated their own
+   `px-4 sm:px-6 lg:px-8` — and the header used `px-3` at base, so on mobile the
+   logo sat 4px wider than the content column it was supposed to align with.
+   This is that single declaration, and it also clears the notch: with
+   `viewport-fit=cover` set in the root layout, env(safe-area-inset-left/right)
+   is non-zero on a notched phone in landscape, where a flat 1rem gutter would
+   let text slide under the notch. max() keeps the design gutter everywhere
+   else, since the insets are 0px on every device without a notch.
+
+   Deliberately a plain class in `@layer components` rather than an `@utility`:
+   the breakpoints are ordinary top-level media queries this way, and sitting
+   below the utilities layer means an explicit `px-*` on any single element still
+   overrides it. Breakpoints mirror Tailwind's own sm/lg (40rem/64rem). */
+@layer components {
+  .page-gutter {
+    padding-inline: max(1rem, env(safe-area-inset-left)) max(1rem, env(safe-area-inset-right));
+  }
+  @media (width >= 40rem) {
+    .page-gutter {
+      padding-inline: max(1.5rem, env(safe-area-inset-left)) max(1.5rem, env(safe-area-inset-right));
+    }
+  }
+  @media (width >= 64rem) {
+    .page-gutter {
+      padding-inline: max(2rem, env(safe-area-inset-left)) max(2rem, env(safe-area-inset-right));
+    }
+  }
+}
+
+/* Reading-progress bar (components/motion/scroll-progress.tsx). Driven by the
+   document scroll timeline, so it runs on the compositor with no JS. Where
+   scroll timelines are unsupported it stays hidden rather than stuck at 0. */
+@layer components {
+  .scroll-progress {
+    display: none;
+  }
+  @supports (animation-timeline: scroll()) {
+    .scroll-progress {
+      display: block;
+      transform: scaleX(0);
+      animation: scroll-progress linear both;
+      animation-timeline: scroll(root block);
+    }
+  }
+  @keyframes scroll-progress {
+    to {
+      transform: scaleX(1);
+    }
+  }
+}
+
 @utility glass {
-  background-color: var(--glass);
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  background-color: var(--card);
   border: 1px solid var(--glass-border);
 }
 
 @utility text-gradient {
-  background: linear-gradient(100deg, var(--accent), var(--primary));
+  background: var(--grad-brand);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -243,42 +632,366 @@ body {
 /* Soft radial glow overlay; background-image only so it layers over any surface. */
 @utility bg-aurora {
   background-image:
-    radial-gradient(38rem 20rem at 18% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%),
-    radial-gradient(38rem 22rem at 82% 8%, color-mix(in srgb, var(--primary) 14%, transparent), transparent 70%);
+    radial-gradient(38rem 20rem at 18% 0%, var(--wash-1), transparent 70%),
+    radial-gradient(34rem 20rem at 84% 12%, var(--wash-3), transparent 70%);
+}
+
+/* The brand gradient as a fill (CTAs, feature panels, icon tiles). */
+@utility bg-brand {
+  background-image: var(--grad-brand);
+}
+
+/* Animated underline for text links: the line grows from the left on hover
+   and focus. Transform-only, so it never repaints the text. */
+@utility link-underline {
+  position: relative;
+  text-decoration: none;
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -2px;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.45s var(--ease-emphasis);
+  }
+  &:hover::after,
+  &:focus-visible::after,
+  &[aria-current="page"]::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+}
+
+/* A card that reads as a physical surface: hairline border, inner top
+   highlight, ambient shadow. Used anywhere a plain bordered box felt cheap. */
+@utility surface {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--sh-soft), inset 0 1px 0 0 var(--edge-light);
+}
+
+/* Hairline rule that stays visible in both themes (a flat border colour
+   disappears against dark cards). */
+@utility hairline {
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--muted-foreground) 26%, transparent) 18%,
+    color-mix(in srgb, var(--muted-foreground) 26%, transparent) 82%,
+    transparent
+  );
+}
+
+/* Fades the far edge of a horizontally scrolling row so cut-off content reads
+   as "more to scroll" rather than as a clipping bug. */
+@utility mask-edge-r {
+  mask-image: linear-gradient(90deg, black 82%, transparent 100%);
+}
+
+/* ---------- Depth & glass system ----------
+
+   Glass is used sparingly and only where a surface genuinely floats over other
+   content: the sticky header, dialogs, drawers, and a small number of feature
+   panels. Applied to ordinary cards it destroys text contrast and turns the
+   whole page into mush, which is the usual failure mode of this style.
+
+   Each variant pairs a translucent fill with a hairline border AND an inner top
+   highlight — the highlight is what reads as a physical edge catching light,
+   and it is the difference between "glass" and "washed out".            */
+
+/* Floating chrome: header, sticky bars. Opaque fill — the frosted-glass
+   blur was removed app-wide (it was the main scroll-jank source and is not
+   wanted). The hairline border + inner highlight still separate it. */
+@utility glass-chrome {
+  background-color: var(--card);
+  border: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 0 var(--edge-light);
+}
+
+/* Overlay surfaces: dialogs, popovers, drawers. Opaque — real text sits on
+   them, and the backdrop-filter blur was removed app-wide. */
+@utility glass-panel {
+  background-color: var(--card);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--sh-floating), inset 0 1px 0 0 var(--edge-light);
+}
+
+/* Decorative only — never put body copy on this one. */
+@utility glass-veil {
+  background-color: var(--card);
+  border: 1px solid var(--glass-border);
+}
+
+/* ---------- Glass fallbacks (performance & accessibility) ----------
+
+   backdrop-filter is the single most expensive paint on the page and the main
+   cause of scroll jank on low-end mobile GPUs. Two cases drop it entirely and
+   fall back to a near-opaque fill, which keeps text contrast and the surface
+   boundary while removing the per-frame blur cost:
+
+   1. Browsers without backdrop-filter support (older / low-end devices).
+   2. Users who ask the OS for reduced transparency.                       */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass,
+  .glass-chrome,
+  .glass-veil {
+    background-color: var(--card);
+  }
+  .glass-panel {
+    background-color: var(--card);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass-chrome,
+  .glass-panel,
+  .glass-veil {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background-color: var(--card);
+  }
+}
+
+/* A hairline gradient edge. Painted with a mask on a pseudo-element so it works
+   on any radius and does not require a wrapper element. */
+@utility edge-gradient {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      140deg,
+      color-mix(in srgb, var(--primary) 55%, transparent),
+      transparent 42%,
+      transparent 62%,
+      color-mix(in srgb, var(--accent) 45%, transparent)
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+}
+
+/* Pointer-tracking glow. Driven entirely by custom properties written straight
+   to the node by the Spotlight component, so following the cursor costs one
+   style write per frame and no React render. */
+@utility spotlight {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: var(--spot-o, 0);
+  transition: opacity 0.25s var(--ease-standard);
+  background: radial-gradient(
+    var(--spot-r, 320px) circle at var(--spot-x, 50%) var(--spot-y, 50%),
+    color-mix(in srgb, var(--primary) 14%, transparent),
+    transparent 70%
+  );
+}
+
+/* One-shot diagonal light sweep on hover, for a small number of hero CTAs. */
+@utility sheen {
+  position: relative;
+  overflow: hidden;
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -60%;
+    width: 40%;
+    background: linear-gradient(
+      100deg,
+      transparent,
+      color-mix(in srgb, white 26%, transparent),
+      transparent
+    );
+    transform: skewX(-18deg);
+    pointer-events: none;
+    transition: left 0.65s var(--ease-emphasis);
+  }
+  &:hover::after {
+    left: 130%;
+  }
+}
+
+/* Very low-amplitude film grain. Breaks up the banding that large, soft
+   gradients show on 8-bit displays. Data URI so it costs no request. */
+@utility noise {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+
+/* Section-level ambient wash. Three offset radial stops rather than one, which
+   is what stops it looking like a single flashlight aimed at the page. */
+@utility bg-ambient {
+  background-image:
+    radial-gradient(42rem 24rem at 12% -8%, color-mix(in srgb, var(--primary) 11%, transparent), transparent 68%),
+    radial-gradient(34rem 20rem at 88% 4%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 66%),
+    radial-gradient(30rem 26rem at 50% 110%, color-mix(in srgb, var(--primary) 7%, transparent), transparent 70%);
+}
+
+/* Dot field. Reads quieter than the grid, for sections that already carry a
+   lot of content. */
+@utility bg-dots {
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--foreground) 11%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 100%);
+}
+
+/* A top-lit gradient laid over a solid fill. Theme-agnostic on purpose: it
+   lightens whatever colour is underneath rather than naming two hex stops, so
+   one class gives a filled button convincing depth in light AND dark without
+   the gradient direction having to flip. */
+@utility lit {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, white 14%, transparent),
+    transparent 55%
+  );
 }
 
 @utility skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--muted) 25%,
-    color-mix(in srgb, var(--muted-foreground) 12%, var(--muted)) 50%,
-    var(--muted) 75%
-  );
-  background-size: 200% 100%;
-  animation: var(--animate-shimmer);
+  position: relative;
+  overflow: hidden;
+  background-color: var(--muted);
   border-radius: 0.5rem;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 20%,
+      color-mix(in srgb, var(--muted-foreground) 14%, transparent) 50%,
+      transparent 80%
+    );
+    background-size: 200% 100%;
+    animation: var(--animate-shimmer);
+  }
+}
+
+/* Tabular figures for any number that sits in a column or updates in place. */
+@utility numeric {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ---------- Scroll reveal (components/site/reveal.tsx) ----------
+
+   Server HTML is always fully visible. After hydration the Reveal/Stagger
+   components mark only the elements that are still *below the fold* as
+   `pending`, then flip them to `in` as they scroll into view — so nothing
+   already on screen ever blinks, and a page with JavaScript disabled or late
+   simply shows everything. Only opacity and transform are animated. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-reveal="pending"],
+  [data-stagger="pending"] > * {
+    opacity: 0;
+    transform: var(--reveal-from, translate3d(0, 28px, 0));
+  }
+  [data-reveal-variant="scale"] {
+    --reveal-from: scale(0.94);
+  }
+  [data-reveal-variant="left"] {
+    --reveal-from: translate3d(-36px, 0, 0);
+  }
+  [data-reveal-variant="right"] {
+    --reveal-from: translate3d(36px, 0, 0);
+  }
+  [data-reveal-variant="fade"] {
+    --reveal-from: none;
+  }
+  [data-reveal="in"],
+  [data-stagger="in"] > * {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 0.7s var(--ease-emphasis),
+      transform 0.8s var(--ease-emphasis);
+    transition-delay: calc(var(--reveal-delay, 0ms) + var(--i, 0) * var(--stagger-step, 70ms));
+  }
+}
+
+/* Above-the-fold entrance helper: children rise in sequence with no JS.
+   `--d` on a child offsets its delay. */
+@utility rise-in {
+  animation: var(--animate-rise);
+  animation-delay: var(--d, 0ms);
+}
+
+/* Scroll-linked parallax for decorative layers, on the compositor via a
+   scroll timeline. Browsers without scroll timelines just don't move them. */
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .parallax-slow,
+    .parallax-fast {
+      animation: parallax linear both;
+      animation-timeline: scroll(root block);
+      animation-range: 0 100vh;
+    }
+    .parallax-slow {
+      --parallax: 90px;
+    }
+    .parallax-fast {
+      --parallax: 180px;
+    }
+  }
+}
+@keyframes parallax {
+  to {
+    translate: 0 var(--parallax, 120px);
+  }
 }
 
 /* ---------- Markdown content ---------- */
 
 .markdown {
   line-height: 1.75;
-  font-size: 1rem;
+  font-size: 1.0625rem;
   overflow-wrap: break-word;
 }
 .markdown > * + * {
   margin-top: 1em;
 }
 .markdown h2 {
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.022em;
   margin-top: 2em;
   scroll-margin-top: 6rem;
 }
 .markdown h3 {
-  font-size: 1.15rem;
+  font-size: 1.2rem;
   font-weight: 600;
+  letter-spacing: -0.015em;
   margin-top: 1.6em;
 }
 .markdown ul {
@@ -292,10 +1005,18 @@ body {
 .markdown li + li {
   margin-top: 0.35em;
 }
+.markdown li::marker {
+  color: color-mix(in srgb, var(--primary) 55%, transparent);
+}
 .markdown a {
-  color: var(--accent);
+  color: var(--primary);
   text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--primary) 35%, transparent);
   text-underline-offset: 3px;
+  transition: text-decoration-color 0.15s var(--ease-standard);
+}
+.markdown a:hover {
+  text-decoration-color: var(--primary);
 }
 .markdown strong {
   font-weight: 600;
@@ -307,9 +1028,10 @@ body {
   background: var(--muted);
   padding: 0.15em 0.4em;
   border-radius: 0.35em;
+  border: 1px solid var(--border);
 }
 .markdown pre {
-  background: var(--muted);
+  background: var(--surface-sunken);
   border: 1px solid var(--border);
   border-radius: 0.75em;
   padding: 1em;
@@ -318,6 +1040,7 @@ body {
 .markdown pre code {
   background: transparent;
   padding: 0;
+  border: 0;
 }
 .markdown blockquote {
   border-left: 3px solid var(--primary);
@@ -329,14 +1052,104 @@ body {
   border-top: 1px solid var(--border);
   margin: 2em 0;
 }
+/* GFM tables are the one markdown block that can be wider than the phone it is
+   read on: `width: 100%` does nothing once the columns' combined min-content
+   width exceeds the container, so a 5-column table pushed the whole page into
+   horizontal scroll. `pre` already scrolls itself; this gives tables the same
+   treatment via a wrapper the Markdown component renders around each one. */
+.markdown .table-scroll {
+  overflow-x: auto;
+  /* Lets a wide table be swiped without the page itself panning. */
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
 .markdown table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9em;
+}
+.markdown .table-scroll table {
+  /* Below this the columns wrap into unreadable slivers; past it the wrapper
+     scrolls instead of the document. */
+  min-width: 34rem;
 }
 .markdown th,
 .markdown td {
   border: 1px solid var(--border);
   padding: 0.5em 0.75em;
   text-align: left;
+}
+.markdown th {
+  background: var(--muted);
+  font-weight: 600;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------- Premium ----------
+
+   "Glass" here is a translucent gradient fill, a hairline border and an inner
+   top highlight — deliberately WITHOUT backdrop-filter, which was removed
+   app-wide as the main scroll-jank source. It reads as frosted on the dark
+   surfaces at zero per-frame cost.                                         */
+@utility glass-card {
+  background-image: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--surface-raised) 92%, transparent) 0%,
+    color-mix(in srgb, var(--card) 78%, transparent) 100%
+  );
+  background-color: color-mix(in srgb, var(--card) 70%, transparent);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--sh-soft), inset 0 1px 0 0 var(--edge-light);
+}
+
+/* Gold fill (crown tiles, Premium CTAs). Carries `accent-foreground` ink. */
+@utility bg-gold {
+  background-image: var(--grad-gold);
+}
+
+@utility text-gold-gradient {
+  background: var(--grad-gold);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Highlighted card edge (the Yearly plan, Premium panels). */
+@utility edge-gold {
+  border-color: color-mix(in srgb, var(--gold) 55%, transparent);
+  box-shadow: var(--sh-gold), inset 0 1px 0 0 var(--edge-light);
+}
+
+/* Placeholder lines behind a locked item. The real content is never in the
+   page — these bars are decoration, blurred so they read as "hidden text". */
+@utility locked-preview {
+  filter: blur(5px);
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Slow ambient shimmer across the gold badge; off for reduced motion. */
+@utility gold-sheen {
+  background-image: linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 0.35) 50%, transparent 70%), var(--grad-gold);
+  background-size: 250% 100%, 100% 100%;
+  animation: gold-sheen 4.5s var(--ease-standard) infinite;
+}
+
+@keyframes gold-sheen {
+  0% {
+    background-position: 120% 0, 0 0;
+  }
+  60%,
+  100% {
+    background-position: -120% 0, 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gold-sheen {
+    animation: none;
+  }
 }

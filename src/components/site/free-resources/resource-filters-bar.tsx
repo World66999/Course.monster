@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { X } from "lucide-react";
+import { useDebouncedSearchParam, useFilterParams } from "@/components/site/use-filter-params";
+import { FilterSearchIcon } from "@/components/site/filter-search-icon";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RESOURCE_CATEGORY_LABELS, RESOURCE_SOURCE_LABELS } from "@/lib/directory-labels";
@@ -26,44 +27,20 @@ const SORT_OPTIONS = [
 ] as const;
 
 export function ResourceFiltersBar({ tags }: { tags: string[] }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const { searchParams, update, replaceLive, isPending } = useFilterParams();
 
-  const currentQ = searchParams.get("q") ?? "";
   const currentCategory = searchParams.get("category") ?? "";
   const currentSource = searchParams.get("source") ?? "";
   const currentTag = searchParams.get("tag") ?? "";
   const currentSort = searchParams.get("sort") ?? "curated";
 
-  const [search, setSearch] = React.useState(currentQ);
-  React.useEffect(() => setSearch(currentQ), [currentQ]);
-
-  const update = React.useCallback(
-    (patch: Record<string, string>) => {
-      const params = new URLSearchParams(searchParams.toString());
-      for (const [key, value] of Object.entries(patch)) {
-        // Empty means "remove", never "=false" — a filter that is off should
-        // not appear in the URL at all.
-        if (value) params.set(key, value);
-        else params.delete(key);
-      }
-      router.push(`${pathname}${params.size ? `?${params}` : ""}`, { scroll: false });
-    },
-    [router, pathname, searchParams]
-  );
-
-  React.useEffect(() => {
-    if (search === currentQ) return;
-    const t = setTimeout(() => update({ q: search.trim() }), 400);
-    return () => clearTimeout(t);
-  }, [search, currentQ, update]);
+  const [search, setSearch, searchPending] = useDebouncedSearchParam("q", replaceLive, searchParams);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" aria-busy={isPending}>
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
-          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <FilterSearchIcon pending={isPending || searchPending} />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -130,7 +107,9 @@ export function ResourceFiltersBar({ tags }: { tags: string[] }) {
       </div>
 
       {tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        /* `gap-2` on touch: the chips grow to 40px there, and 6px of gap between
+           wrapped 40px rows is too tight to aim at reliably. */
+        <div className="flex flex-wrap gap-1.5 pointer-coarse:gap-2">
           {tags.map((tag) => {
             const active = currentTag === tag;
             return (
@@ -140,7 +119,10 @@ export function ResourceFiltersBar({ tags }: { tags: string[] }) {
                 aria-pressed={active}
                 onClick={() => update({ tag: active ? "" : tag })}
                 className={cn(
-                  "cursor-pointer rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+                  // Tag chips: 26px as designed. Grown for real on touch rather
+                  // than given `tap-target`, since they wrap into tight rows where
+                  // invisible 44px boxes would overlap each other.
+                  "cursor-pointer rounded-full border px-2.5 py-1 text-xs font-medium transition-colors pointer-coarse:min-h-10 pointer-coarse:px-3.5",
                   active
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border bg-card text-muted-foreground hover:bg-muted"

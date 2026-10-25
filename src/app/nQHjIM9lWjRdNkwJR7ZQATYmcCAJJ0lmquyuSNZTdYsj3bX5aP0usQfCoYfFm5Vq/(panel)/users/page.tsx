@@ -40,6 +40,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
     ...(status === "verified" ? { emailVerified: { not: null } } : {}),
     ...(status === "unverified" ? { emailVerified: null } : {}),
     ...(status === "disabled" ? { disabled: true } : {}),
+    ...(status === "premium" ? { premiumUntil: { gt: new Date() } } : {}),
   };
 
   const [total, users] = await Promise.all([
@@ -56,6 +57,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
         disabled: true,
         passwordHash: true,
         createdAt: true,
+        premiumUntil: true,
         accounts: { select: { provider: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -76,14 +78,16 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
     hasPassword: Boolean(u.passwordHash),
     hasGoogle: u.accounts.some((a) => a.provider === "google"),
     createdAt: u.createdAt.toISOString(),
+    premiumUntil: u.premiumUntil && u.premiumUntil.getTime() > Date.now() ? u.premiumUntil.toISOString() : null,
   }));
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Users</h1>
+        <h1 className="text-heading">Users</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Search accounts, view provider &amp; verification status, disable or restore.
+          Search accounts, view provider, verification and Premium status, ban or restore. Open a
+          user to grant, extend or revoke Premium and assign courses.
         </p>
       </div>
       <UsersTable rows={rows} page={page} pageCount={Math.max(1, Math.ceil(total / PAGE_SIZE))} />

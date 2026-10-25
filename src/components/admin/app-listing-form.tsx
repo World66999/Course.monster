@@ -19,7 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { CATEGORY_LABELS, PLATFORM_LABELS } from "@/components/site/apps/app-card";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 
 type FormInput = z.input<typeof appListingFormSchema>;
 
@@ -96,7 +96,7 @@ export function AppListingForm({
 
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-4 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">Basics</h2>
             <div className="space-y-1.5">
               <Label htmlFor="name">App name *</Label>
@@ -125,7 +125,7 @@ export function AppListingForm({
             </div>
           </section>
 
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-4 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">Links</h2>
             <p className="-mt-2 text-xs text-muted-foreground">
               Every link must point at the official developer/project source — never a third-party mirror.
@@ -149,7 +149,7 @@ export function AppListingForm({
             </div>
           </section>
 
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-4 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">Technical details</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="space-y-1.5">
@@ -189,7 +189,7 @@ export function AppListingForm({
         </div>
 
         <div className="space-y-6">
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-4 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">Classification</h2>
             <div className="space-y-1.5">
               <Label>Platform *</Label>
@@ -235,7 +235,7 @@ export function AppListingForm({
             </div>
           </section>
 
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-4 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">Icon</h2>
             <Controller
               control={control}
@@ -247,7 +247,7 @@ export function AppListingForm({
             />
           </section>
 
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-4 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">Screenshots</h2>
             <Controller
               control={control}
@@ -308,7 +308,7 @@ export function AppListingForm({
             />
           </section>
 
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-4 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">Curation</h2>
             <label className="flex cursor-pointer items-center justify-between gap-2 text-sm font-medium">
               Featured

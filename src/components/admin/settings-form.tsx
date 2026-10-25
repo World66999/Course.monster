@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { cn } from "@/lib/utils";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 
 const TABS = [
   { value: "general", label: "General" },
@@ -59,21 +59,21 @@ export function SettingsForm({ defaultValues }: { defaultValues: SiteSettings })
     }
   }
 
-  const sectionClass = "space-y-4 rounded-2xl border border-border bg-card p-6";
+  const sectionClass = "space-y-4 rounded-card border border-border bg-card p-6";
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <Tabs.Root defaultValue="general">
         <Tabs.List
           aria-label="Settings sections"
-          className="mb-6 flex w-full flex-wrap gap-1 rounded-xl bg-muted p-1"
+          className="mb-6 flex w-full flex-wrap gap-1 rounded-nested bg-muted p-1"
         >
           {TABS.map((tab) => (
             <Tabs.Trigger
               key={tab.value}
               value={tab.value}
               className={cn(
-                "flex-1 cursor-pointer rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors",
+                "flex-1 cursor-pointer rounded-control px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors",
                 "data-[state=active]:bg-card data-[state=active]:shadow-sm",
                 "data-[state=inactive]:text-muted-foreground"
               )}
@@ -215,7 +215,7 @@ export function SettingsForm({ defaultValues }: { defaultValues: SiteSettings })
               <Input
                 id="announcement-text"
                 {...register("announcement.text")}
-                placeholder="🎉 100 new courses added this week!"
+                placeholder="100 new courses added this week!"
               />
               <FieldError message={errors.announcement?.text?.message} />
             </div>

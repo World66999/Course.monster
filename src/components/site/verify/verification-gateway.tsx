@@ -142,7 +142,7 @@ export function VerificationGateway({
 
   return (
     <div
-      className="glass flex w-full flex-col items-center gap-6 rounded-2xl p-6 shadow-elevated inset-shadow-highlight sm:p-8"
+      className="glass flex w-full flex-col items-center gap-6 rounded-card p-6 shadow-elevated inset-shadow-highlight sm:p-8"
       role="region"
       aria-label="Human verification"
     >

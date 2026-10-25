@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/server/auth-helpers";
 import { logAudit } from "@/lib/audit";
 import { appListingFormSchema, parseTags } from "@/lib/validation";
-import { deleteUpload } from "@/lib/uploads";
+import { deleteOrphanedUploads, deleteUpload } from "@/lib/uploads";
 import type { ActionResult } from "@/server/actions/courses";
 
 const idSchema = z.string().cuid();
@@ -121,17 +121,16 @@ export async function deleteAppsAction(ids: unknown): Promise<ActionResult> {
   });
   const { count } = await db.appListing.deleteMany({ where: { id: { in: parsed.data } } });
 
-  const candidates = new Set(
-    doomed
-      .flatMap((a) => [a.icon, ...a.screenshots])
-      .filter((p): p is string => typeof p === "string" && p.startsWith("/uploads/"))
+  await deleteOrphanedUploads(
+    doomed.flatMap((a) => [a.icon, ...a.screenshots]),
+    async (paths) => {
+      const rows = await db.appListing.findMany({
+        where: { OR: [{ icon: { in: paths } }, { screenshots: { hasSome: paths } }] },
+        select: { icon: true, screenshots: true },
+      });
+      return rows.flatMap((r) => [r.icon, ...r.screenshots]).filter((p): p is string => Boolean(p));
+    }
   );
-  for (const path of candidates) {
-    const stillUsed = await db.appListing.count({
-      where: { OR: [{ icon: path }, { screenshots: { has: path } }] },
-    });
-    if (stillUsed === 0) await deleteUpload(path);
-  }
 
   await logAudit({ userId: user.id, action: "appListing.delete", entity: "appListing", meta: { count } });
   revalidateSite();

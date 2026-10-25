@@ -81,25 +81,34 @@ export const getPublishedChannel = cache(async (slug: string) => {
   return db.codingChannel.findFirst({ where: { slug, published: true } });
 });
 
-/** Distinct tags across published channels, for the filter UI. */
-export async function getChannelTags(): Promise<string[]> {
+/**
+ * Distinct tags across published channels, for the filter UI.
+ *
+ * Bounded, for the reason spelled out on `getFreeResourceTags`: this runs on
+ * every /coding-channels load and was an uncapped read of the `tags` column
+ * across the whole published table, so it grew with the directory. It also
+ * returned *every* distinct tag, and the filter bar renders one pill per tag
+ * behind a "+N more" — so an unbounded tag set meant an unbounded pill list.
+ *
+ * The cap drops the rarest tags rather than the alphabetically-last ones: count
+ * first, keep the most used, then sort alphabetically for display, which is the
+ * order the pill row has always been in.
+ */
+export async function getChannelTags(limit = 40): Promise<string[]> {
   const rows = await db.codingChannel.findMany({
     where: { published: true },
     select: { tags: true },
+    take: 500,
   });
-  const set = new Set<string>();
-  for (const r of rows) for (const t of r.tags) set.add(t);
-  return [...set].sort();
+  const counts = new Map<string, number>();
+  for (const r of rows) for (const t of r.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, limit)
+    .map(([tag]) => tag)
+    .sort((a, b) => a.localeCompare(b));
 }
 
-export async function getFeaturedChannels(limit = 6): Promise<ChannelCard[]> {
-  return db.codingChannel.findMany({
-    where: { published: true, featured: true },
-    select: channelCardSelect,
-    orderBy: [{ order: "asc" }, { createdAt: "desc" }],
-    take: limit,
-  });
-}
 
 export interface MyChannelState {
   bookmarked: boolean;

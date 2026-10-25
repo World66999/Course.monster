@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Eraser, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 import { pruneSocialJobsAction, sweepSocialJobsAction } from "@/server/actions/admin-social";
 
 /**
@@ -47,7 +47,7 @@ export function SocialMaintenance() {
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-border bg-card p-4 shadow-soft">
+    <div className="space-y-4 rounded-card border border-border bg-card p-4 shadow-soft">
       <div>
         <h2 className="font-semibold">Maintenance</h2>
         <p className="text-sm text-muted-foreground">
@@ -87,7 +87,7 @@ export function SocialMaintenance() {
             id="prune-days"
             value={days}
             onChange={(e) => setDays(Number(e.target.value))}
-            className="rounded-xl border border-border bg-card px-3 py-2 text-sm"
+            className="rounded-nested border border-border bg-card px-3 py-2 text-sm"
           >
             {[30, 90, 180, 365].map((d) => (
               <option key={d} value={d}>

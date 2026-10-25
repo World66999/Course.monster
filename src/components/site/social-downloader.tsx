@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Download, Loader2, Link2, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Download, Loader2, Link2, AlertTriangle, CheckCircle2, LogIn } from "lucide-react";
+import { Button, buttonClasses } from "@/components/ui/button";
 import { Input, Label, FieldHint } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -90,18 +90,22 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
    */
   async function cancel() {
     if (!job?.id || cancelling) return;
+    const jobId = job.id;
     setCancelling(true);
     stopPolling();
     try {
-      const res = await fetch(`/api/social/jobs/${job.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/social/jobs/${jobId}`, { method: "DELETE" });
       if (!res.ok) throw new Error(String(res.status));
       setPhase("idle");
       setJob(null);
     } catch {
-      // Couldn't stop it — say so plainly and resume polling rather than
-      // leaving the UI stuck on a state that no longer updates.
-      setError("Couldn't cancel that download. It may already have finished.");
-      setPhase("error");
+      // The cancellation did not land, so the job is very likely still running.
+      // This used to stop polling and switch to the error panel, which threw
+      // away a download that was still on its way: the file finished, nothing
+      // was watching, and the only way back was to start again. Say what
+      // happened and keep watching instead — the job is still the user's.
+      setError("Couldn't stop that download — it's still running, so we'll keep watching it.");
+      poll(jobId);
     } finally {
       setCancelling(false);
     }
@@ -136,6 +140,7 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
 
   function poll(id: string) {
     stopPolling();
+    setPhase("working");
     const giveUpAt = Date.now() + POLL_DEADLINE_MS;
     pollRef.current = setInterval(async () => {
       if (Date.now() > giveUpAt) {
@@ -193,7 +198,7 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
               onClick={() => setPlatform(p.id)}
               aria-pressed={platform === p.id}
               className={cn(
-                "rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
+                "rounded-nested border px-3 py-2.5 text-sm font-medium transition-colors",
                 platform === p.id
                   ? "border-primary bg-primary/10 text-foreground ring-2 ring-primary/30"
                   : "border-border hover:bg-muted"
@@ -221,44 +226,64 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
               inputMode="url"
               autoComplete="off"
               spellCheck={false}
-              className="flex-1"
+              // `sm:flex-1`, not `flex-1`. Below `sm` this row is `flex-col`, where
+              // flex-basis resolves against the *height* — so `flex-1` replaced the
+              // field's `h-10` with `flex-basis: 0` and, with no height to
+              // distribute in the column, it collapsed to 39px of content height.
+              // The grow only makes sense once the row is actually a row.
+              className="sm:flex-1"
               disabled={busy}
             />
-            <Button type="submit" disabled={busy || !url.trim() || !signedIn} className="sm:w-auto">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Download className="h-4 w-4" aria-hidden />}
-              {busy ? "Working…" : "Download"}
-            </Button>
+            {signedIn ? (
+              <Button type="submit" disabled={busy || !url.trim()} className="sm:w-auto">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Download className="h-4 w-4" aria-hidden />}
+                {busy ? "Working…" : "Download"}
+              </Button>
+            ) : (
+              // A disabled button with the reason printed further down read as
+              // "broken". Signed-out visitors get the one action that helps,
+              // and land back here afterwards.
+              <Link href="/login?next=%2Fdownloader" className={buttonClasses("primary", "md", "sm:w-auto")}>
+                <LogIn className="h-4 w-4" aria-hidden />
+                Sign in to download
+              </Link>
+            )}
           </div>
         </div>
 
-        <label className="flex w-fit cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+        {/* `py-2 -my-2` on the label: the box itself is 16px, but the whole label
+            is the click target (it wraps the input), so padding the label to 40px
+            tall is enough — no pseudo-element needed, and the negative margin
+            keeps the surrounding spacing exactly as it was. */}
+        <label className="-my-2 flex w-fit cursor-pointer items-center gap-2 py-2 text-sm text-muted-foreground">
           <input
             type="checkbox"
             checked={audioOnly}
             onChange={(e) => setAudioOnly(e.target.checked)}
             disabled={busy}
-            className="h-4 w-4 rounded border-border"
+            className="tap-target h-4 w-4 shrink-0 rounded border-border accent-primary"
           />
           Audio only (smaller file)
         </label>
 
-        {!signedIn && (
-          <p className="rounded-xl border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
-            Please <Link href="/login" className="font-medium text-primary hover:underline">sign in</Link> to
-            use the downloader.
-          </p>
-        )}
       </form>
 
       {busy && (
         // aria-live so a screen reader hears "Fetching media…" / "Processing…"
         // as the job moves on; the text changes without any focus change, which
         // is otherwise silent.
-        <div className="space-y-2 rounded-2xl border border-border bg-card p-4" aria-live="polite">
+        <div className="space-y-2 rounded-card border border-border bg-card p-4" aria-live="polite">
           <div className="flex items-center gap-2 text-sm font-medium">
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
             {statusLabel}
           </div>
+          {/* A failed cancellation, shown without abandoning the running job. */}
+          {error && (
+            <p className="flex items-start gap-2 text-xs text-muted-foreground">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" aria-hidden />
+              <span>{error}</span>
+            </p>
+          )}
           {/* Only shown when the downloader genuinely reports progress. */}
           {typeof job?.percent === "number" && (
             <>
@@ -270,7 +295,15 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
                 aria-valuemax={100}
                 aria-label="Download progress"
               >
-                <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${job.percent}%` }} />
+                {/* `scaleX` on a full-width bar, not an animated `width`. Width is a
+                    layout property: every poll tick re-ran layout and paint for the
+                    whole subtree, on the one screen where the browser is also busy
+                    streaming a download. A transform is composited instead, and
+                    `origin-left` keeps it growing from the left edge. */}
+                <div
+                  className="h-full w-full origin-left rounded-full bg-primary transition-transform duration-300 ease-out"
+                  style={{ transform: `scaleX(${job.percent / 100})` }}
+                />
               </div>
               <p className="text-xs text-muted-foreground">{job.percent}%</p>
             </>
@@ -291,7 +324,7 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
       )}
 
       {phase === "ready" && job && (
-        <div className="space-y-3 rounded-2xl border border-success/40 bg-success/10 p-4">
+        <div className="space-y-3 rounded-card border border-success/40 bg-success/10 p-4">
           <div className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-success" aria-hidden />
             <div className="min-w-0">
@@ -304,7 +337,7 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
               file rather than replacing the result, so it sits inside the
               success panel and never blocks the download button. */}
           {job.warning && (
-            <p className="flex items-start gap-2 rounded-xl bg-warning/10 p-3 text-sm text-muted-foreground">
+            <p className="flex items-start gap-2 rounded-nested bg-warning/10 p-3 text-sm text-muted-foreground">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" aria-hidden />
               <span>{job.warning}</span>
             </p>
@@ -323,7 +356,7 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
               }
               lastClickRef.current = now;
             }}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
+            className="inline-flex items-center gap-2 rounded-control bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
           >
             <Download className="h-4 w-4" aria-hidden />
             Download {job.fileName ? "file" : "now"}
@@ -336,7 +369,7 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
       )}
 
       {phase === "error" && (
-        <div className="flex items-start gap-2 rounded-2xl border border-warning/40 bg-warning/10 p-4">
+        <div className="flex items-start gap-2 rounded-card border border-warning/40 bg-warning/10 p-4">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warning" aria-hidden />
           <div>
             <p className="font-medium">Couldn&apos;t download that</p>
@@ -345,7 +378,7 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
         </div>
       )}
 
-      <div className="flex items-start gap-2 rounded-2xl bg-muted/40 p-4 text-sm text-muted-foreground">
+      <div className="flex items-start gap-2 rounded-card bg-muted/40 p-4 text-sm text-muted-foreground">
         <Link2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
         <p>
           Only publicly accessible media can be downloaded — private, login-only and age-restricted

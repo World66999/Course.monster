@@ -8,6 +8,13 @@ export const commentAuthorSelect = {
   name: true,
   image: true,
   accounts: { where: { provider: "google" }, select: { id: true }, take: 1 },
+  /**
+   * Premium badge, same shape trick as `accounts`: a row means "currently a
+   * member". Only the status is selected, never the expiry date, so a public
+   * page can't reveal when someone's membership ends. ACTIVE flips to EXPIRED
+   * within one scheduler tick (src/lib/premium-jobs.ts).
+   */
+  subscriptions: { where: { status: "ACTIVE" }, select: { status: true }, take: 1 },
 } satisfies Prisma.UserSelect;
 
 export const commentSelect = {

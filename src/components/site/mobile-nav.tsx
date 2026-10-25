@@ -6,18 +6,15 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { LogOut, Menu, Send, User as UserIcon, X } from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { SiteSettings } from "@/lib/settings-schema";
 import { NAV_LINKS } from "@/lib/nav";
-import { Button } from "@/components/ui/button";
-import { buttonClasses } from "@/components/ui/button";
+import { Button, buttonClasses } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function MobileNav({ settings }: { settings: SiteSettings }) {
   const [open, setOpen] = React.useState(false);
   const pathname = usePathname();
   const { data: session } = useSession();
-  const reduce = useReducedMotion();
 
   React.useEffect(() => {
     setOpen(false);
@@ -26,33 +23,22 @@ export function MobileNav({ settings }: { settings: SiteSettings }) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
       <DialogPrimitive.Trigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Open menu" className="md:hidden">
+        <Button variant="ghost" size="icon" aria-label="Open menu" className="xl:hidden">
           <Menu className="h-5 w-5" />
         </Button>
       </DialogPrimitive.Trigger>
-      <AnimatePresence>
-        {open && (
-          <DialogPrimitive.Portal forceMount>
-            <DialogPrimitive.Overlay asChild forceMount>
-              <motion.div
-                className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: reduce ? 0 : 0.2 }}
-              />
-            </DialogPrimitive.Overlay>
-            <DialogPrimitive.Content asChild forceMount>
-              <motion.div
-                className="fixed top-0 right-0 z-50 h-dvh w-72 overflow-y-auto border-l border-border bg-card p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl focus:outline-none"
-                initial={{ x: "100%" }}
-                animate={{ x: 0 }}
-                exit={{ x: "100%" }}
-                transition={{ type: "tween", duration: reduce ? 0 : 0.25, ease: "easeOut" }}
-              >
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-[oklch(0.16_0.03_270_/_0.5)] data-[state=closed]:animate-overlay-out data-[state=open]:animate-overlay-in" />
+        {/* Slides in from the right (transform only); Radix keeps it mounted
+            until the closing animation ends. Links then rise in sequence via
+            `rise-in` + a per-item `--d`. Reduced motion collapses both.
+            `pr` picks up the right-hand safe-area inset: the drawer is pinned to
+            the right edge, and with `viewport-fit=cover` a notched iPhone in
+            landscape can put the notch or home indicator over exactly that edge. */}
+        <DialogPrimitive.Content className="glass-panel fixed top-0 right-0 z-50 flex h-dvh w-[min(21rem,90vw)] flex-col overflow-y-auto *:shrink-0 rounded-l-panel rounded-r-none border-y-0 border-r-0 p-6 shadow-floating data-[state=closed]:animate-drawer-out data-[state=open]:animate-drawer-in pr-[max(1.5rem,env(safe-area-inset-right))] pb-[calc(1.5rem+env(safe-area-inset-bottom))] focus:outline-none">
                 <DialogPrimitive.Title className="sr-only">Menu</DialogPrimitive.Title>
                 <div className="mb-6 flex items-center justify-between">
-                  <span className="font-bold">{settings.siteName}</span>
+                  <span className="font-display text-subheading">{settings.siteName}</span>
                   <DialogPrimitive.Close asChild>
                     <Button variant="ghost" size="icon" aria-label="Close menu">
                       <X className="h-5 w-5" />
@@ -60,10 +46,14 @@ export function MobileNav({ settings }: { settings: SiteSettings }) {
                   </DialogPrimitive.Close>
                 </div>
                 <nav aria-label="Mobile" className="flex flex-col gap-1">
-                  {NAV_LINKS.map((link) =>
+                  {NAV_LINKS.map((link, i) =>
                     "children" in link ? (
-                      <div key={link.label} className="py-1">
-                        <p className="px-3 py-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                      <div
+                        key={link.label}
+                        className="rise-in py-1"
+                        style={{ "--d": `${80 + i * 45}ms` } as React.CSSProperties}
+                      >
+                        <p className="px-3 pt-2 pb-1 text-eyebrow text-muted-foreground uppercase">
                           {link.label}
                         </p>
                         {link.children.map((child) => (
@@ -71,8 +61,10 @@ export function MobileNav({ settings }: { settings: SiteSettings }) {
                             key={child.href}
                             href={child.href}
                             className={cn(
-                              "block rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted",
-                              pathname === child.href ? "bg-muted text-primary" : "text-foreground"
+                              "block rounded-control px-3 py-3 text-base font-semibold transition-[background-color,color,transform] duration-300 hover:translate-x-1 hover:bg-muted",
+                              pathname === child.href
+                                ? "bg-primary-soft text-primary ring-1 ring-inset ring-primary/20"
+                                : "text-foreground"
                             )}
                           >
                             {child.label}
@@ -83,9 +75,12 @@ export function MobileNav({ settings }: { settings: SiteSettings }) {
                       <Link
                         key={link.href}
                         href={link.href}
+                        style={{ "--d": `${80 + i * 45}ms` } as React.CSSProperties}
                         className={cn(
-                          "rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted",
-                          pathname === link.href ? "bg-muted text-primary" : "text-foreground"
+                          "rise-in rounded-control px-3 py-3 text-base font-semibold transition-[background-color,color,transform] duration-300 hover:translate-x-1 hover:bg-muted",
+                          pathname === link.href
+                            ? "bg-primary-soft text-primary ring-1 ring-inset ring-primary/20"
+                            : "text-foreground"
                         )}
                       >
                         {link.label}
@@ -98,13 +93,13 @@ export function MobileNav({ settings }: { settings: SiteSettings }) {
                     href={settings.telegramUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={buttonClasses("primary", "md", "mt-6 w-full")}
+                    className={buttonClasses("brand", "md", "mt-6 w-full")}
                   >
                     <Send className="h-4 w-4" aria-hidden />
                     Join Telegram
                   </a>
                 )}
-                <div className="mt-6 space-y-2 border-t border-border pt-6">
+                <div className="mt-auto space-y-2 border-t border-border pt-6">
                   {session?.user ? (
                     <>
                       <Link href="/account" className={buttonClasses("outline", "md", "w-full")}>
@@ -131,11 +126,8 @@ export function MobileNav({ settings }: { settings: SiteSettings }) {
                     </>
                   )}
                 </div>
-              </motion.div>
-            </DialogPrimitive.Content>
-          </DialogPrimitive.Portal>
-        )}
-      </AnimatePresence>
+              </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
   );
 }

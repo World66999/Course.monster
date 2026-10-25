@@ -13,7 +13,7 @@ export default async function EditAiPlatformPage({ params }: { params: Promise<{
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">Edit AI platform</h1>
+      <h1 className="text-heading">Edit AI platform</h1>
       <AiPlatformForm
         platformId={platform.id}
         defaultValues={{

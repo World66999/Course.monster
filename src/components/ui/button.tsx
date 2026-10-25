@@ -1,54 +1,101 @@
 import * as React from "react";
+import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Variant = "primary" | "secondary" | "outline" | "ghost" | "destructive";
-type Size = "sm" | "md" | "lg" | "icon";
+type Variant = "primary" | "secondary" | "outline" | "ghost" | "destructive" | "accent" | "brand";
+type Size = "sm" | "md" | "lg" | "icon" | "icon-sm";
 
+/**
+ * Every variant defines the same four states (rest / hover / active / focus) so
+ * no control in the product is missing feedback. The lift-on-hover is a
+ * transform, never a margin or size change, so it cannot reflow a grid.
+ */
 const variants: Record<Variant, string> = {
   primary:
-    "bg-primary text-primary-foreground inset-shadow-[0_1px_0_0_rgba(255,255,255,0.18)] shadow-sm shadow-primary/25 hover:bg-primary-hover hover:shadow-md hover:shadow-primary/30 hover:-translate-y-px active:translate-y-0",
-  secondary: "bg-muted text-foreground hover:bg-border/70",
-  outline: "border border-border bg-card shadow-soft hover:border-primary/35 hover:bg-muted/60",
-  ghost: "hover:bg-muted",
+    "lit bg-primary text-primary-foreground shadow-primary inset-shadow-highlight " +
+    "hover:bg-primary-hover hover:-translate-y-0.5 hover:shadow-glow " +
+    "active:translate-y-0 active:shadow-soft",
+  accent:
+    "lit bg-accent text-accent-foreground shadow-soft inset-shadow-highlight " +
+    "hover:bg-accent-hover hover:-translate-y-0.5 hover:shadow-elevated " +
+    "active:translate-y-0 active:shadow-soft",
+  brand:
+    "bg-brand text-white shadow-primary inset-shadow-highlight " +
+    "hover:-translate-y-0.5 hover:shadow-glow hover:brightness-110 " +
+    "active:translate-y-0 active:brightness-95",
+  secondary:
+    "bg-muted text-foreground ring-1 ring-inset ring-border " +
+    "hover:bg-border/60 hover:ring-border-strong/50 active:bg-border/80",
+  outline:
+    "border border-border bg-card shadow-soft " +
+    "hover:border-primary/45 hover:bg-primary-soft/60 hover:-translate-y-0.5 " +
+    "active:translate-y-0 active:bg-primary-soft",
+  ghost: "text-muted-foreground hover:bg-muted hover:text-foreground active:bg-border/60",
   destructive:
-    "bg-destructive text-white shadow-sm shadow-destructive/25 hover:opacity-90 hover:shadow-md hover:shadow-destructive/30",
+    "lit bg-destructive text-white shadow-soft inset-shadow-highlight " +
+    "hover:brightness-110 hover:-translate-y-px hover:shadow-elevated " +
+    "active:translate-y-0 active:brightness-95",
 };
 
+/* Pills throughout: a fully rounded button reads as the one thing on a card
+   or form you can press, against rounded-rect inputs and surfaces. */
 const sizes: Record<Size, string> = {
-  sm: "h-8 px-3 text-sm gap-1.5",
-  md: "h-10 px-4 text-sm gap-2",
-  lg: "h-12 px-6 text-base gap-2",
-  icon: "h-9 w-9",
+  sm: "h-8 px-3.5 text-sm gap-1.5 rounded-full",
+  md: "h-10 px-5 text-sm gap-2 rounded-full",
+  lg: "h-12 px-7 text-base gap-2 rounded-full",
+  icon: "h-10 w-10 rounded-full",
+  "icon-sm": "h-8 w-8 rounded-full",
 };
+
+const base =
+  "relative inline-flex items-center justify-center font-semibold whitespace-nowrap " +
+  "transition-[background-color,border-color,color,box-shadow,transform,filter] duration-300 " +
+  "ease-[cubic-bezier(0.22,1,0.36,1)] cursor-pointer touch-manipulation select-none " +
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 " +
+  "focus-visible:ring-offset-background " +
+  "active:scale-[0.985] disabled:pointer-events-none disabled:opacity-45 disabled:shadow-none " +
+  "aria-disabled:pointer-events-none aria-disabled:opacity-45";
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   size?: Size;
+  /**
+   * Shows a spinner and blocks input. The label stays in the DOM at zero
+   * opacity so the button keeps its width — a button that shrinks mid-submit
+   * shifts everything beside it.
+   */
+  loading?: boolean;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", size = "md", type = "button", ...props }, ref) => (
+  (
+    { className, variant = "primary", size = "md", type = "button", loading = false, disabled, children, ...props },
+    ref
+  ) => (
     <button
       ref={ref}
       type={type}
-      className={cn(
-        "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
-        variants[variant],
-        sizes[size],
-        className
-      )}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      className={cn(base, variants[variant], sizes[size], className)}
       {...props}
-    />
+    >
+      {loading && (
+        <span className="absolute inset-0 flex items-center justify-center">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+        </span>
+      )}
+      <span
+        className={cn("inline-flex items-center justify-center gap-[inherit]", loading && "opacity-0")}
+      >
+        {children}
+      </span>
+    </button>
   )
 );
 Button.displayName = "Button";
 
 /** Anchor styled as a button (for link CTAs). */
 export function buttonClasses(variant: Variant = "primary", size: Size = "md", className?: string) {
-  return cn(
-    "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 active:scale-[0.98]",
-    variants[variant],
-    sizes[size],
-    className
-  );
+  return cn(base, variants[variant], sizes[size], className);
 }

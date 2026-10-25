@@ -12,7 +12,7 @@ import {
 } from "@/lib/course-requests";
 import { listCourseRequestsQuerySchema } from "@/lib/validation";
 import { absoluteUrl } from "@/lib/utils";
-import { Section } from "@/components/site/section";
+import { PageHeader, Section } from "@/components/site/section";
 import { RequestFiltersBar } from "@/components/site/requests/request-filters-bar";
 import { InfiniteRequestList } from "@/components/site/requests/request-list";
 import { RequestGridSkeleton } from "@/components/ui/skeleton";
@@ -80,19 +80,24 @@ export default async function RequestsPage({ searchParams }: { searchParams: Sea
 
   return (
     <Section className="py-12">
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Course Requests</h1>
-          <p className="mt-2 max-w-2xl text-muted-foreground">
+      <PageHeader
+        eyebrow="Community"
+        title="Course Requests"
+        description={
+          <>
             Ask for a course you want, share a resource you recommend, and vote on what the community
             should add next.
-          </p>
-        </div>
+          </>
+        }
+        actions={
+          <>
         <Link href="/requests/new" className={buttonClasses("primary", "md")}>
           <PlusCircle className="h-4 w-4" aria-hidden />
           Request a course
         </Link>
-      </div>
+          </>
+        }
+      />
 
       <div className="mb-8">
         <Suspense>

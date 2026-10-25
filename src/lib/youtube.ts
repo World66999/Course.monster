@@ -25,6 +25,30 @@ function isYoutubeHost(hostname: string): boolean {
 }
 
 /**
+ * The character set every YouTube id uses.
+ *
+ * `/embed/<id>` and `/shorts/<id>` were already matched against this, but the
+ * far more common forms — `?v=`, `?list=` and `youtu.be/<id>` — took whatever
+ * the URL happened to contain. `searchParams.get()` returns the *decoded*
+ * value, so `?v=../../something` or `?v=x" onload=…` was extracted verbatim,
+ * stored as `videoId`, and later interpolated into an embed URL and into the
+ * VideoObject JSON-LD on the resource page. React attribute escaping and
+ * `safeJsonLd` kept that from becoming script execution, and `..` segments only
+ * ever resolved back within youtube-nocookie.com — but an id that was never
+ * checked has no business being treated as one, and a validated id makes every
+ * downstream use correct by construction instead of by luck.
+ *
+ * Bounded rather than fixed-length: today's video ids are 11 characters and
+ * playlist ids run to about 34, but the length is YouTube's to change and
+ * rejecting a valid link is a worse failure here than accepting a long one.
+ */
+const YOUTUBE_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+
+function asId(value: string | null | undefined): string | null {
+  return value && YOUTUBE_ID_RE.test(value) ? value : null;
+}
+
+/**
  * Parses a YouTube URL into a { type, id } pair, or null if it isn't a
  * recognizable YouTube video/playlist/channel URL. Never throws.
  */
@@ -46,12 +70,12 @@ export function parseYouTubeUrl(input: string): ParsedYoutubeUrl | null {
   const path = url.pathname.replace(/\/+$/, "");
 
   if (url.hostname.toLowerCase() === "youtu.be") {
-    const id = path.slice(1).split("/")[0];
+    const id = asId(path.slice(1).split("/")[0]);
     return id ? { type: "video", id } : null;
   }
 
-  const playlistId = url.searchParams.get("list");
-  const videoId = url.searchParams.get("v");
+  const playlistId = asId(url.searchParams.get("list"));
+  const videoId = asId(url.searchParams.get("v"));
 
   if (path === "/watch" && videoId) return { type: "video", id: videoId };
   if (path === "/playlist" && playlistId) return { type: "playlist", id: playlistId };
@@ -92,8 +116,21 @@ export function youtubeThumbnailUrl(videoId: string): string {
  * plays, which is why callers must only mount this behind an explicit click
  * (see YoutubeEmbed component), never eagerly on page load.
  */
-export function youtubeEmbedUrl(videoId: string, opts?: { playlistId?: string }): string {
-  const params = new URLSearchParams({ rel: "0", modestbranding: "1", autoplay: "1" });
+export function youtubeEmbedUrl(
+  videoId: string,
+  opts?: {
+    playlistId?: string;
+    /**
+     * Defaults to true because the only place this mounts a real iframe is
+     * behind a deliberate click on the poster, where not starting playback
+     * would just be a second click. Structured data describes the video rather
+     * than playing it, so it asks for false.
+     */
+    autoplay?: boolean;
+  }
+): string {
+  const params = new URLSearchParams({ rel: "0", modestbranding: "1" });
+  if (opts?.autoplay ?? true) params.set("autoplay", "1");
   if (opts?.playlistId) params.set("list", opts.playlistId);
   // A playlist opened without a specific starting video uses the documented
   // `videoseries` path. An empty id (`/embed/?list=…`) happens to play today,

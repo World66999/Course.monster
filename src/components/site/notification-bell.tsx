@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { formatDistanceToNow } from "date-fns";
 import { Bell, MessageSquare, Reply, AtSign, ArrowRightCircle, ShieldCheck } from "lucide-react";
 import { markNotificationsReadAction } from "@/server/actions/notifications";
+import { safeAction } from "@/lib/safe-action";
 import { Dropdown, DropdownTrigger, DropdownContent } from "@/components/ui/dropdown";
 import { cn } from "@/lib/utils";
 import type { NotificationDTO } from "@/lib/notifications";
@@ -37,9 +38,14 @@ export function NotificationBell() {
     }
   }, []);
 
+  // Keyed on the user id, not on `session.user`. That object gets a fresh
+  // identity every time next-auth revalidates the session, so depending on it
+  // re-ran this effect and refetched notifications for no reason; the id is a
+  // primitive and only changes when the signed-in user actually does.
+  const userId = session?.user?.id;
   React.useEffect(() => {
-    if (session?.user) void load();
-  }, [session?.user, load]);
+    if (userId) void load();
+  }, [userId, load]);
 
   async function onOpenChange(next: boolean) {
     setOpen(next);
@@ -48,7 +54,12 @@ export function NotificationBell() {
       if (unreadCount > 0) {
         setUnreadCount(0);
         setItems((prev) => prev.map((n) => ({ ...n, read: true })));
-        void markNotificationsReadAction();
+        // Fire-and-forget, but never an unhandled rejection: a rejected
+        // server action (expired session, stale bundle after a deploy) would
+        // otherwise surface as an uncaught error from a purely cosmetic
+        // "mark as read". The badge is already cleared optimistically and the
+        // next load() re-reads the truth, so failing quietly is correct here.
+        void safeAction(() => markNotificationsReadAction(), "mark notifications read");
       }
     }
   }

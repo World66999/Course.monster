@@ -1,10 +1,12 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { PackageSearch } from "lucide-react";
 import { AppCard, type AppCardDTO } from "@/components/site/apps/app-card";
 import { AppCardSkeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/site/section";
+import { buttonClasses } from "@/components/ui/button";
 
 interface Props {
   initialItems: AppCardDTO[];
@@ -62,7 +64,22 @@ export function InfiniteAppList({ initialItems, initialCursor, total, queryStrin
   }, [cursor, loadMore]);
 
   if (items.length === 0) {
-    return <EmptyState icon={<PackageSearch aria-hidden />} title="No apps found" description="Try adjusting your search or filters." />;
+    return (
+      <EmptyState
+        icon={<PackageSearch aria-hidden />}
+        title="No apps found"
+        description="Try adjusting your search or filters — or browse everything instead."
+        // A dead end with no way out is the empty state's one real failure mode.
+        // Every listing on the site now offers the same escape hatch; five of the
+        // seven were missing it, so a visitor who over-filtered had to edit the
+        // URL or hit Back repeatedly to recover.
+        action={
+          <Link href="/apps" className={buttonClasses("outline", "sm")}>
+            Clear filters
+          </Link>
+        }
+      />
+    );
   }
 
   return (
@@ -86,7 +103,7 @@ export function InfiniteAppList({ initialItems, initialCursor, total, queryStrin
           <button
             type="button"
             onClick={() => void loadMore()}
-            className="cursor-pointer rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
+            className="cursor-pointer rounded-control border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
           >
             Try again
           </button>

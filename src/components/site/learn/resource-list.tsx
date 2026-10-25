@@ -1,10 +1,12 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { SearchX } from "lucide-react";
 import { ResourceCard, type ResourceCardDTO } from "@/components/site/learn/resource-card";
 import { ResourceCardSkeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/site/section";
+import { buttonClasses } from "@/components/ui/button";
 
 interface Props {
   initialItems: ResourceCardDTO[];
@@ -63,7 +65,16 @@ export function InfiniteResourceList({ initialItems, initialCursor, total, query
 
   if (items.length === 0) {
     return (
-      <EmptyState icon={<SearchX aria-hidden />} title="No resources found" description="Try adjusting your search or filters." />
+      <EmptyState
+        icon={<SearchX aria-hidden />}
+        title="No resources found"
+        description="Try adjusting your search or filters — or browse everything instead."
+        action={
+          <Link href="/learn" className={buttonClasses("outline", "sm")}>
+            Clear filters
+          </Link>
+        }
+      />
     );
   }
 
@@ -88,7 +99,7 @@ export function InfiniteResourceList({ initialItems, initialCursor, total, query
           <button
             type="button"
             onClick={() => void loadMore()}
-            className="cursor-pointer rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
+            className="cursor-pointer rounded-control border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
           >
             Try again
           </button>

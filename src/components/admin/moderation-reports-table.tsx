@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +13,8 @@ import {
 } from "@/components/ui/select";
 import { ReportActions } from "@/components/admin/moderation-actions";
 import { buttonClasses } from "@/components/ui/button";
+import { useAdminParams } from "@/components/admin/use-admin-params";
+import { cn } from "@/lib/utils";
 
 export interface ModerationReportRow {
   id: string;
@@ -51,26 +52,7 @@ export function ModerationReportsTable({
   page: number;
   pageCount: number;
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  function update(patch: Record<string, string>) {
-    const params = new URLSearchParams(searchParams.toString());
-    for (const [k, v] of Object.entries(patch)) {
-      if (v) params.set(k, v);
-      else params.delete(k);
-    }
-    params.delete("page");
-    router.push(`${pathname}?${params.toString()}`);
-  }
-
-  function goToPage(next: number) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (next > 1) params.set("page", String(next));
-    else params.delete("page");
-    router.push(`${pathname}?${params.toString()}`);
-  }
+  const { searchParams, update, goToPage, isPending } = useAdminParams();
 
   const currentStatus = searchParams.get("reportStatus") ?? "OPEN";
 
@@ -92,7 +74,16 @@ export function ModerationReportsTable({
         </div>
       </div>
 
-      <div className="relative overflow-x-auto rounded-2xl border border-border bg-card shadow-soft">
+      {/* Dimmed and inert while the next page/filter is in flight, so a slow
+          query cannot leave stale rows looking current and clickable. */}
+      <div
+        aria-busy={isPending}
+        className={cn(
+          "relative overflow-x-auto rounded-card border border-border bg-card shadow-soft",
+          "transition-opacity duration-200",
+          isPending && "pointer-events-none opacity-60"
+        )}
+      >
         <table className="w-full min-w-[820px] text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/50 text-left text-xs tracking-wider text-muted-foreground uppercase">
@@ -115,7 +106,7 @@ export function ModerationReportsTable({
               </tr>
             )}
             {rows.map((row) => (
-              <tr key={row.id} className="border-b border-border last:border-0 hover:bg-muted/40">
+              <tr key={row.id} className="border-b border-border transition-colors duration-150 last:border-0 hover:bg-primary-soft/45">
                 <td className="max-w-80 p-3">
                   <Badge variant="outline" className="mb-1">
                     {row.targetKind}

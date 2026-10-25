@@ -78,11 +78,3 @@ export const getPublishedApp = cache(async (slug: string) => {
   return db.appListing.findFirst({ where: { slug, published: true } });
 });
 
-export async function getFeaturedApps(limit = 8): Promise<AppCard[]> {
-  return db.appListing.findMany({
-    where: { published: true, featured: true },
-    select: appCardSelect,
-    orderBy: [{ order: "asc" }, { createdAt: "desc" }],
-    take: limit,
-  });
-}

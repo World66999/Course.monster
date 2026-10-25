@@ -155,7 +155,7 @@ export function ImageUploadField({
         // (These used to be a single hover-only "x" overlay, which gave no way
         // to replace an image at all and was unreachable on touch devices.)
         <div className="space-y-3">
-          <div className="relative w-fit max-w-full overflow-hidden rounded-xl border border-border bg-muted/40">
+          <div className="relative w-fit max-w-full overflow-hidden rounded-nested border border-border bg-muted/40">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={displaySrc}

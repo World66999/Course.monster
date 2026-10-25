@@ -18,6 +18,17 @@ export function Markdown({ content, className }: { content: string; className?: 
               {children}
             </a>
           ),
+          // A wide GFM table cannot shrink below its columns' min-content width,
+          // so without this wrapper it pushed the entire page into horizontal
+          // scroll on a phone. The wrapper scrolls instead of the document; the
+          // paired CSS lives in globals.css under `.markdown .table-scroll`.
+          // `tabIndex` makes the scroll region reachable by keyboard, which is
+          // required for anyone who cannot swipe it.
+          table: ({ children }) => (
+            <div className="table-scroll" tabIndex={0} role="region" aria-label="Table">
+              <table>{children}</table>
+            </div>
+          ),
         }}
       >
         {content}

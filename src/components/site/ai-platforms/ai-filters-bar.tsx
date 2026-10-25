@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { X } from "lucide-react";
+import { useDebouncedSearchParam, useFilterParams } from "@/components/site/use-filter-params";
+import { FilterSearchIcon } from "@/components/site/filter-search-icon";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AI_CATEGORY_LABELS, AI_PRICING_LABELS } from "@/lib/directory-labels";
@@ -25,41 +26,19 @@ const SORT_OPTIONS = [
 ] as const;
 
 export function AiFiltersBar() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const { searchParams, update, replaceLive, isPending } = useFilterParams();
 
-  const currentQ = searchParams.get("q") ?? "";
   const currentCategory = searchParams.get("category") ?? "";
   const currentPricing = searchParams.get("pricing") ?? "";
   const currentSort = searchParams.get("sort") ?? "curated";
 
-  const [search, setSearch] = React.useState(currentQ);
-  React.useEffect(() => setSearch(currentQ), [currentQ]);
-
-  const update = React.useCallback(
-    (patch: Record<string, string>) => {
-      const params = new URLSearchParams(searchParams.toString());
-      for (const [key, value] of Object.entries(patch)) {
-        if (value) params.set(key, value);
-        else params.delete(key);
-      }
-      router.push(`${pathname}${params.size ? `?${params}` : ""}`, { scroll: false });
-    },
-    [router, pathname, searchParams]
-  );
-
-  React.useEffect(() => {
-    if (search === currentQ) return;
-    const t = setTimeout(() => update({ q: search.trim() }), 400);
-    return () => clearTimeout(t);
-  }, [search, currentQ, update]);
+  const [search, setSearch, searchPending] = useDebouncedSearchParam("q", replaceLive, searchParams);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" aria-busy={isPending}>
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
-          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <FilterSearchIcon pending={isPending || searchPending} />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}

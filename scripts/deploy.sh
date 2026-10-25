@@ -119,16 +119,12 @@ cp -r public .next/standalone/public
 cp .env .next/standalone/.env
 mkdir -p .next/standalone/.next/cache
 
-log "7/9 Verifying the admin path never leaked into a shared client bundle"
-SEGMENT=$(grep -oP '^\s*"\K[a-zA-Z0-9]{40,}' "$APP/src/lib/admin-path.ts" | head -1 || true)
-if [ -n "$SEGMENT" ]; then
-  if find .next/static -name '*clientMiddlewareManifest*' -exec grep -l "$SEGMENT" {} \; 2>/dev/null | grep -q .; then
-    fail "admin segment leaked into the client middleware manifest"
-  fi
-  echo "    ok - segment absent from the middleware manifest"
-else
-  echo "    WARNING: could not read ADMIN_SEGMENT - skipping leak check"
-fi
+log "7/9 Verifying the admin path never leaked into a client bundle a visitor gets"
+# Checks the middleware manifest *and* every chunk a public route loads. The
+# second half is the one that matters for a future refactor: the panel's own
+# chunks legitimately contain the segment, and only a staff session ever fetches
+# them, but one shared import would put it in a chunk the homepage pulls in.
+node scripts/check-admin-path-leak.mjs .next || fail "admin segment leaked into a client bundle"
 
 log "8/9 Installing into the $TARGET slot and starting it"
 systemctl stop "coursevault@$TARGET" 2>/dev/null || true
@@ -173,6 +169,10 @@ cat > "$UPSTREAM_CONF" <<CONF
 upstream coursevault_app {
     server 127.0.0.1:$TARGET_PORT;   # slot: $TARGET
     keepalive 32;
+    # Node closes idle connections after ~5 s; keep nginx's idle reuse shorter
+    # so a request is never sent on a socket Node is closing (Oct 2026: 34
+    # 'upstream prematurely closed'/'reset by peer' errors, one visible 502).
+    keepalive_timeout 4s;
 }
 CONF
 if ! nginx -t 2>/dev/null; then

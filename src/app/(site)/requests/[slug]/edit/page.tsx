@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getCourseRequestBySlug, getRequestCategories } from "@/lib/course-requests";
-import { Section } from "@/components/site/section";
+import { PageHeader, Section } from "@/components/site/section";
 import { RequestForm } from "@/components/site/requests/request-form";
 
 interface Props {
@@ -25,9 +25,7 @@ export default async function EditCourseRequestPage({ params }: Props) {
 
   return (
     <Section className="max-w-3xl py-12">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Edit request</h1>
-      </div>
+      <PageHeader eyebrow="Community" title="Edit request" />
       <RequestForm
         categories={categories}
         existing={{

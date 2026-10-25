@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default function NewAppPage() {
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">New app</h1>
+      <h1 className="text-heading">New app</h1>
       <AppListingForm
         appId={null}
         defaultValues={{

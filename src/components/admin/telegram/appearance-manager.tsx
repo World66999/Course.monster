@@ -2,14 +2,14 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Eye, Loader2, RotateCcw, Save, ShieldCheck, Sparkles } from "lucide-react";
+import { Brush, CircleDot, Eye, Loader2, Palette, RotateCcw, Save, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Label, FieldError, FieldHint } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 import {
   BUTTON_STYLES,
   BUTTON_STYLE_KEYS,
@@ -104,7 +104,7 @@ export function AppearanceManager({
       {/* Telegram, not this app, decides whether a custom emoji renders — say so plainly. */}
       <div
         className={cn(
-          "rounded-2xl border p-4 text-sm",
+          "rounded-card border p-4 text-sm",
           capability.canResolve ? "border-border bg-card" : "border-warning/40 bg-warning/10"
         )}
       >
@@ -122,7 +122,7 @@ export function AppearanceManager({
 
       <section className="space-y-3">
         <header>
-          <h2 className="font-semibold">✨ Premium Emoji Library</h2>
+          <h2 className="flex items-center gap-2 font-semibold"><Sparkles className="h-4 w-4 text-primary" aria-hidden />Premium Emoji Library</h2>
           <p className="text-sm text-muted-foreground">
             Ids come only from Telegram&apos;s own <code>getForumTopicIconStickers</code> and public
             sets this bot has legitimately seen. Nothing is guessed or copied from the web, and
@@ -158,7 +158,7 @@ export function AppearanceManager({
         </div>
 
         {showAll && (
-          <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+          <div className="overflow-x-auto rounded-card border border-border bg-card">
             <table className="w-full min-w-[46rem] text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs text-muted-foreground uppercase">
@@ -204,7 +204,7 @@ export function AppearanceManager({
       <section className="space-y-4">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-semibold">🎨 Icon Manager</h2>
+            <h2 className="flex items-center gap-2 font-semibold"><Palette className="h-4 w-4 text-primary" aria-hidden />Icon Manager</h2>
             <p className="text-sm text-muted-foreground">
               Every emoji the bot uses. Send a plain emoji, or a premium custom-emoji id with a
               fallback character.
@@ -228,7 +228,7 @@ export function AppearanceManager({
 
       <section className="space-y-4">
         <header>
-          <h2 className="font-semibold">🔘 Button Label Manager</h2>
+          <h2 className="flex items-center gap-2 font-semibold"><CircleDot className="h-4 w-4 text-primary" aria-hidden />Button Label Manager</h2>
           <p className="text-sm text-muted-foreground">
             Captions for every inline button, with an optional per-button colour. Max{" "}
             {MAX_LABEL_LENGTH} characters including the icon.
@@ -250,7 +250,7 @@ export function AppearanceManager({
 
       <section className="space-y-4">
         <header>
-          <h2 className="font-semibold">🖌️ Global Default Button Style</h2>
+          <h2 className="flex items-center gap-2 font-semibold"><Brush className="h-4 w-4 text-primary" aria-hidden />Global Default Button Style</h2>
           <p className="text-sm text-muted-foreground">
             Applies to every button without its own colour. &ldquo;Default&rdquo; sends no style at
             all, letting each Telegram client use its own appearance.
@@ -267,7 +267,7 @@ export function AppearanceManager({
                 onClick={() => void run("style", () => setDefaultStyleAction(style), "Default style updated")}
                 aria-pressed={active}
                 className={cn(
-                  "flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50",
+                  "flex items-center gap-2 rounded-nested border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50",
                   active ? "border-primary ring-2 ring-primary/40" : "border-border hover:bg-muted"
                 )}
               >
@@ -366,9 +366,9 @@ function IconRow({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div className="rounded-card border border-border bg-card p-4">
       <div className="flex items-start gap-3">
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-muted text-2xl leading-none">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-nested bg-muted text-2xl leading-none">
           {shown}
         </span>
         <div className="min-w-0 flex-1">
@@ -498,7 +498,7 @@ function LabelRow({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div className="rounded-card border border-border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground uppercase">{meta.where}</p>
         {customised && <Badge variant="secondary">customised</Badge>}
@@ -529,7 +529,7 @@ function LabelRow({
                 onClick={() => setStyle(s)}
                 aria-pressed={style === s}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs transition-colors",
+                  "flex items-center gap-1.5 rounded-control border px-2 py-1 text-xs transition-colors",
                   style === s ? "border-primary ring-2 ring-primary/40" : "border-border hover:bg-muted"
                 )}
               >
@@ -574,13 +574,13 @@ function Preview({ branding }: { branding: Branding }) {
   return (
     <section className="space-y-3">
       <header>
-        <h2 className="font-semibold">👀 Live preview</h2>
+        <h2 className="flex items-center gap-2 font-semibold"><Eye className="h-4 w-4 text-primary" aria-hidden />Live preview</h2>
         <p className="text-sm text-muted-foreground">
           The main menu as Telegram will render it with the saved values. Premium icons appear as
           their fallback character here.
         </p>
       </header>
-      <div className="max-w-sm space-y-2 rounded-2xl border border-border bg-muted/40 p-4">
+      <div className="max-w-sm space-y-2 rounded-card border border-border bg-muted/40 p-4">
         <p className="text-sm">
           <span className="mr-1">{iconPlain(branding, "logo")}</span>
           <strong>Courses Monster</strong>
@@ -594,7 +594,7 @@ function Preview({ branding }: { branding: Branding }) {
               <div
                 key={label}
                 className={cn(
-                  "truncate rounded-lg px-3 py-2 text-center text-sm font-medium",
+                  "truncate rounded-control px-3 py-2 text-center text-sm font-medium",
                   style === "none" ? "bg-background border border-border" : STYLE_SWATCH[style]
                 )}
               >

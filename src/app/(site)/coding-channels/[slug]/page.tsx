@@ -64,14 +64,14 @@ export default async function CodingChannelDetailPage({ params }: Props) {
         Back to Coding Channels
       </Link>
 
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-soft sm:p-8">
+      <div className="rounded-card border border-border bg-card p-6 shadow-soft sm:p-8">
         <div className="flex items-start gap-4">
           {channel.logo ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={channel.logo} alt={channel.name} className="h-20 w-20 shrink-0 rounded-2xl object-cover" />
+            <img src={channel.logo} alt={channel.name} className="h-20 w-20 shrink-0 rounded-card object-cover" />
           ) : (
             <div
-              className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl"
+              className="flex h-20 w-20 shrink-0 items-center justify-center rounded-card"
               style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
             >
               <span className={cn("text-2xl font-bold", light ? "text-slate-900/85" : "text-white/90")}>
@@ -81,7 +81,7 @@ export default async function CodingChannelDetailPage({ params }: Props) {
           )}
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight">{channel.name}</h1>
+              <h1 className="text-heading">{channel.name}</h1>
               {channel.verified && (
                 <span className="inline-flex items-center gap-1 text-primary" title="Verified by Courses Monster">
                   <BadgeCheck className="h-5 w-5" aria-hidden />
@@ -115,7 +115,7 @@ export default async function CodingChannelDetailPage({ params }: Props) {
         )}
 
         {channel.bestSuitedFor && (
-          <div className="mt-6 rounded-xl bg-muted/50 p-4">
+          <div className="mt-6 rounded-nested bg-muted/50 p-4">
             <h2 className="text-sm font-semibold">Best suited for</h2>
             <p className="mt-1 text-sm text-muted-foreground">{channel.bestSuitedFor}</p>
           </div>

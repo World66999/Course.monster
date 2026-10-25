@@ -8,6 +8,7 @@ import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { displayNameFormSchema } from "@/lib/validation";
 import { updateDisplayNameAction } from "@/server/actions/profile";
+import { safeAction } from "@/lib/safe-action";
 import { AvatarUpload } from "@/components/account/avatar-upload";
 import { Button } from "@/components/ui/button";
 import { Input, Label, FieldError, FieldHint } from "@/components/ui/input";
@@ -29,7 +30,7 @@ export function ProfileSection({ name, image }: { name: string; image: string | 
   });
 
   async function onSubmit(values: FormValues) {
-    const result = await updateDisplayNameAction(values);
+    const result = await safeAction(() => updateDisplayNameAction(values), "update display name");
     if (result.ok) {
       toast.success("Display name updated");
       // Pushes the new name into the JWT/session immediately — the header
@@ -43,7 +44,7 @@ export function ProfileSection({ name, image }: { name: string; image: string | 
   }
 
   return (
-    <section className="space-y-5 rounded-2xl border border-border bg-card p-6 shadow-soft">
+    <section className="space-y-5 rounded-card border border-border bg-card p-6 shadow-soft">
       <div>
         <h2 className="font-semibold">Profile</h2>
         <p className="text-sm text-muted-foreground">Shown publicly on your comments and reviews.</p>

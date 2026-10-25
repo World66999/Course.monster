@@ -71,11 +71,11 @@ export default async function SocialDownloaderPage() {
         {cards.map(({ label, value, sub, icon: Icon }) => (
           <div
             key={label}
-            className="rounded-2xl border border-border bg-card p-5 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-elevated"
+            className="rounded-card border border-border bg-card p-5 shadow-soft transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-elevated"
           >
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">{label}</p>
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-primary text-white shadow-sm shadow-primary/30">
+              <span className="flex h-9 w-9 items-center justify-center rounded-nested bg-gradient-to-br from-violet to-primary text-white shadow-sm shadow-primary/30">
                 <Icon className="h-4.5 w-4.5" aria-hidden />
               </span>
             </div>
@@ -86,7 +86,7 @@ export default async function SocialDownloaderPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-soft xl:col-span-2">
+        <div className="rounded-card border border-border bg-card p-5 shadow-soft xl:col-span-2">
           <h2 className="font-semibold">By platform</h2>
           <p className="text-xs text-muted-foreground">
             Success rate counts completed against failed only — cancelled and expired jobs are not
@@ -121,7 +121,7 @@ export default async function SocialDownloaderPage() {
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+          <div className="rounded-card border border-border bg-card p-5 shadow-soft">
             <h2 className="font-semibold">Delivered</h2>
             <p className="mt-3 text-2xl font-bold tabular-nums">{totalGb.toFixed(2)} GB</p>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -129,7 +129,7 @@ export default async function SocialDownloaderPage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+          <div className="rounded-card border border-border bg-card p-5 shadow-soft">
             <h2 className="font-semibold">Most common failures</h2>
             {topErrors.length === 0 ? (
               <p className="mt-3 text-sm text-muted-foreground">No failures recorded.</p>

@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default function NewFreeResourcePage() {
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">New resource</h1>
+      <h1 className="text-heading">New resource</h1>
       <FreeResourceForm
         resourceId={null}
         defaultValues={{

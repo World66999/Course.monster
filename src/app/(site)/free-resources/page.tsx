@@ -4,7 +4,7 @@ import { ShieldCheck } from "lucide-react";
 import { listFreeResources, getFreeResourceTags } from "@/lib/free-resources";
 import { listFreeResourcesQuerySchema } from "@/lib/validation";
 import { absoluteUrl } from "@/lib/utils";
-import { Section } from "@/components/site/section";
+import { PageHeader, Section } from "@/components/site/section";
 import { ResourceFiltersBar } from "@/components/site/free-resources/resource-filters-bar";
 import { InfiniteResourceList } from "@/components/site/free-resources/resource-list";
 import { DirectoryGridSkeleton } from "@/components/ui/skeleton";
@@ -67,18 +67,15 @@ async function ResourceResults({ searchParams }: { searchParams: SearchParams })
 export default function FreeResourcesPage({ searchParams }: { searchParams: SearchParams }) {
   return (
     <Section className="py-12">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Free Resources</h1>
-        <p className="mt-2 max-w-2xl text-muted-foreground">
-          Useful free material from around the web — MEGA folders, Telegram channels, Drive links, GitHub
-          repositories, documentation, ebooks and tools. We only link to them; nothing here is re-hosted,
-          mirrored or proxied by Courses Monster.
-        </p>
-        <p className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-muted px-3 py-1.5 text-xs text-muted-foreground">
-          <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
-          Every link opens its original source in a new tab. Check the destination before downloading.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Directory"
+        title="Free Resources"
+        description="Useful free material from around the web — MEGA folders, Telegram channels, Drive links, GitHub repositories, documentation, ebooks and tools. We only link to them; nothing here is re-hosted, mirrored or proxied by Courses Monster."
+      />
+      <p className="mb-8 inline-flex items-center gap-1.5 rounded-control bg-muted px-3 py-1.5 text-xs text-muted-foreground ring-1 ring-inset ring-border">
+        <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-success" aria-hidden />
+        Every link opens its original source in a new tab. Check the destination before downloading.
+      </p>
       {/* Suspense keeps the heading painted while the query runs, so the page
           never looks blank on a slow connection. */}
       <Suspense fallback={<DirectoryGridSkeleton />}>

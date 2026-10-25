@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ExternalLink, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { cardClasses } from "@/components/ui/card";
 import { cn, gradientFromString } from "@/lib/utils";
 
 export interface AppCardDTO {
@@ -45,7 +46,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 function AppIcon({ name, icon }: { name: string; icon: string | null }) {
   if (icon) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={icon} alt={name} className="h-12 w-12 rounded-xl object-cover" loading="lazy" />;
+    return <img src={icon} alt={name} className="h-12 w-12 rounded-nested object-cover" loading="lazy" />;
   }
   const { from, to, light } = gradientFromString(name);
   const initials = name
@@ -56,7 +57,7 @@ function AppIcon({ name, icon }: { name: string; icon: string | null }) {
     .join("");
   return (
     <div
-      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-nested"
       style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
     >
       <span className={cn("text-base font-bold", light ? "text-slate-900/85" : "text-white/90")}>{initials}</span>
@@ -68,7 +69,7 @@ export function AppCard({ app }: { app: AppCardDTO }) {
   return (
     <Link
       href={`/apps/${app.slug}`}
-      className="group relative flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-elevated"
+      className={cardClasses("gap-3 p-4")}
     >
       <div className="flex items-start gap-3">
         <AppIcon name={app.name} icon={app.icon} />

@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { listAppListings } from "@/lib/apps";
 import { listAppListingsQuerySchema } from "@/lib/validation";
 import { absoluteUrl } from "@/lib/utils";
-import { Section } from "@/components/site/section";
+import { PageHeader, Section } from "@/components/site/section";
 import { AppFiltersBar } from "@/components/site/apps/app-filters-bar";
 import { InfiniteAppList } from "@/components/site/apps/app-list";
 import { AppGridSkeleton } from "@/components/ui/skeleton";
@@ -50,13 +50,16 @@ async function AppResults({ searchParams }: { searchParams: SearchParams }) {
 export default function AppsPage({ searchParams }: { searchParams: SearchParams }) {
   return (
     <Section className="py-12">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Apps Hub</h1>
-        <p className="mt-2 max-w-2xl text-muted-foreground">
-          A curated directory of legitimate free, open-source and official software. Every listing links to its
+      <PageHeader
+        eyebrow="Directory"
+        title="Apps Hub"
+        description={
+          <>
+            A curated directory of legitimate free, open-source and official software. Every listing links to its
           official source — nothing here is cracked, pirated or hosted by us.
-        </p>
-      </div>
+          </>
+        }
+      />
       <Suspense fallback={<AppGridSkeleton />}>
         <AppResults searchParams={searchParams} />
       </Suspense>

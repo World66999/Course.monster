@@ -137,22 +137,54 @@ export function safeMessage(code: string | null | undefined): string {
  *
  * Separate from `ERROR_MESSAGES` because the job genuinely succeeded — the
  * download is real and worth keeping, there is just something about it the user
- * would otherwise blame on us. `NO_AUDIO` is the only one today: some sources
- * publish no audio rendition at all, so the delivered video is silent. Saying
- * that plainly is the difference between an honest result and what reads like a
- * downloader that lost the sound.
+ * would otherwise blame on us.
+ *
+ * `NO_AUDIO` states a *fact about the delivered file* — it has no audio track —
+ * and deliberately does not assert why. An earlier version of this copy claimed
+ * "the source didn't publish an audio track", which is true for some media and
+ * demonstrably false for others: Facebook holds the audio but serves this
+ * server only video-only DASH renditions, so the audio exists and simply cannot
+ * be retrieved from here. Stating a cause we cannot verify is how a warning
+ * turns into a wrong answer, so the copy reports only what is certain.
  */
 export type SocialWarningCode = "NO_AUDIO";
 
 export const WARNING_MESSAGES: Record<SocialWarningCode, string> = {
-  NO_AUDIO:
-    "This video has no sound — the source didn't publish an audio track for it, so there was none to download.",
+  NO_AUDIO: "This video has no sound — no audio track could be retrieved for it.",
 };
 
-/** Returns the note for a known warning code, or null. Never echoes the code. */
-export function safeWarning(code: string | null | undefined): string | null {
+/**
+ * Platform-specific follow-up, appended only where there is something true and
+ * useful to add.
+ *
+ * Empty on purpose. It briefly carried a Facebook line telling people to try
+ * the Telegram bot, because Facebook serves this server video-only renditions
+ * and only the bot's transport could reach the audio. The downloader now
+ * reaches that same transport itself, so a Facebook video arriving here silent
+ * means the audio genuinely could not be had — and pointing at the bot would
+ * send someone to a route that has already been tried on their behalf.
+ *
+ * Kept as a seam rather than deleted: the moment a platform does have a better
+ * route we can name, this is where that goes.
+ */
+const WARNING_FOLLOW_UP: Partial<Record<Platform, string>> = {};
+
+/**
+ * Returns the note for a known warning code, or null. Never echoes the code.
+ * `platform` is optional so callers that do not know it still get honest copy.
+ */
+export function safeWarning(
+  code: string | null | undefined,
+  platform?: string | null
+): string | null {
   if (!code) return null;
-  return WARNING_MESSAGES[code as SocialWarningCode] ?? null;
+  const base = WARNING_MESSAGES[code as SocialWarningCode];
+  if (!base) return null;
+  const extra =
+    code === "NO_AUDIO" && platform
+      ? WARNING_FOLLOW_UP[platform as Platform]
+      : undefined;
+  return extra ? `${base} ${extra}` : base;
 }
 
 function serviceUrl(): string | null {

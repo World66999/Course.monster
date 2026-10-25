@@ -64,7 +64,7 @@ export default async function AdminFreeResourcesPage({ searchParams }: { searchP
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Free Resources</h1>
+        <h1 className="text-heading">Free Resources</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Curate outbound links to free material. Link-out only — nothing is downloaded, mirrored or hosted
           here. The source badge is derived from each URL&apos;s hostname and cannot be set by hand.

@@ -4,6 +4,7 @@ import * as React from "react";
 import { Flag, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { reportContentAction } from "@/server/actions/reports";
+import { safeAction } from "@/lib/safe-action";
 import { Button } from "@/components/ui/button";
 import { Label, FieldHint, Textarea } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -44,7 +45,7 @@ export function ReportButton({
   async function submit() {
     setSubmitting(true);
     try {
-      const result = await reportContentAction({ ...target, reason, note });
+      const result = await safeAction(() => reportContentAction({ ...target, reason, note }), "report content");
       if (result.ok) {
         toast.success("Thanks — this has been reported to moderators.");
         setOpen(false);
@@ -62,7 +63,10 @@ export function ReportButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex cursor-pointer items-center gap-1 text-xs text-muted-foreground hover:text-destructive"
+        // 16px tall as drawn — see the ACTION_BUTTON note in
+        // components/site/comments/comment-item.tsx; this button sits in the same
+        // row and gets the same 44px reach on a coarse pointer.
+        className="tap-target inline-flex cursor-pointer items-center gap-1 text-xs text-muted-foreground hover:text-destructive"
       >
         <Flag className="h-3.5 w-3.5" aria-hidden />
         Report

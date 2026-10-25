@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Inter, Sora, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import { ThemeProvider } from "next-themes";
 import { SessionProvider } from "next-auth/react";
@@ -8,9 +8,13 @@ import { getSiteSettings } from "@/lib/settings";
 import { absoluteUrl } from "@/lib/utils";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Body face. Inter is built for screens at text sizes, so long course
+// descriptions stay readable on the dark surfaces. Variable font: one file
+// covers every weight in use.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
@@ -18,8 +22,45 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export async function generateMetadata(): Promise<Metadata> {
-  const settings = await getSiteSettings();
+// Display face for headings only: Sora's wide, geometric capitals carry the
+// premium look at hero sizes. Geist Mono stays for figures and code.
+const sora = Sora({
+  variable: "--font-sora",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+/**
+ * Without an explicit viewport export Next emits only
+ * `width=device-width, initial-scale=1`, which has no `viewport-fit`. That
+ * matters here because three surfaces already pad themselves with
+ * `env(safe-area-inset-bottom)` — the mobile nav drawer, the admin sidebar and
+ * the sticky course CTA bar — and `env()` only resolves to real values under
+ * `viewport-fit: cover`. Until now those paddings silently computed to 0px and
+ * iOS letterboxed the page away from the home indicator, so the site never went
+ * edge to edge on a notched iPhone.
+ *
+ * Turning cover on means the layout viewport spans the whole screen, so in
+ * landscape the notch sits over the page's leading edge. The `page-gutter`
+ * utility every container now uses takes the larger of the design gutter and
+ * the horizontal inset, which is what keeps text clear of it.
+ *
+ * `maximumScale`/`userScalable` are deliberately left unset: pinch zoom stays
+ * available, since disabling it is an accessibility failure.
+ */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  // Colours the browser chrome to match the page instead of leaving a white bar
+  // above a dark page. Values are the light/dark `--background` tokens.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fbfaf7" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0a12" },
+  ],
+};
+
+export async function generateMetadata(): Promise<Metadata> {  const settings = await getSiteSettings();
   return {
     metadataBase: new URL(absoluteUrl()),
     title: {
@@ -51,7 +92,19 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${inter.variable} ${geistMono.variable} ${sora.variable} antialiased`}>
+        {/* Safety net for scripting-disabled visitors.
+
+            Every scroll reveal and the hero headline are server-rendered by
+            framer-motion in their `initial` state, which it emits as the inline
+            style `opacity:0`. With JS enabled that is corrected within a frame.
+            With JS disabled nothing ever corrects it and the page renders
+            blank. The attribute substring selector matches exactly those inline
+            styles and restores them, and because it lives inside <noscript> it
+            has no effect whatsoever on normal visitors. */}
+        <noscript>
+          <style>{`[style*="opacity:0"]{opacity:1!important;transform:none!important}`}</style>
+        </noscript>
         <ThemeProvider
           attribute="class"
           defaultTheme={settings.theme.defaultMode}
@@ -82,27 +135,6 @@ gtag('config', '${gaId}');`}
             </Script>
           </>
         ) : null}
-        {/* Monetag MultiTag.
-            `afterInteractive`, deliberately, NOT `beforeInteractive`. Next
-            implements beforeInteractive by pushing the script into
-            `self.__next_s` and loading it *before hydration* — so React
-            interactivity waited on a third-party ad host. Measured against a
-            30s stall on quge5.com: hydration completed at 31.0s desktop /
-            32.2s mobile, versus 2.0s / 2.2s normally. The page painted quickly
-            either way, so it looked loaded while every button and form was
-            dead. Outright failures (blocked, 500, 404, DNS) were never the
-            problem: they error fast. A merely *slow* response was.
-            afterInteractive still loads the tag on every page load, once, with
-            the same zone and attributes — it just cannot hold the UI hostage.
-            data-cfasync="false" is carried over from the vendor snippet so
-            Cloudflare Rocket Loader leaves the tag alone. */}
-        <Script
-          src="https://quge5.com/88/tag.min.js"
-          data-zone="269101"
-          data-cfasync="false"
-          strategy="afterInteractive"
-          async
-        />
       </body>
     </html>
   );

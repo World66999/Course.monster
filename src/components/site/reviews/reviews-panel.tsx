@@ -4,6 +4,7 @@ import * as React from "react";
 import { useSession } from "next-auth/react";
 import type { ReviewWithAuthor, ReviewSummary, ReviewSort } from "@/lib/comments";
 import { createReviewAction, editReviewAction, deleteReviewAction } from "@/server/actions/reviews";
+import { safeAction } from "@/lib/safe-action";
 import { ReviewSummaryCard } from "@/components/site/reviews/review-summary";
 import { ReviewForm, type ExistingReview } from "@/components/site/reviews/review-form";
 import { ReviewList } from "@/components/site/reviews/review-list";
@@ -52,13 +53,11 @@ export function ReviewsPanel({
   initialSummary,
   initialItems,
   initialCursor,
-  initialMyReview,
 }: {
   courseId: string;
   initialSummary: ReviewSummary;
   initialItems: ReviewWithAuthor[];
   initialCursor: string | null;
-  initialMyReview: ExistingReview | null;
 }) {
   const { data: session } = useSession();
   const currentUserId = session?.user?.id ?? null;
@@ -66,7 +65,7 @@ export function ReviewsPanel({
   const [sort, setSort] = React.useState<ReviewSort>("newest");
   const [items, setItems] = React.useState(initialItems);
   const [summary, setSummary] = React.useState(initialSummary);
-  const [myReview, setMyReview] = React.useState(initialMyReview);
+  const [myReview, setMyReview] = React.useState<ExistingReview | null>(null);
   const [cursor, setCursor] = React.useState(initialCursor);
   const [loading, setLoading] = React.useState(false);
   const [, startTransition] = React.useTransition();
@@ -81,9 +80,28 @@ export function ReviewsPanel({
   React.useEffect(() => {
     setItems(initialItems);
     setSummary(initialSummary);
-    setMyReview(initialMyReview);
     setCursor(initialCursor);
-  }, [initialItems, initialSummary, initialMyReview, initialCursor]);
+  }, [initialItems, initialSummary, initialCursor]);
+
+  // The page is cached and the same for everyone; the viewer's own review is
+  // the one personal piece, so it is fetched once we know who is looking.
+  React.useEffect(() => {
+    if (!currentUserId) {
+      setMyReview(null);
+      return;
+    }
+    const controller = new AbortController();
+    fetch(`/api/reviews/mine?courseId=${encodeURIComponent(courseId)}`, {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then((res) => (res.ok ? (res.json() as Promise<{ review: ExistingReview | null }>) : null))
+      .then((data) => {
+        if (data) setMyReview(data.review);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [courseId, currentUserId]);
 
   function submitReview(values: { rating: number; title: string; body: string }): Promise<{ ok: boolean; error?: string }> {
     return new Promise((resolve) => {
@@ -97,7 +115,7 @@ export function ReviewsPanel({
           addOptimisticItem({ type: "update", id: myReview.id, ...values });
           addOptimisticSummaryDelta({ remove: myReview.rating, add: values.rating });
 
-          const result = await editReviewAction(myReview.id, values);
+          const result = await safeAction(() => editReviewAction(myReview.id, values), "edit review");
           if (!result.ok) {
             resolve({ ok: false, error: result.error });
             return;
@@ -125,12 +143,13 @@ export function ReviewsPanel({
             name: session.user.name ?? "You",
             image: session.user.image ?? null,
             accounts: [],
+            subscriptions: [],
           },
         };
         addOptimisticItem({ type: "add", review: optimisticReview });
         addOptimisticSummaryDelta({ remove: null, add: values.rating });
 
-        const result = await createReviewAction({ courseId, ...values });
+        const result = await safeAction(() => createReviewAction({ courseId, ...values }), "post review");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;
@@ -159,7 +178,7 @@ export function ReviewsPanel({
         addOptimisticItem({ type: "remove", id });
         addOptimisticSummaryDelta({ remove: rating, add: null });
 
-        const result = await deleteReviewAction(id);
+        const result = await safeAction(() => deleteReviewAction(id), "delete review");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;

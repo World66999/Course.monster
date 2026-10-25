@@ -22,7 +22,7 @@ export function NewsletterForm() {
       });
       const data = (await res.json()) as { message?: string; error?: string };
       if (res.ok) {
-        toast.success(data.message ?? "Subscribed! 🎉");
+        toast.success(data.message ?? "Subscribed!");
         setEmail("");
       } else {
         toast.error(data.error ?? "Something went wrong. Try again.");

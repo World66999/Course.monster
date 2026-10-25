@@ -8,12 +8,12 @@ export default function NotFound() {
       <div className="bg-grid absolute inset-0" aria-hidden />
       <div
         aria-hidden
-        className="absolute top-1/3 left-1/2 h-72 w-[36rem] -translate-x-1/2 rounded-full bg-gradient-to-r from-accent/25 to-primary/25 blur-3xl"
+        className="absolute top-1/3 left-1/2 h-72 w-[36rem] -translate-x-1/2 rounded-full bg-primary/20 blur-[110px]"
       />
       <div className="relative">
-        <p className="text-gradient text-8xl font-extrabold tracking-tight sm:text-9xl">404</p>
-        <h1 className="mt-4 text-2xl font-bold sm:text-3xl">This page took a day off</h1>
-        <p className="mx-auto mt-3 max-w-md text-muted-foreground">
+        <p className="text-gradient font-display text-[clamp(5rem,18vw,9rem)] leading-none font-bold tracking-[-0.04em]">404</p>
+        <h1 className="mt-5 text-heading text-balance">This page took a day off</h1>
+        <p className="mx-auto mt-3 max-w-md text-pretty text-muted-foreground">
           The page you&apos;re looking for doesn&apos;t exist or has been moved. Let&apos;s get
           you back to learning.
         </p>

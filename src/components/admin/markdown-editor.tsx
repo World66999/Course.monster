@@ -28,7 +28,7 @@ export function MarkdownEditor({
 }) {
   return (
     <Tabs.Root defaultValue="write">
-      <Tabs.List className="mb-2 inline-flex rounded-lg bg-muted p-1" aria-label="Editor mode">
+      <Tabs.List className="mb-2 inline-flex rounded-control bg-muted p-1" aria-label="Editor mode">
         {(["write", "preview"] as const).map((tab) => (
           <Tabs.Trigger
             key={tab}
@@ -54,7 +54,7 @@ export function MarkdownEditor({
         />
       </Tabs.Content>
       <Tabs.Content value="preview">
-        <div className="min-h-40 rounded-lg border border-border bg-card p-4">
+        <div className="min-h-40 rounded-control border border-border bg-card p-4">
           {value.trim() ? (
             <Markdown content={value} />
           ) : (

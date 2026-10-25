@@ -6,6 +6,7 @@ import {
   CalendarDays,
   CheckCircle2,
   ChevronRight,
+  Crown,
   Clock3,
   Download,
   ExternalLink,
@@ -18,7 +19,6 @@ import {
   Send,
   UserRound,
 } from "lucide-react";
-import { db } from "@/lib/db";
 import { getPublishedCourse, getRelatedCourses } from "@/lib/courses";
 import { getSiteSettings } from "@/lib/settings";
 import { absoluteUrl, formatDate, formatNumber, safeJsonLd } from "@/lib/utils";
@@ -30,9 +30,24 @@ import { Markdown } from "@/components/site/markdown";
 import { Section, SectionHeading } from "@/components/site/section";
 import { ReviewsSection } from "@/components/site/reviews/reviews-section";
 import { CommentsSection } from "@/components/site/comments/comments-section";
+import { CourseViewBeacon } from "@/components/site/view-beacon";
 
 interface Props {
   params: Promise<{ slug: string }>;
+}
+
+/**
+ * Cached (ISR) and identical for every visitor. Nothing on this page reads the
+ * session any more: the viewer's own review and comment likes are fetched on
+ * the client, and the view count comes from a beacon. Admin edits revalidate
+ * the whole site; review/comment writes revalidate this path
+ * (server/revalidate-course.ts); 120s bounds anything else, like like-counts.
+ */
+export const revalidate = 120;
+
+/** No pages are pre-built; each course is cached on its first request. */
+export function generateStaticParams() {
+  return [];
 }
 
 const SKILL_LABELS: Record<string, string> = {
@@ -87,19 +102,6 @@ export default async function CoursePage({ params }: Props) {
   const { slug } = await params;
   const [course, settings] = await Promise.all([getPublishedCourse(slug), getSiteSettings()]);
   if (!course) notFound();
-
-  // Count the view without delaying the response.
-  //
-  // Deliberately NOT wrapped in `after()`: this page streams children
-  // (ReviewsSection/CommentsSection) that call auth() -> headers(), and those
-  // resolve while the after() callback's async context is still active, which
-  // makes Next.js throw `Route used "headers" inside "after(...)"` and render
-  // the error boundary instead of the page (seen in production with digests
-  // 1385834900 / 1233773012). Fire-and-forget matches what the request/
-  // channel/resource/app detail pages already do.
-  db.course
-    .update({ where: { id: course.id }, data: { views: { increment: 1 } } })
-    .catch(() => undefined);
 
   const related = await getRelatedCourses(course);
   const telegramUrl = course.telegramUrl || settings.telegramUrl;
@@ -208,6 +210,7 @@ export default async function CoursePage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLd([jsonLd, breadcrumbLd]) }}
       />
+      <CourseViewBeacon slug={course.slug} />
 
       {/* Banner */}
       <div className="relative h-56 w-full overflow-hidden sm:h-72 lg:h-80">
@@ -216,32 +219,33 @@ export default async function CoursePage({ params }: Props) {
       </div>
 
       <Section className="relative -mt-24 pb-28 lg:pb-16">
+        {/* Sits over the bottom of the banner, so it gets its own opaque
+            backing (no blur) to stay legible on any artwork. Separators live
+            inside the <li>s: an <ol> may only contain list items. */}
         <nav aria-label="Breadcrumb" className="mb-4">
-          <ol className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+          <ol className="inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full bg-background/90 px-3.5 py-1.5 text-sm text-muted-foreground shadow-soft ring-1 ring-border/60">
             <li>
               <Link href="/" className="hover:text-primary">
                 Home
               </Link>
             </li>
-            <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-            <li>
+            <li className="flex items-center gap-1.5">
+              <ChevronRight className="h-3.5 w-3.5" aria-hidden />
               <Link href="/courses" className="hover:text-primary">
                 Courses
               </Link>
             </li>
             {course.category && (
-              <>
+              <li className="flex items-center gap-1.5">
                 <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-                <li>
-                  <Link href={`/courses?category=${course.category.slug}`} className="hover:text-primary">
-                    {course.category.name}
-                  </Link>
-                </li>
-              </>
+                <Link href={`/courses?category=${course.category.slug}`} className="hover:text-primary">
+                  {course.category.name}
+                </Link>
+              </li>
             )}
-            <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-            <li aria-current="page" className="max-w-48 truncate font-medium text-foreground sm:max-w-72">
-              {course.title}
+            <li aria-current="page" className="flex min-w-0 items-center gap-1.5">
+              <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span className="max-w-40 truncate font-medium text-foreground sm:max-w-72">{course.title}</span>
             </li>
           </ol>
         </nav>
@@ -258,14 +262,14 @@ export default async function CoursePage({ params }: Props) {
               {course.trending && <Badge variant="warning">Trending</Badge>}
               {course.popular && <Badge>Popular</Badge>}
             </div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-balance sm:text-4xl">
+            <h1 className="text-title text-balance">
               {course.title}
             </h1>
             {course.shortDescription && (
-              <p className="mt-3 text-lg text-muted-foreground">{course.shortDescription}</p>
+              <p className="mt-4 max-w-2xl text-lead text-pretty text-muted-foreground">{course.shortDescription}</p>
             )}
 
-            <dl className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
+            <dl className="numeric mt-7 flex flex-wrap gap-x-6 gap-y-2.5 text-sm text-muted-foreground">
               {course.instructor && (
                 <div className="flex items-center gap-1.5">
                   <UserRound className="h-4 w-4 text-primary" aria-hidden />
@@ -331,8 +335,8 @@ export default async function CoursePage({ params }: Props) {
             )}
 
             {course.learningOutcomes.length > 0 && (
-              <section className="mt-10 rounded-2xl border border-border bg-card p-6 shadow-soft">
-                <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+              <section className="mt-10 rounded-card border border-border bg-card p-6 shadow-soft sm:p-7">
+                <h2 className="mb-5 flex items-center gap-2.5 text-subheading">
                   <BookOpenCheck className="h-5 w-5 text-primary" aria-hidden />
                   What you&apos;ll learn
                 </h2>
@@ -348,8 +352,8 @@ export default async function CoursePage({ params }: Props) {
             )}
 
             {course.prerequisites.length > 0 && (
-              <section className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-soft">
-                <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+              <section className="mt-6 rounded-card border border-border bg-card p-6 shadow-soft sm:p-7">
+                <h2 className="mb-5 flex items-center gap-2.5 text-subheading">
                   <GraduationCap className="h-5 w-5 text-primary" aria-hidden />
                   Prerequisites
                 </h2>
@@ -374,12 +378,18 @@ export default async function CoursePage({ params }: Props) {
 
           {/* Sidebar */}
           <aside className="lg:sticky lg:top-24 lg:self-start">
-            <div className="glass overflow-hidden rounded-2xl shadow-elevated inset-shadow-highlight">
+            <div className="glass-panel edge-gradient overflow-hidden rounded-panel">
               <div className="aspect-video overflow-hidden">
                 <CourseImage src={course.thumbnail} title={course.title} />
               </div>
               <div className="space-y-3 p-5">
-                <p className="text-center text-2xl font-extrabold text-success">100% Free</p>
+                {course.premium ? (
+                  <p className="flex items-center justify-center gap-2 text-2xl font-extrabold text-gold-ink">
+                    <Crown className="h-6 w-6" aria-hidden /> Premium course
+                  </p>
+                ) : (
+                  <p className="text-center text-2xl font-extrabold text-success">100% Free</p>
+                )}
                 <Link
                   href={`/download/${course.slug}`}
                   className={buttonClasses("primary", "lg", "w-full")}
@@ -466,8 +476,12 @@ export default async function CoursePage({ params }: Props) {
         <CommentsSection courseId={course.id} />
       </div>
 
-      {/* Mobile sticky download bar — the sidebar CTA is below the fold on phones. */}
-      <div className="glass fixed inset-x-0 bottom-0 z-30 border-x-0 border-b-0 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
+      {/* Mobile sticky download bar — the sidebar CTA is below the fold on phones.
+          Horizontal insets as well as the bottom one: with `viewport-fit=cover`
+          set in the root layout, a notched iPhone held in landscape puts the notch
+          over this bar's leading edge, and a flat 12px gutter let the button slide
+          under it. */}
+      <div className="surface fixed inset-x-0 bottom-0 z-30 border-x-0 border-b-0 py-3 pr-[max(0.75rem,env(safe-area-inset-right))] pl-[max(0.75rem,env(safe-area-inset-left))] pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
         <Link
           href={`/download/${course.slug}`}
           className={buttonClasses("primary", "lg", "w-full")}

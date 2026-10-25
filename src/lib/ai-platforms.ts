@@ -77,11 +77,3 @@ export async function listAiPlatforms(
   return { items, nextCursor, total };
 }
 
-export async function getFeaturedAiPlatforms(limit = 6): Promise<AiPlatformCard[]> {
-  return db.aiPlatform.findMany({
-    where: { published: true, featured: true },
-    select: aiPlatformCardSelect,
-    orderBy: [{ order: "asc" }, { createdAt: "desc" }, { id: "asc" }],
-    take: limit,
-  });
-}

@@ -20,7 +20,7 @@ export default async function EditCoursePage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">Edit course</h1>
+      <h1 className="text-heading">Edit course</h1>
       <CourseForm
         courseId={course.id}
         categories={categories}
@@ -54,6 +54,7 @@ export default async function EditCoursePage({
           featured: course.featured,
           trending: course.trending,
           popular: course.popular,
+          premium: course.premium,
           seoTitle: course.seoTitle ?? "",
           seoDescription: course.seoDescription ?? "",
           metaImage: course.metaImage ?? "",

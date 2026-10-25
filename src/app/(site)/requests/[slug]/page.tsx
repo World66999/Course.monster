@@ -120,7 +120,7 @@ export default async function RequestDetailPage({ params }: Props) {
       </Link>
 
       {detail.mergedIntoId && (
-        <div className="mb-6 rounded-xl border border-warning/30 bg-warning/10 p-4 text-sm text-warning">
+        <div className="mb-6 rounded-nested border border-warning/30 bg-warning/10 p-4 text-sm text-warning">
           This request was merged into another request.{" "}
           <Link href={`/requests/${detail.mergedIntoId}`} className="font-medium underline">
             View it here
@@ -129,7 +129,7 @@ export default async function RequestDetailPage({ params }: Props) {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-elevated">
+      <div className="overflow-hidden rounded-feature border border-border bg-card shadow-elevated">
         {detail.imageUrl && (
           <div className="relative aspect-[21/9] bg-muted">
             <CourseImage src={detail.imageUrl} title={detail.title} priority />
@@ -159,7 +159,7 @@ export default async function RequestDetailPage({ params }: Props) {
           <div className="prose-sm whitespace-pre-wrap text-foreground/90">{detail.description}</div>
 
           {detail.motivation && (
-            <div className="rounded-xl bg-muted/50 p-4">
+            <div className="rounded-nested bg-muted/50 p-4">
               <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                 {detail.kind === "RECOMMENDATION" ? "Why this is worth recommending" : "Why this course is needed"}
               </p>
@@ -227,7 +227,7 @@ export default async function RequestDetailPage({ params }: Props) {
           </div>
 
           {isAdmin && statusEvents.length > 0 && (
-            <div className="rounded-xl border border-border/60 p-4">
+            <div className="rounded-nested border border-border/60 p-4">
               <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                 <History className="h-3.5 w-3.5" aria-hidden />
                 Status history

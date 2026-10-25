@@ -7,7 +7,8 @@ import { ChevronDown, Heart, Loader2, Pencil, Reply, Trash2 } from "lucide-react
 import { toast } from "sonner";
 import type { CommentWithMeta } from "@/lib/comments";
 import { createCommentAction, editCommentAction, deleteCommentAction, toggleCommentLikeAction } from "@/server/actions/comments";
-import { AuthorAvatar, VerifiedBadge } from "@/components/site/comments/author-avatar";
+import { safeAction } from "@/lib/safe-action";
+import { AuthorAvatar, AuthorPremiumBadge, VerifiedBadge } from "@/components/site/comments/author-avatar";
 import { CommentForm } from "@/components/site/comments/comment-form";
 import { ReportButton } from "@/components/site/report-dialog";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,15 @@ function reduceReplies(state: CommentWithMeta[], action: ReplyAction): CommentWi
       return state.filter((r) => r.id !== action.id);
   }
 }
+
+/**
+ * Like / Reply / Edit / Delete under a comment. These are 16px-tall text
+ * buttons — right for the visual weight they should carry, and genuinely hard to
+ * hit with a thumb, so `tap-target` extends each one's reach to 44px on a coarse
+ * pointer. The row is `gap-3`, and the boxes only grow past the label where the
+ * label is under 44px wide, so no button can capture its neighbour's tap.
+ */
+const ACTION_BUTTON = "tap-target inline-flex cursor-pointer items-center gap-1 hover:text-primary";
 
 export function CommentItem({
   comment,
@@ -107,13 +117,14 @@ export function CommentItem({
             name: session.user.name ?? "You",
             image: session.user.image ?? null,
             accounts: [],
+            subscriptions: [],
           },
           _count: { replies: 0 },
           likedByMe: false,
         };
         addOptimisticReply({ type: "add", reply: optimisticReply });
 
-        const result = await createCommentAction({ courseId, parentId: comment.id, body });
+        const result = await safeAction(() => createCommentAction({ courseId, parentId: comment.id, body }), "reply to comment");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;
@@ -141,7 +152,7 @@ export function CommentItem({
     return new Promise((resolve) => {
       startReplyTransition(async () => {
         addOptimisticReply({ type: "update", id, body });
-        const result = await editCommentAction(id, body);
+        const result = await safeAction(() => editCommentAction(id, body), "edit comment");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;
@@ -160,7 +171,7 @@ export function CommentItem({
     return new Promise((resolve) => {
       startReplyTransition(async () => {
         addOptimisticReply({ type: "remove", id });
-        const result = await deleteCommentAction(id);
+        const result = await safeAction(() => deleteCommentAction(id), "delete comment");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;
@@ -182,7 +193,7 @@ export function CommentItem({
     setLiked(nextLiked);
     setLikeCount((c) => c + (nextLiked ? 1 : -1));
     try {
-      const result = await toggleCommentLikeAction(comment.id);
+      const result = await safeAction(() => toggleCommentLikeAction(comment.id), "toggle comment like");
       if (!result.ok) {
         // Revert on failure.
         setLiked(!nextLiked);
@@ -225,10 +236,11 @@ export function CommentItem({
     <div className={cn("flex gap-3", isReply && "pl-10", pending && "opacity-70")}>
       <AuthorAvatar author={comment.user} size={isReply ? 28 : 36} />
       <div className="min-w-0 flex-1">
-        <div className="rounded-2xl bg-muted/50 px-4 py-2.5">
+        <div className="rounded-card bg-muted/50 px-4 py-2.5">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-sm font-semibold">{isDeleted ? "Deleted" : comment.user.name}</span>
             {!isDeleted && <VerifiedBadge author={comment.user} />}
+            {!isDeleted && <AuthorPremiumBadge author={comment.user} />}
           </div>
           {isDeleted ? (
             <p className="mt-0.5 text-sm text-muted-foreground italic">[deleted]</p>
@@ -264,10 +276,7 @@ export function CommentItem({
               type="button"
               onClick={() => void onToggleLike()}
               aria-pressed={liked}
-              className={cn(
-                "inline-flex cursor-pointer items-center gap-1 hover:text-primary",
-                liked && "text-primary"
-              )}
+              className={cn(ACTION_BUTTON, liked && "text-primary")}
             >
               <Heart className={cn("h-3.5 w-3.5", liked && "fill-primary")} aria-hidden />
               {likeCount > 0 ? likeCount : "Like"}
@@ -276,7 +285,7 @@ export function CommentItem({
               <button
                 type="button"
                 onClick={() => setReplying((v) => !v)}
-                className="inline-flex cursor-pointer items-center gap-1 hover:text-primary"
+                className={ACTION_BUTTON}
               >
                 <Reply className="h-3.5 w-3.5" aria-hidden />
                 Reply
@@ -290,7 +299,7 @@ export function CommentItem({
                     setEditBody(comment.body);
                     setEditing(true);
                   }}
-                  className="inline-flex cursor-pointer items-center gap-1 hover:text-primary"
+                  className={ACTION_BUTTON}
                 >
                   <Pencil className="h-3.5 w-3.5" aria-hidden />
                   Edit
@@ -298,7 +307,7 @@ export function CommentItem({
                 <button
                   type="button"
                   onClick={() => void onDeleteClick()}
-                  className="inline-flex cursor-pointer items-center gap-1 hover:text-destructive"
+                  className={cn(ACTION_BUTTON, "hover:text-destructive")}
                 >
                   <Trash2 className="h-3.5 w-3.5" aria-hidden />
                   Delete

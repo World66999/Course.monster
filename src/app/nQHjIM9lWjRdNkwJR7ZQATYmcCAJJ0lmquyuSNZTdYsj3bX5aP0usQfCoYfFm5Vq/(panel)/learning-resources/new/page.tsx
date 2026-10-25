@@ -10,7 +10,7 @@ export default async function NewLearningResourcePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">New learning resource</h1>
+      <h1 className="text-heading">New learning resource</h1>
       <LearningResourceForm
         resourceId={null}
         categories={categories}

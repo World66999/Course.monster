@@ -103,7 +103,9 @@ falls back to the app if a file isn't found.
 
 ## 6. First login & content
 
-1. Visit `https://yourdomain.com/admin` and sign in with `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+1. Visit `https://yourdomain.com/<ADMIN_SEGMENT>/login` — the segment is the constant
+   exported from `src/lib/admin-path.ts` — and sign in with `ADMIN_EMAIL` /
+   `ADMIN_PASSWORD`. There is nothing at `/admin`.
 2. **Settings**: set site name, logo, favicon, Telegram link, social links, SEO
    defaults and analytics ID.
 3. **Courses**: delete/replace the seeded sample courses with your own.

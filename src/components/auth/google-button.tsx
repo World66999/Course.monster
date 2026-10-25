@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { GoogleIcon } from "@/components/site/brand-icons";
 import { buttonClasses } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { safeInternalPath } from "@/lib/safe-url";
 
 export function GoogleButton({ label = "Continue with Google" }: { label?: string }) {
   const [loading, setLoading] = React.useState(false);
@@ -16,7 +17,9 @@ export function GoogleButton({ label = "Continue with Google" }: { label?: strin
       disabled={loading}
       onClick={() => {
         setLoading(true);
-        void signIn("google");
+        // Same ?next= contract as the password form (validated, same-site only).
+        const next = safeInternalPath(new URLSearchParams(window.location.search).get("next"));
+        void signIn("google", { callbackUrl: next });
       }}
       className={cn(buttonClasses("outline", "lg"), "w-full bg-card")}
     >

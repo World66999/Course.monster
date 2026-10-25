@@ -19,7 +19,7 @@ docs/              this documentation
 src/
   auth.ts          full Auth.js config (Node runtime: bcrypt + Prisma)
   auth.config.ts   edge-safe subset shared with middleware
-  middleware.ts    protects /admin/*
+  middleware.ts    protects the admin segment (see lib/admin-path.ts)
   app/
     (site)/        public pages (share header/footer layout)
       page.tsx               homepage

@@ -2,7 +2,26 @@ import "server-only";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 
+/**
+ * Every other outbound call in this app is bounded; this one was not.
+ *
+ * It sits directly in the request path of signup, password reset and email
+ * change, so a Resend endpoint that accepts the connection and then stalls
+ * held the whole server action open — undici imposes no response-body deadline
+ * of its own — while the visitor stared at a spinner. Ten seconds is far longer
+ * than a healthy send (well under one) and far shorter than a user's patience.
+ */
+const SEND_TIMEOUT_MS = 10_000;
+
 export class MailError extends Error {}
+
+/** Keeps a recipient address out of the logs while still identifying the send. */
+function maskAddress(address: string): string {
+  const at = address.lastIndexOf("@");
+  if (at <= 0) return "<redacted>";
+  const local = address.slice(0, at);
+  return `${local.slice(0, 2)}***@${address.slice(at + 1)}`;
+}
 
 async function sendMail(opts: { to: string; subject: string; html: string; text: string }): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
@@ -11,20 +30,31 @@ async function sendMail(opts: { to: string; subject: string; html: string; text:
     throw new MailError("Email delivery is not configured");
   }
 
-  const res = await fetch(RESEND_API_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to: opts.to,
-      subject: opts.subject,
-      html: opts.html,
-      text: opts.text,
-    }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(RESEND_API_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: opts.to,
+        subject: opts.subject,
+        html: opts.html,
+        text: opts.text,
+      }),
+      signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
+      cache: "no-store",
+    });
+  } catch (err) {
+    // Distinguish the two so a stalled provider is diagnosable from the log
+    // rather than looking like a generic failure.
+    const timedOut = err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError");
+    console.error(`[mail] Resend request ${timedOut ? "timed out" : "failed"}:`, err instanceof Error ? err.message : err);
+    throw new MailError("Failed to send email");
+  }
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
@@ -32,9 +62,11 @@ async function sendMail(opts: { to: string; subject: string; html: string; text:
     throw new MailError("Failed to send email");
   }
 
-  // Traceable for support/debugging — not sensitive, just Resend's message id.
+  // Traceable for support/debugging — Resend's message id, and enough of the
+  // address to match it to a report without writing the address itself to a
+  // log that is retained far longer than the code it delivered.
   const data = (await res.json().catch(() => null)) as { id?: string } | null;
-  if (data?.id) console.log(`[mail] sent to ${opts.to}, resend id ${data.id}`);
+  if (data?.id) console.log(`[mail] sent to ${maskAddress(opts.to)}, resend id ${data.id}`);
 }
 
 function layout(heading: string, bodyHtml: string): string {

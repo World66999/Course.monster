@@ -6,8 +6,10 @@ import { useSession } from "next-auth/react";
 import { Bookmark, Clock, ListVideo, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import { toggleResourceBookmarkAction } from "@/server/actions/learning-resources";
+import { safeAction } from "@/lib/safe-action";
 import { youtubeThumbnailUrl } from "@/lib/youtube";
 import { Badge } from "@/components/ui/badge";
+import { cardClasses } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 export interface ResourceCardDTO {
@@ -47,7 +49,7 @@ export function ResourceCard({ resource }: { resource: ResourceCardDTO }) {
     const next = !bookmarked;
     setBookmarked(next);
     try {
-      const result = await toggleResourceBookmarkAction(resource.id);
+      const result = await safeAction(() => toggleResourceBookmarkAction(resource.id), "toggle resource bookmark");
       if (!result.ok) {
         setBookmarked(!next);
         toast.error(result.error);
@@ -60,7 +62,7 @@ export function ResourceCard({ resource }: { resource: ResourceCardDTO }) {
   return (
     <Link
       href={`/learn/${resource.slug}`}
-      className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-elevated"
+      className={cardClasses("overflow-hidden")}
     >
       <div className="relative aspect-video overflow-hidden bg-muted">
         {thumb ? (
@@ -76,7 +78,7 @@ export function ResourceCard({ resource }: { resource: ResourceCardDTO }) {
             <PlayCircle className="h-10 w-10" aria-hidden />
           </div>
         )}
-        <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white backdrop-blur">
+        <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white">
           {resource.resourceType === "PLAYLIST" ? (
             <>
               <ListVideo className="h-3 w-3" aria-hidden /> PLAYLIST
@@ -88,7 +90,7 @@ export function ResourceCard({ resource }: { resource: ResourceCardDTO }) {
           )}
         </span>
         {resource.durationMinutes && (
-          <span className="absolute right-2 bottom-2 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-xs text-white backdrop-blur">
+          <span className="absolute right-2 bottom-2 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-xs text-white">
             <Clock className="h-3 w-3" aria-hidden />
             {resource.durationMinutes}m
           </span>
@@ -116,7 +118,9 @@ export function ResourceCard({ resource }: { resource: ResourceCardDTO }) {
             aria-pressed={bookmarked}
             aria-label={bookmarked ? "Remove bookmark" : "Bookmark this resource"}
             className={cn(
-              "inline-flex cursor-pointer items-center justify-center rounded-full border p-1.5 transition-colors",
+              // 28x28 as drawn, and nested inside the card's own Link, so a
+              // near-miss on a phone navigated instead of bookmarking.
+              "tap-target inline-flex cursor-pointer items-center justify-center rounded-full border p-1.5 transition-colors",
               bookmarked
                 ? "border-primary/40 bg-primary/10 text-primary"
                 : "border-border bg-background text-muted-foreground hover:bg-muted"

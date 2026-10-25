@@ -26,6 +26,10 @@ import {
   Settings,
   Users,
   X,
+  Crown,
+  Gem,
+  LifeBuoy,
+  MessagesSquare,
 } from "lucide-react";
 import { logoutAction } from "@/server/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -46,6 +50,10 @@ const NAV = [
   { href: adminPath("free-resources"), label: "Free Resources", icon: Link2 },
   { href: adminPath("ai-platforms"), label: "AI Platforms", icon: Sparkles },
   { href: adminPath("users"), label: "Users", icon: Users },
+  { href: adminPath("premium"), label: "Payments & Premium", icon: Crown, exact: true },
+  { href: adminPath("premium-resources"), label: "Premium Resources", icon: Gem },
+  { href: adminPath("premium-chats"), label: "Premium Chats", icon: MessagesSquare },
+  { href: adminPath("support"), label: "Support Inbox", icon: LifeBuoy },
   { href: adminPath("pages"), label: "Pages", icon: FileText },
   { href: adminPath("subscribers"), label: "Subscribers", icon: Mail },
   { href: adminPath("telegram"), label: "Telegram Bot", icon: Send },
@@ -68,6 +76,23 @@ export function AdminShell({
 
   React.useEffect(() => setSidebarOpen(false), [pathname]);
 
+  // The public site's drawer is a Radix dialog and gets this for free; this one
+  // is hand-rolled, so it had none of it: Escape did nothing, and the page
+  // behind kept scrolling under the open drawer. Both only apply while open.
+  React.useEffect(() => {
+    if (!sidebarOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSidebarOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [sidebarOpen]);
+
   const nav = (
     <nav aria-label="Admin" className="flex flex-1 flex-col gap-1 p-4">
       {NAV.map(({ href, label, icon: Icon, exact }) => {
@@ -77,9 +102,11 @@ export function AdminShell({
             key={href}
             href={href}
             className={cn(
-              "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+              "relative flex items-center gap-3 rounded-control px-3 py-2.5 text-sm font-medium",
+              "transition-[background-color,color,box-shadow,transform] duration-200",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card",
               active
-                ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25 inset-shadow-[0_1px_0_0_rgba(255,255,255,0.15)]"
+                ? "bg-primary text-primary-foreground shadow-primary inset-shadow-highlight"
                 : "text-muted-foreground hover:translate-x-0.5 hover:bg-muted hover:text-foreground"
             )}
             aria-current={active ? "page" : undefined}
@@ -93,7 +120,7 @@ export function AdminShell({
         <Link
           href="/"
           target="_blank"
-          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="flex items-center gap-3 rounded-control px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
         >
           <ExternalLink className="h-4.5 w-4.5" aria-hidden />
           View site
@@ -101,7 +128,7 @@ export function AdminShell({
         <form action={logoutAction}>
           <button
             type="submit"
-            className="flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+            className="flex w-full cursor-pointer items-center gap-3 rounded-control px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive-soft hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
           >
             <LogOut className="h-4.5 w-4.5" aria-hidden />
             Sign out
@@ -128,11 +155,16 @@ export function AdminShell({
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/50"
             onClick={() => setSidebarOpen(false)}
             aria-hidden
           />
-          <aside className="absolute top-0 left-0 flex h-full w-64 flex-col overflow-y-auto border-r border-border bg-card pb-[env(safe-area-inset-bottom)]">
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Admin navigation"
+            className="absolute top-0 left-0 flex h-full w-64 flex-col overflow-y-auto border-r border-border bg-card pb-[env(safe-area-inset-bottom)]"
+          >
             <div className="flex h-16 items-center justify-between border-b border-border px-4">
               <span className="font-bold">{siteName}</span>
               <Button
@@ -150,7 +182,7 @@ export function AdminShell({
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="glass sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-x-0 border-t-0 px-4 sm:px-6">
+        <header className="glass-chrome sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-x-0 border-t-0 px-4 sm:px-6">
           <Button
             variant="ghost"
             size="icon"
@@ -169,7 +201,7 @@ export function AdminShell({
             </div>
             <span
               aria-hidden
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-accent to-primary text-sm font-semibold text-white shadow-sm shadow-primary/30 inset-shadow-[0_1px_0_0_rgba(255,255,255,0.25)]"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-violet to-primary text-sm font-semibold text-white shadow-sm shadow-primary/30 inset-shadow-[0_1px_0_0_rgba(255,255,255,0.25)]"
             >
               {user.name.trim().charAt(0).toUpperCase() || "A"}
             </span>

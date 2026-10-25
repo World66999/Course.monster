@@ -1,3 +1,4 @@
+import { COMMUNITY_LINKS } from "@/lib/community";
 import type { InlineButton, InlineKeyboard } from "./api";
 import { encode } from "./callback";
 import type { BotCourse, Page } from "./catalog";
@@ -89,7 +90,24 @@ export function welcome(b: Branding, siteUrl: string): Screen {
       [btn(b, { label: "btn_upcoming", icon: "upcoming", callback: encode({ kind: "upcoming", page: 1 }) })],
       [btn(b, { label: "btn_website", icon: "website", url: siteUrl })],
       [btn(b, { label: "btn_donate", icon: "donate", callback: "dn:menu" })],
+      communityRow(),
     ],
+  };
+}
+
+/** Public channel + group. Plain URL buttons: no gate, no Premium check. */
+function communityRow(): InlineButton[] {
+  return COMMUNITY_LINKS.map((l) => ({ text: l.key === "channel" ? "📢 Channel" : "💬 Community Group", url: l.url }));
+}
+
+export function community(): Screen {
+  return {
+    text:
+      "💬 <b>Join the Courses Monster community</b>\n\n" +
+      "Free for everyone:\n" +
+      "• <b>Channel</b> — new courses and updates\n" +
+      "• <b>Community Group</b> — ask for courses, share tips and discuss them with other learners",
+    keyboard: COMMUNITY_LINKS.map((l) => [{ text: `${l.key === "channel" ? "📢" : "💬"} ${l.label}`, url: l.url }]),
   };
 }
 
@@ -249,14 +267,29 @@ export function courseDetail(
  * sends the website's own protected download page, so the verification
  * gateway, captcha, rate limits and download logging all still apply.
  */
-export function downloadHandoff(b: Branding, course: BotCourse, url: string): Screen {
-  return {
-    text:
-      `${iconHtml(b, "download")} <b>${esc(clamp(course.title, 100))}</b>\n\n` +
+export function downloadHandoff(
+  b: Branding,
+  course: BotCourse,
+  url: string,
+  opts: { direct?: boolean; skipAdsUrl?: string } = {}
+): Screen {
+  // Premium members get a direct link (re-checked by the site when opened);
+  // everyone else gets the steps page plus the offer to skip it.
+  const text = opts.direct
+    ? `👑 <b>${esc(clamp(course.title, 100))}</b>\n\n` +
+      "You're Premium — no steps, no ads. Tap below to go straight to the download. The link works for 10 minutes."
+    : `${iconHtml(b, "download")} <b>${esc(clamp(course.title, 100))}</b>\n\n` +
       "Tap below to open the protected download page on the website. " +
-      "You'll pass the usual quick verification step there, then the download starts.",
+      "You'll pass the usual quick verification step there, then the download starts.";
+  return {
+    text,
     keyboard: [
-      [btn(b, { label: "btn_continue", icon: "download", url })],
+      opts.direct
+        ? [{ text: "⚡ Direct download", url, style: "success" }]
+        : [btn(b, { label: "btn_continue", icon: "download", url })],
+      ...(opts.skipAdsUrl && !opts.direct
+        ? [[{ text: "👑 Skip ads – Get direct link with Premium", url: opts.skipAdsUrl }]]
+        : []),
       [
         btn(b, {
           label: "btn_back",
@@ -285,6 +318,7 @@ export function help(b: Branding, siteUrl: string): Screen {
       "/courses — browse the catalog\n" +
       "/search — search for a course\n" +
       "/upcoming — what's coming next\n" +
+      "/community — our channel and community group\n" +
       "/website — open courses.monster\n" +
       "/help — this message\n\n" +
       "You can also just send me a word to search for it.",

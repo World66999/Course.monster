@@ -26,7 +26,7 @@ import {
 import { Combobox } from "@/components/ui/combobox";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { MarkdownEditor } from "@/components/admin/markdown-editor";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 
 type FormInput = z.input<typeof courseFormSchema>;
 
@@ -168,7 +168,7 @@ export function CourseForm({
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
         {/* Main column */}
         <div className="space-y-6 xl:col-span-2">
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-4 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">Basics</h2>
             <div className="space-y-1.5">
               <Label htmlFor="title">Title *</Label>
@@ -214,7 +214,7 @@ export function CourseForm({
             </div>
           </section>
 
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-4 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">Course details</h2>
             <p className="-mt-2 text-xs text-muted-foreground">
               All optional — only filled-in fields are shown on the public page.
@@ -345,7 +345,7 @@ export function CourseForm({
             </div>
           </section>
 
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-4 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">Links</h2>
             <div className="space-y-1.5">
               <Label htmlFor="downloadUrl">Download URL *</Label>
@@ -368,7 +368,7 @@ export function CourseForm({
             </div>
           </section>
 
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-4 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">SEO</h2>
             <div className="space-y-1.5">
               <div className="flex items-center">
@@ -410,7 +410,7 @@ export function CourseForm({
 
         {/* Sidebar */}
         <div className="space-y-6">
-          <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-4 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">Organization</h2>
             <div className="space-y-1.5">
               <Label>Category</Label>
@@ -493,10 +493,25 @@ export function CourseForm({
                   )}
                 />
               </label>
+              <label className="flex cursor-pointer items-center justify-between gap-2 text-sm font-medium">
+                <span>
+                  Premium only
+                  <span className="block text-xs font-normal text-muted-foreground">
+                    Download needs Premium or a per-user grant
+                  </span>
+                </span>
+                <Controller
+                  control={control}
+                  name="premium"
+                  render={({ field }) => (
+                    <Switch checked={field.value} onCheckedChange={field.onChange} aria-label="Premium only" />
+                  )}
+                />
+              </label>
             </div>
           </section>
 
-          <section className="space-y-5 rounded-2xl border border-border bg-card p-6">
+          <section className="space-y-5 rounded-card border border-border bg-card p-6">
             <h2 className="font-semibold">Artwork</h2>
             <Controller
               control={control}

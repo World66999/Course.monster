@@ -17,7 +17,7 @@ const VerificationGateway = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex w-full items-center justify-center rounded-2xl border border-border bg-card py-12">
+      <div className="flex w-full items-center justify-center rounded-card border border-border bg-card py-12">
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden />
       </div>
     ),

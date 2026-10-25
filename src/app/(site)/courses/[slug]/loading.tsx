@@ -26,9 +26,9 @@ export default function CourseLoading() {
             </div>
           </div>
           <div>
-            <Skeleton className="aspect-video w-full rounded-2xl" />
-            <Skeleton className="mt-4 h-12 w-full rounded-lg" />
-            <Skeleton className="mt-3 h-12 w-full rounded-lg" />
+            <Skeleton className="aspect-video w-full rounded-card" />
+            <Skeleton className="mt-4 h-12 w-full rounded-control" />
+            <Skeleton className="mt-3 h-12 w-full rounded-control" />
           </div>
         </div>
       </Section>

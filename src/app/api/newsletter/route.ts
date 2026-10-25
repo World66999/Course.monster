@@ -38,5 +38,5 @@ export async function POST(request: NextRequest) {
     update: {},
   });
 
-  return NextResponse.json({ message: "You're subscribed! 🎉" });
+  return NextResponse.json({ message: "You're subscribed!" });
 }

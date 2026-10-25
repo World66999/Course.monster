@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { listCodingChannels, attachMyChannelState, getChannelTags } from "@/lib/coding-channels";
 import { listCodingChannelsQuerySchema } from "@/lib/validation";
 import { absoluteUrl } from "@/lib/utils";
-import { Section } from "@/components/site/section";
+import { PageHeader, Section } from "@/components/site/section";
 import { ChannelFiltersBar } from "@/components/site/coding-channels/channel-filters-bar";
 import { InfiniteChannelList } from "@/components/site/coding-channels/channel-list";
 import { ChannelGridSkeleton } from "@/components/ui/skeleton";
@@ -64,13 +64,16 @@ async function ChannelResults({ searchParams }: { searchParams: SearchParams }) 
 export default function CodingChannelsPage({ searchParams }: { searchParams: SearchParams }) {
   return (
     <Section className="py-12">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Coding Channels</h1>
-        <p className="mt-2 max-w-2xl text-muted-foreground">
-          A professionally curated directory of programming YouTube channels — filter by topic, skill level and
+      <PageHeader
+        eyebrow="Free learning"
+        title="Coding Channels"
+        description={
+          <>
+            A professionally curated directory of programming YouTube channels — filter by topic, skill level and
           spoken language to find your next favorite creator.
-        </p>
-      </div>
+          </>
+        }
+      />
       <Suspense fallback={<ChannelGridSkeleton />}>
         <ChannelResults searchParams={searchParams} />
       </Suspense>

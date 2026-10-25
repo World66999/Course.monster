@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { BadgeCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PremiumNameBadge } from "@/components/premium/crown";
 
 export interface CommentAuthor {
   id: string;
@@ -8,6 +9,8 @@ export interface CommentAuthor {
   image: string | null;
   /** Has at least one linked Google Account row — see commentAuthorSelect. */
   accounts: { id: string }[];
+  /** At most one ACTIVE subscription row — see commentAuthorSelect. */
+  subscriptions?: { status: string }[];
 }
 
 export function AuthorAvatar({ author, size = 36 }: { author: CommentAuthor; size?: number }) {
@@ -54,4 +57,8 @@ export function VerifiedBadge({ author, className }: { author: CommentAuthor; cl
       <BadgeCheck className="h-3.5 w-3.5" aria-hidden />
     </span>
   );
+}
+
+export function AuthorPremiumBadge({ author }: { author: CommentAuthor }) {
+  return author.subscriptions && author.subscriptions.length > 0 ? <PremiumNameBadge /> : null;
 }

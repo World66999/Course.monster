@@ -100,6 +100,7 @@ export const courseFormSchema = z.object({
   featured: z.boolean().default(false),
   trending: z.boolean().default(false),
   popular: z.boolean().default(false),
+  premium: z.boolean().default(false),
   seoTitle: z.string().max(70).optional().default(""),
   seoDescription: z.string().max(200).optional().default(""),
   metaImage: imageRef.optional().default(""),

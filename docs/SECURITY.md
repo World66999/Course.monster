@@ -13,7 +13,7 @@ system is 100% secure — report issues promptly and keep dependencies updated.
   (10 / 15 min) *and* per IP (15 / 15 min). Failed attempts are audit-logged.
 - **Sessions** are JWTs in HTTP-only, SameSite=Lax cookies (Secure over
   HTTPS), max age 12 h.
-- **Two guards on every admin surface:** middleware blocks `/admin/*` routes,
+- **Two guards on every admin surface:** middleware blocks the admin segment,
   and every server action / admin API independently calls `requireAdmin()` —
   a compromised or bypassed middleware still leaves mutations protected.
 
@@ -59,6 +59,30 @@ Set globally in `next.config.ts` (and HSTS in Nginx):
   `Referrer-Policy: strict-origin-when-cross-origin`, restrictive
   `Permissions-Policy`, `Strict-Transport-Security` (Nginx), no
   `X-Powered-By`.
+
+## Where the client IP comes from — and what it rests on
+
+Every IP rate limit in the app (download init, `/go`, the verification
+challenge, the social downloader, the newsletter) is keyed on the address
+`src/lib/ip.ts` resolves, and that comes from a request header: `CF-Connecting-IP`
+first, then `Forwarded`, `X-Forwarded-For`, `X-Real-IP`. A self-hosted Next.js
+process cannot see the TCP peer, so it has no way to tell a header Cloudflare set
+from one a client typed.
+
+**The firewall, not the application, is what makes those headers trustworthy.**
+Ports 80 and 443 must be open only to Cloudflare's published ranges. Measured
+against the running app: 40 requests carrying one forged `CF-Connecting-IP` hit
+the limit and were refused, and 40 requests each carrying a *different* forged
+value all succeeded — so an attacker who can reach the origin directly has no
+rate limit at all. Nothing in the code can detect this; it is a network fact.
+
+- `scripts/check-cloudflare-allowlist.sh` compares the live ufw rules against
+  Cloudflare's published list and fails if 80/443 are open to anything else.
+  It is on the monthly checklist in MAINTENANCE.md, because Cloudflare's ranges
+  change and a rebuilt firewall can silently drop the rules.
+- `deploy/nginx.conf` additionally overwrites all four headers on the way
+  through, and documents the `real_ip` block to use when Cloudflare is in front,
+  so a forged value cannot survive even if it reaches nginx.
 
 ## Privacy & audit
 

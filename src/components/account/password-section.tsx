@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import type { z } from "zod";
 import { changePasswordFormSchema } from "@/lib/validation";
 import { changePasswordAction } from "@/server/actions/profile";
+import { safeAction } from "@/lib/safe-action";
 import { Button } from "@/components/ui/button";
 import { Label, FieldError } from "@/components/ui/input";
 import { PasswordField } from "@/components/auth/password-field";
@@ -28,7 +29,7 @@ export function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
   const newPassword = watch("newPassword") ?? "";
 
   async function onSubmit(values: FormOutput) {
-    const result = await changePasswordAction(values);
+    const result = await safeAction(() => changePasswordAction(values), "change password");
     if (result.ok) {
       toast.success(hasPassword ? "Password changed" : "Password set");
       reset();
@@ -38,7 +39,7 @@ export function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
   }
 
   return (
-    <section className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-soft">
+    <section className="space-y-4 rounded-card border border-border bg-card p-6 shadow-soft">
       <div>
         <h2 className="font-semibold">{hasPassword ? "Change password" : "Set a password"}</h2>
         <p className="text-sm text-muted-foreground">

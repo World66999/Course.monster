@@ -11,6 +11,7 @@ import { reviewFormSchema } from "@/lib/validation";
 import { getSiteSettings } from "@/lib/settings";
 import { recomputeCourseRating, reviewSelect, getReviewSummary, type ReviewWithAuthor, type ReviewSummary } from "@/lib/comments";
 import type { ActionResult } from "@/server/actions/courses";
+import { revalidateCoursePage } from "@/server/revalidate-course";
 
 const idSchema = z.string().cuid();
 
@@ -60,22 +61,38 @@ export async function createReviewAction(
 
   try {
     const review = await db.$transaction(async (tx) => {
-      const created = await tx.review.create({
-        data: {
-          courseId,
-          userId: user.id,
-          rating,
-          title: title || null,
-          body: trimmedBody,
-          status: check.flagged ? "HIDDEN" : "VISIBLE",
-          ipHash,
-        },
-        select: reviewSelect,
+      const data = {
+        rating,
+        title: title || null,
+        body: trimmedBody,
+        status: check.flagged ? ("HIDDEN" as const) : ("VISIBLE" as const),
+        ipHash,
+      };
+      // Deleting a review is a soft delete, and (courseId, userId) is unique,
+      // so a plain create after a delete hit P2002 and told the user they had
+      // "already reviewed" a course they could no longer see a review for —
+      // locking them out of reviewing it ever again. A deleted review is
+      // revived with the new content instead; a live one still conflicts.
+      const prior = await tx.review.findUnique({
+        where: { courseId_userId: { courseId, userId: user.id } },
+        select: { id: true, status: true },
       });
+      const saved =
+        prior?.status === "DELETED"
+          ? await tx.review.update({
+              where: { id: prior.id },
+              data: { ...data, createdAt: new Date() },
+              select: reviewSelect,
+            })
+          : await tx.review.create({
+              data: { ...data, courseId, userId: user.id },
+              select: reviewSelect,
+            });
       await recomputeCourseRating(tx, courseId);
-      return created;
+      return saved;
     });
     const summary = await getReviewSummary(courseId);
+    await revalidateCoursePage(courseId);
     return { ok: true, id: review.id, review, summary };
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
@@ -134,6 +151,7 @@ export async function editReviewAction(
     return updated;
   });
   const summary = await getReviewSummary(existing.courseId);
+  await revalidateCoursePage(existing.courseId);
 
   return { ok: true, id: parsedId.data, review, summary };
 }
@@ -159,6 +177,7 @@ export async function deleteReviewAction(
     await recomputeCourseRating(tx, existing.courseId);
   });
   const summary = await getReviewSummary(existing.courseId);
+  await revalidateCoursePage(existing.courseId);
 
   return { ok: true, summary };
 }

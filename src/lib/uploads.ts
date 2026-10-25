@@ -109,4 +109,35 @@ export async function deleteUpload(urlPath: string): Promise<void> {
   }
 }
 
+/**
+ * Deletes whichever of `candidates` nothing references any more.
+ *
+ * `stillReferenced` is called once with the full candidate list and returns the
+ * paths that survive somewhere in the table; everything else is orphaned and gets
+ * unlinked. The six admin bulk-delete actions each open-coded this as a loop
+ * issuing one `count()` per candidate path — with a 200-id delete limit and an
+ * app carrying an icon plus several screenshots, that was up to ~1000 sequential
+ * round trips inside a single server action, long enough to risk timing out
+ * against a non-local database.
+ *
+ * The deletes themselves are still sequential and best-effort: `deleteUpload`
+ * never throws, and there is no benefit to unlinking a handful of files in
+ * parallel.
+ */
+export async function deleteOrphanedUploads(
+  candidates: Iterable<string | null | undefined>,
+  stillReferenced: (paths: string[]) => Promise<Iterable<string>>
+): Promise<void> {
+  const paths = [
+    ...new Set(
+      [...candidates].filter((p): p is string => typeof p === "string" && p.startsWith("/uploads/"))
+    ),
+  ];
+  if (paths.length === 0) return;
+  const kept = new Set(await stillReferenced(paths));
+  for (const path of paths) {
+    if (!kept.has(path)) await deleteUpload(path);
+  }
+}
+
 export class UploadError extends Error {}

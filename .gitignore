@@ -33,6 +33,10 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# Claude Code local settings, including the editor's atomic-write temp copies
+# (settings.local.json.tmp.*), which can contain secrets
+.claude/settings.local.json*
+
 # vercel
 .vercel
 

@@ -1,22 +1,16 @@
-import { auth } from "@/auth";
-import { db } from "@/lib/db";
 import { getReviewSummary, listReviews } from "@/lib/comments";
 import { ReviewsPanel } from "@/components/site/reviews/reviews-panel";
 import { Section, SectionHeading } from "@/components/site/section";
 
+/**
+ * Viewer-independent on purpose: no auth() here, so the course page can be
+ * cached and served to everyone. The viewer's own review is fetched on the
+ * client by ReviewsPanel.
+ */
 export async function ReviewsSection({ courseId }: { courseId: string }) {
-  const session = await auth();
-  const userId = session?.user?.id ?? null;
-
-  const [summary, { items, nextCursor }, myReview] = await Promise.all([
+  const [summary, { items, nextCursor }] = await Promise.all([
     getReviewSummary(courseId),
     listReviews(courseId, { sort: "newest", limit: 10 }),
-    userId
-      ? db.review.findUnique({
-          where: { courseId_userId: { courseId, userId } },
-          select: { id: true, rating: true, title: true, body: true },
-        })
-      : Promise.resolve(null),
   ]);
 
   return (
@@ -27,7 +21,6 @@ export async function ReviewsSection({ courseId }: { courseId: string }) {
         initialSummary={summary}
         initialItems={items}
         initialCursor={nextCursor}
-        initialMyReview={myReview ? { ...myReview, title: myReview.title ?? "" } : null}
       />
     </Section>
   );

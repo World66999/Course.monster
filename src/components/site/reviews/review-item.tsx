@@ -1,6 +1,6 @@
 import { formatDistanceToNow } from "date-fns";
 import type { ReviewWithAuthor } from "@/lib/comments";
-import { AuthorAvatar, VerifiedBadge } from "@/components/site/comments/author-avatar";
+import { AuthorAvatar, AuthorPremiumBadge, VerifiedBadge } from "@/components/site/comments/author-avatar";
 import { StarDisplay } from "@/components/site/reviews/stars";
 import { ReportButton } from "@/components/site/report-dialog";
 
@@ -12,13 +12,14 @@ export function ReviewItem({
   isOwn: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+    <div className="rounded-card border border-border bg-card p-5 shadow-soft">
       <div className="flex items-start gap-3">
         <AuthorAvatar author={review.user} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="truncate font-medium">{review.user.name}</span>
             <VerifiedBadge author={review.user} />
+            <AuthorPremiumBadge author={review.user} />
             {isOwn && (
               <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
                 Your review

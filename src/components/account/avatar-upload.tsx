@@ -7,6 +7,7 @@ import { useSession } from "next-auth/react";
 import { Camera, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { updateAvatarAction } from "@/server/actions/profile";
+import { safeAction } from "@/lib/safe-action";
 
 export function AvatarUpload({ name, image }: { name: string; image: string | null }) {
   const router = useRouter();
@@ -28,7 +29,7 @@ export function AvatarUpload({ name, image }: { name: string; image: string | nu
       const res = await fetch("/api/upload/avatar", { method: "POST", body });
       const data = (await res.json()) as { path?: string; error?: string };
       if (!res.ok || !data.path) throw new Error(data.error ?? "Upload failed");
-      const result = await updateAvatarAction(data.path);
+      const result = await safeAction(() => updateAvatarAction(data.path), "update avatar");
       if (!result.ok) throw new Error(result.error);
       toast.success("Avatar updated");
       await update({ image: data.path });

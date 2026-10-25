@@ -11,6 +11,19 @@ import { botToken, scrub } from "./config";
 
 const API_TIMEOUT_MS = 10_000;
 
+/**
+ * Base URL for the Bot API. Overridable so the client can be pointed at a local
+ * mock in tests; server-side env only, same trust level as the token itself.
+ *
+ * Exported because `sendDocument` needs multipart and so cannot go through
+ * `callTelegram`. It used to hard-code api.telegram.org, which meant the one
+ * call that bypassed this client also bypassed the override — a test harness
+ * would have silently sent a real request.
+ */
+export function apiBase(): string {
+  return process.env.TELEGRAM_API_BASE?.replace(/\/+$/, "") || "https://api.telegram.org";
+}
+
 export interface TelegramError {
   ok: false;
   status: number;
@@ -28,10 +41,7 @@ export async function callTelegram<T = unknown>(
   try {
     // The token lives in the path because that is the only form the Bot API
     // accepts; this URL is never logged or returned to a caller.
-    // Base URL is overridable so the client can be pointed at a local mock in
-    // tests. Server-side env only — same trust level as the token itself.
-    const base = process.env.TELEGRAM_API_BASE?.replace(/\/+$/, "") || "https://api.telegram.org";
-    res = await fetch(`${base}/bot${botToken()}/${method}`, {
+    res = await fetch(`${apiBase()}/bot${botToken()}/${method}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
@@ -248,7 +258,9 @@ export function setWebhook(url: string, secretToken: string) {
     // Only what the bot actually handles — fewer updates, less to validate.
     // pre_checkout_query is essential: without it Telegram never delivers the
     // payment confirmation step and every Stars payment stalls silently.
-    allowed_updates: ["message", "callback_query", "pre_checkout_query"],
+    // chat_member lets the bot remove anyone who joins a members' group
+    // without active Premium (e.g. through a link shared before they lapsed).
+    allowed_updates: ["message", "callback_query", "pre_checkout_query", "chat_member"],
     max_connections: 40,
   });
 }

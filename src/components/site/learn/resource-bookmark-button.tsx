@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { Bookmark } from "lucide-react";
 import { toast } from "sonner";
 import { toggleResourceBookmarkAction } from "@/server/actions/learning-resources";
+import { safeAction } from "@/lib/safe-action";
 import { cn } from "@/lib/utils";
 
 export function ResourceBookmarkButton({
@@ -28,7 +29,7 @@ export function ResourceBookmarkButton({
     const next = !bookmarked;
     setBookmarked(next);
     try {
-      const result = await toggleResourceBookmarkAction(resourceId);
+      const result = await safeAction(() => toggleResourceBookmarkAction(resourceId), "toggle resource bookmark");
       if (!result.ok) {
         setBookmarked(!next);
         toast.error(result.error);

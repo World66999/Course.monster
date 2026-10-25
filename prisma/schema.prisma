@@ -61,6 +61,35 @@ model User {
   broadcasts                Broadcast[]
   socialDownloads           SocialDownloadJob[]
 
+  /// End of the user's paid Premium time. The single source of truth for "is
+  /// this account Premium right now": `premiumUntil > now()`, read from the
+  /// database on every premium check (never from the JWT). Subscription rows
+  /// below are the history that produced it; renewals stack on top of this
+  /// value instead of resetting it (see src/lib/premium.ts).
+  premiumUntil          DateTime?
+  /// The expiry each reminder was last sent *for*. Storing the date rather than
+  /// a boolean means a renewal (new expiry) re-arms both reminders on its own,
+  /// and the claim is a conditional update, so two job runs never double-send.
+  premiumReminder3dFor  DateTime?
+  premiumReminder1dFor  DateTime?
+  /// Linked Telegram account (numeric id as a string, like TelegramUser). Set
+  /// only through the one-time deep-link handshake in src/lib/telegram-link.ts.
+  telegramId            String?              @unique
+  /// Premium Chats moderation — scoped like chatBanned/chatMutedUntil, so an
+  /// admin can silence someone in the members' rooms without touching the
+  /// public chat or the account itself.
+  premiumChatBanned     Boolean              @default(false)
+  premiumChatMutedUntil DateTime?
+  subscriptions         Subscription[]
+  payments              Payment[]
+  courseGrants          CourseGrant[]        @relation("CourseGrantUser")
+  courseGrantsGiven     CourseGrant[]        @relation("CourseGrantGrantor")
+  premiumChatMessages   PremiumChatMessage[]
+  supportTickets        SupportTicket[]
+  supportMessages       SupportMessage[]
+  telegramLinkTokens    TelegramLinkToken[]
+  premiumChatInvites    PremiumChatInvite[]
+
   /// Covers the admin Users page's default sort (createdAt desc).
   @@index([createdAt(sort: Desc)])
   @@map("users")
@@ -190,6 +219,9 @@ model Course {
   featured         Boolean         @default(false)
   trending         Boolean         @default(false)
   popular          Boolean         @default(false)
+  /// Premium-only download. The course page stays public (title, description,
+  /// reviews); only the download step checks Premium or a per-user CourseGrant.
+  premium          Boolean         @default(false)
   order            Int             @default(0)
   seoTitle         String?
   seoDescription   String?
@@ -204,6 +236,7 @@ model Course {
   reviews          Review[]
   comments         Comment[]
   telegramEvents   TelegramEvent[]
+  grants           CourseGrant[]
   /// Denormalized from Review — recomputed transactionally on review
   /// create/update/delete so course cards/listing pages never aggregate
   /// reviews on read.
@@ -480,6 +513,8 @@ model ChatMessage {
   /// lets an admin hide/restore/delete a message and have it disappear (or
   /// reappear) for everyone already viewing chat, not just new fetches.
   @@index([updatedAt])
+  @@index([status])
+  @@index([linkPending])
   @@map("chat_messages")
 }
 
@@ -1286,4 +1321,315 @@ model AiPlatform {
   @@index([published, pricingType])
   @@index([published, order])
   @@map("ai_platforms")
+}
+
+// ============================================================================
+// Premium
+//
+// Money and access live here. Every check that grants anything reads these
+// tables on the server; nothing a browser or a Telegram client sends is ever
+// treated as proof of payment. See src/lib/premium.ts and src/lib/nowpayments.ts.
+// ============================================================================
+
+enum PremiumPlan {
+  MONTHLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+  REFUNDED
+}
+
+enum SubscriptionSource {
+  PAYMENT
+  ADMIN
+}
+
+/// One row per period of Premium time. A renewal while still active starts at
+/// the current expiry, so rows chain end to end and User.premiumUntil is the
+/// end of the chain.
+model Subscription {
+  id          String             @id @default(cuid())
+  userId      String
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan        PremiumPlan
+  startAt     DateTime
+  expiresAt   DateTime
+  status      SubscriptionStatus @default(ACTIVE)
+  source      SubscriptionSource @default(PAYMENT)
+  /// The payment that bought this period. Unique: one payment can never be
+  /// turned into two periods, whatever happens to the webhook.
+  paymentId   String?            @unique
+  payment     Payment?           @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  /// Staff member who granted it (source ADMIN). Not a relation, so audit
+  /// history survives the staff account.
+  grantedById String?
+  note        String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, expiresAt])
+  @@map("subscriptions")
+}
+
+/// NOWPayments' own lifecycle, mirrored. Only FINISHED grants Premium.
+enum PaymentStatus {
+  PENDING
+  WAITING
+  CONFIRMING
+  CONFIRMED
+  SENDING
+  PARTIALLY_PAID
+  FINISHED
+  FAILED
+  EXPIRED
+  REFUNDED
+}
+
+/// Our side of a checkout: created *before* the invoice, so the order id we
+/// hand NOWPayments always resolves to a row that already says who is paying,
+/// for which plan, and how much. The IPN is checked against this row, never
+/// the other way round.
+model Payment {
+  id            String         @id @default(cuid())
+  /// Opaque order id sent to NOWPayments and echoed back in every IPN.
+  orderId       String         @unique
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan          PremiumPlan
+  priceAmount   Decimal        @db.Decimal(10, 2)
+  priceCurrency String         @default("usd")
+  payCurrency   String
+  /// NOWPayments invoice id + hosted page.
+  invoiceId     String?        @unique
+  invoiceUrl    String?
+  /// NOWPayments payment id from the IPN (an invoice can see several attempts;
+  /// this is the latest one we heard about).
+  npPaymentId   String?
+  status        PaymentStatus  @default(PENDING)
+  actuallyPaid  Decimal?       @db.Decimal(24, 10)
+  /// Set exactly once, in the same transaction that creates the Subscription.
+  /// The conditional update on this column is the idempotency gate.
+  fulfilledAt   DateTime?
+  refundedAt    DateTime?
+  /// Internal path the buyer was trying to reach when they started checkout
+  /// (e.g. "/download/<slug>" from a "Skip ads" button). Validated on write;
+  /// the success page sends them there once Premium is active.
+  returnPath    String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  subscription  Subscription?
+  events        PaymentEvent[]
+
+  @@index([userId, status, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("payments")
+}
+
+/// Append-only log of every webhook call and payment state change, including
+/// rejected ones. Never holds a secret: the signature header is not stored,
+/// only whether it verified.
+model PaymentEvent {
+  id             String   @id @default(cuid())
+  paymentId      String?
+  payment        Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  orderId        String?
+  npPaymentId    String?
+  npStatus       String?
+  signatureValid Boolean
+  /// What we did with it: applied, duplicate, mismatch, bad_signature, ...
+  outcome        String
+  detail         String?
+  payload        Json?
+  createdAt      DateTime @default(now())
+
+  @@index([paymentId, createdAt])
+  @@index([createdAt(sort: Desc)])
+  @@map("payment_events")
+}
+
+/// Admin-granted access to one premium course for one user, independent of a
+/// subscription.
+model CourseGrant {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation("CourseGrantUser", fields: [userId], references: [id], onDelete: Cascade)
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  grantedById String?
+  grantedBy   User?    @relation("CourseGrantGrantor", fields: [grantedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+  @@map("course_grants")
+}
+
+/// Admin-managed taxonomy for Premium Resources ("Coding Help", "AI Tools", ...).
+model PremiumCategory {
+  id          String            @id @default(cuid())
+  slug        String            @unique
+  name        String
+  description String?
+  /// Lucide icon key from PREMIUM_ICON_KEYS, never free-form markup.
+  icon        String?
+  order       Int               @default(0)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  resources   PremiumResource[]
+
+  @@index([order])
+  @@map("premium_categories")
+}
+
+/// `title` and `summary` are public listing data. `content` and `url` are the
+/// locked part: they are only ever read by the premium API after the server
+/// has checked the caller, and never rendered into a public page.
+model PremiumResource {
+  id         String          @id @default(cuid())
+  categoryId String
+  category   PremiumCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  title      String
+  summary    String
+  content    String
+  url        String?
+  tags       String[]        @default([])
+  published  Boolean         @default(false)
+  order      Int             @default(0)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@index([published, categoryId, order])
+  @@index([order])
+  @@map("premium_resources")
+}
+
+enum PremiumChatKind {
+  /// Members-only room hosted on the site.
+  WEB_ROOM
+  /// Private Telegram group; members get a one-time invite link from the bot.
+  TELEGRAM_GROUP
+}
+
+model PremiumChat {
+  id             String               @id @default(cuid())
+  title          String
+  description    String
+  category       String
+  kind           PremiumChatKind      @default(WEB_ROOM)
+  /// Telegram chat id of the private group (TELEGRAM_GROUP only). Never sent
+  /// to a browser; only used server-side to mint single-use invite links.
+  telegramChatId String?
+  published      Boolean              @default(false)
+  order          Int                  @default(0)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  messages       PremiumChatMessage[]
+  invites        PremiumChatInvite[]
+
+  @@index([published, order])
+  @@map("premium_chats")
+}
+
+model PremiumChatMessage {
+  id        String      @id @default(cuid())
+  chatId    String
+  chat      PremiumChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body      String
+  /// Soft delete by a moderator; never returned to members once set.
+  deletedAt DateTime?
+  createdAt DateTime    @default(now())
+
+  @@index([chatId, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("premium_chat_messages")
+}
+
+enum TicketStatus {
+  OPEN
+  ANSWERED
+  CLOSED
+}
+
+enum TicketTopic {
+  OTHER_PAYMENT_METHOD
+  PAYMENT_PROBLEM
+  OTHER
+}
+
+/// Premium Purchase Support. Every user-facing query is scoped by userId on
+/// the server; only staff loaders read across users.
+model SupportTicket {
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject       String
+  topic         TicketTopic      @default(OTHER)
+  status        TicketStatus     @default(OPEN)
+  /// True when the user was Premium when they last wrote — the admin inbox
+  /// sorts these first.
+  priority      Boolean          @default(false)
+  lastMessageAt DateTime         @default(now())
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  messages      SupportMessage[]
+
+  @@index([userId, lastMessageAt(sort: Desc)])
+  @@index([status, priority, lastMessageAt(sort: Desc)])
+  @@map("support_tickets")
+}
+
+model SupportMessage {
+  id        String        @id @default(cuid())
+  ticketId  String
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  fromStaff Boolean       @default(false)
+  body      String
+  createdAt DateTime      @default(now())
+
+  @@index([ticketId, createdAt])
+  @@map("support_messages")
+}
+
+/// One-time handshake that links a website account to a Telegram account.
+/// Only the SHA-256 of the token is stored; the raw token lives in a t.me
+/// deep link for ten minutes and is consumed by the bot's /start handler.
+model TelegramLinkToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("telegram_link_tokens")
+}
+
+/// Single-use Telegram invite links minted for members. Kept so they can be
+/// revoked the moment the member's Premium ends (expiry, refund or revoke),
+/// rather than staying usable until Telegram's own 15-minute expiry.
+model PremiumChatInvite {
+  id         String      @id @default(cuid())
+  chatId     String
+  chat       PremiumChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inviteLink String
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime    @default(now())
+
+  @@index([userId, revokedAt, expiresAt])
+  @@map("premium_chat_invites")
 }

@@ -5,10 +5,11 @@
 | Cadence | Task |
 | --- | --- |
 | Daily (automated) | Backups (cron, see BACKUP_RESTORE.md) |
-| Weekly | Skim `/admin/activity` for unexpected actions & failed logins |
+| Weekly | Skim the panel's Activity page for unexpected actions & failed logins |
 | Weekly | `docker compose logs --since 168h app \| grep -E "error|shortener"` |
 | Monthly | `npm audit` + dependency review (see UPGRADE.md) |
 | Monthly | Test-restore the latest DB backup |
+| Monthly | `sudo bash scripts/check-cloudflare-allowlist.sh` — every IP rate limit in the app depends on the origin being reachable only through Cloudflare |
 | Quarterly | Rotate the admin password |
 
 ## Health checks

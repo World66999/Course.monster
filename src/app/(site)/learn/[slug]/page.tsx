@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { ArrowLeft } from "lucide-react";
 import { getPublishedResource, attachMyResourceState } from "@/lib/learning-resources";
 import { db } from "@/lib/db";
-import { youtubeThumbnailUrl } from "@/lib/youtube";
+import { youtubeEmbedUrl, youtubeThumbnailUrl } from "@/lib/youtube";
 import { absoluteUrl, safeJsonLd } from "@/lib/utils";
 import { Section } from "@/components/site/section";
 import { Badge } from "@/components/ui/badge";
@@ -57,7 +57,9 @@ export default async function LearningResourceDetailPage({ params }: Props) {
         description: resource.description ?? resource.title,
         thumbnailUrl: resource.thumbnail || youtubeThumbnailUrl(resource.videoId),
         uploadDate: resource.createdAt.toISOString(),
-        embedUrl: `https://www.youtube-nocookie.com/embed/${resource.videoId}`,
+        // Through the same helper the player uses, so the id is encoded once,
+        // in one place, rather than interpolated raw into a URL here.
+        embedUrl: youtubeEmbedUrl(resource.videoId, { autoplay: false }),
         ...(resource.durationMinutes ? { duration: `PT${resource.durationMinutes}M` } : {}),
       }
     : null;
@@ -72,7 +74,7 @@ export default async function LearningResourceDetailPage({ params }: Props) {
         Back to Free Learning Hub
       </Link>
 
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-soft sm:p-8">
+      <div className="rounded-card border border-border bg-card p-6 shadow-soft sm:p-8">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={resource.resourceType === "PLAYLIST" ? "secondary" : "default"}>
             {resource.resourceType}

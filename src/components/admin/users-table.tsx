@@ -1,9 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
-import { Search, ChevronLeft, ChevronRight, Loader2, EyeOff, RotateCcw } from "lucide-react";
+import Link from "next/link";
+import { Search, ChevronLeft, ChevronRight, Crown, Loader2, EyeOff, RotateCcw, Settings2 } from "lucide-react";
+import { adminPath } from "@/lib/admin-path";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -16,7 +18,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { setUserDisabledAction } from "@/server/actions/admin-users";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
+import { cn } from "@/lib/utils";
+import { useAdminParams, useDebouncedParam } from "@/components/admin/use-admin-params";
 
 export interface AdminUserRow {
   id: string;
@@ -29,6 +33,7 @@ export interface AdminUserRow {
   hasPassword: boolean;
   hasGoogle: boolean;
   createdAt: string;
+  premiumUntil: string | null;
 }
 
 const ALL = "__all__";
@@ -43,35 +48,9 @@ export function UsersTable({
   pageCount: number;
 }) {
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const [q, setQ] = React.useState(searchParams.get("q") ?? "");
+  const { searchParams, update, goToPage, isPending } = useAdminParams();
+  const [q, setQ] = useDebouncedParam("q", update, searchParams);
   const [busyId, setBusyId] = React.useState<string | null>(null);
-
-  function update(patch: Record<string, string>) {
-    const params = new URLSearchParams(searchParams.toString());
-    for (const [k, v] of Object.entries(patch)) {
-      if (v) params.set(k, v);
-      else params.delete(k);
-    }
-    params.delete("page");
-    router.push(`${pathname}?${params.toString()}`);
-  }
-
-  React.useEffect(() => {
-    const current = searchParams.get("q") ?? "";
-    if (q === current) return;
-    const t = setTimeout(() => update({ q }), 400);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
-
-  function goToPage(next: number) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (next > 1) params.set("page", String(next));
-    else params.delete("page");
-    router.push(`${pathname}?${params.toString()}`);
-  }
 
   async function toggleDisabled(row: AdminUserRow) {
     setBusyId(row.id);
@@ -126,13 +105,23 @@ export function UsersTable({
               <SelectItem value="verified">Verified</SelectItem>
               <SelectItem value="unverified">Unverified</SelectItem>
               <SelectItem value="disabled">Disabled</SelectItem>
+              <SelectItem value="premium">Premium</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      <div className="relative overflow-x-auto rounded-2xl border border-border bg-card shadow-soft">
-        <table className="w-full min-w-[880px] text-sm">
+      {/* Dimmed and inert while the next page/filter is being fetched, so a slow
+          query does not leave stale rows looking current and clickable. */}
+      <div
+        aria-busy={isPending}
+        className={cn(
+          "relative overflow-x-auto rounded-card border border-border bg-card shadow-soft",
+          "transition-opacity duration-200",
+          isPending && "pointer-events-none opacity-60"
+        )}
+      >
+        <table className="w-full min-w-[1000px] text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/50 text-left text-xs tracking-wider text-muted-foreground uppercase">
               <th className="p-3 font-medium">User</th>
@@ -140,8 +129,9 @@ export function UsersTable({
               <th className="p-3 font-medium">Provider</th>
               <th className="p-3 font-medium">Verified</th>
               <th className="p-3 font-medium">Status</th>
+              <th className="p-3 font-medium">Premium</th>
               <th className="p-3 font-medium">Joined</th>
-              <th className="w-16 p-3">
+              <th className="w-24 p-3">
                 <span className="sr-only">Actions</span>
               </th>
             </tr>
@@ -149,13 +139,13 @@ export function UsersTable({
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="p-10 text-center text-muted-foreground">
+                <td colSpan={8} className="p-10 text-center text-muted-foreground">
                   No users match your filters.
                 </td>
               </tr>
             )}
             {rows.map((row) => (
-              <tr key={row.id} className="border-b border-border last:border-0 hover:bg-muted/40">
+              <tr key={row.id} className="border-b border-border transition-colors duration-150 last:border-0 hover:bg-primary-soft/45">
                 <td className="p-3">
                   <p className="font-medium">{row.name}</p>
                   <p className="text-xs text-muted-foreground">{row.username ? `@${row.username}` : row.email}</p>
@@ -179,10 +169,27 @@ export function UsersTable({
                     {row.disabled ? "Disabled" : "Active"}
                   </Badge>
                 </td>
+                <td className="p-3">
+                  {row.premiumUntil ? (
+                    <Badge variant="premium">
+                      <Crown aria-hidden />
+                      until {new Date(row.premiumUntil).toISOString().slice(0, 10)}
+                    </Badge>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Free</span>
+                  )}
+                </td>
                 <td className="p-3 whitespace-nowrap text-muted-foreground">
                   <span suppressHydrationWarning>{formatDistanceToNow(new Date(row.createdAt), { addSuffix: true })}</span>
                 </td>
-                <td className="p-3">
+                <td className="flex items-center gap-1 p-3">
+                  <Link
+                    href={adminPath(`users/${row.id}`)}
+                    aria-label="Manage Premium and courses"
+                    className={buttonClasses("ghost", "icon")}
+                  >
+                    <Settings2 className="h-4 w-4" />
+                  </Link>
                   {row.role === "USER" && (
                     <Button
                       variant="ghost"

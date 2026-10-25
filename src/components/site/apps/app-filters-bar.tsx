@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { X } from "lucide-react";
+import { useDebouncedSearchParam, useFilterParams } from "@/components/site/use-filter-params";
+import { FilterSearchIcon } from "@/components/site/filter-search-icon";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CATEGORY_LABELS, PLATFORM_LABELS } from "@/components/site/apps/app-card";
@@ -20,42 +21,20 @@ const SORT_OPTIONS = [
 ] as const;
 
 export function AppFiltersBar() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const { searchParams, update, replaceLive, isPending } = useFilterParams();
 
-  const currentQ = searchParams.get("q") ?? "";
   const currentCategory = searchParams.get("category") ?? "";
   const currentPlatform = searchParams.get("platform") ?? "";
   const currentSort = searchParams.get("sort") ?? "newest";
   const currentOpenSource = searchParams.get("openSource") === "true";
 
-  const [search, setSearch] = React.useState(currentQ);
-  React.useEffect(() => setSearch(currentQ), [currentQ]);
-
-  const update = React.useCallback(
-    (patch: Record<string, string>) => {
-      const params = new URLSearchParams(searchParams.toString());
-      for (const [key, value] of Object.entries(patch)) {
-        if (value) params.set(key, value);
-        else params.delete(key);
-      }
-      router.push(`${pathname}${params.size ? `?${params}` : ""}`, { scroll: false });
-    },
-    [router, pathname, searchParams]
-  );
-
-  React.useEffect(() => {
-    if (search === currentQ) return;
-    const t = setTimeout(() => update({ q: search.trim() }), 400);
-    return () => clearTimeout(t);
-  }, [search, currentQ, update]);
+  const [search, setSearch, searchPending] = useDebouncedSearchParam("q", replaceLive, searchParams);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" aria-busy={isPending}>
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
-          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <FilterSearchIcon pending={isPending || searchPending} />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -124,7 +103,9 @@ export function AppFiltersBar() {
           onClick={() => update({ openSource: currentOpenSource ? "" : "true" })}
           aria-pressed={currentOpenSource}
           className={cn(
-            "col-span-2 cursor-pointer rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors sm:col-span-1",
+            // `min-h-10` brings it from 38px to the 40px touch floor; it is a
+            // full-width block in a grid, so growing it costs nothing.
+            "col-span-2 min-h-10 cursor-pointer rounded-control border px-3.5 py-2 text-sm font-medium transition-colors sm:col-span-1",
             currentOpenSource
               ? "border-primary bg-primary/10 text-primary"
               : "border-border bg-card text-muted-foreground hover:bg-muted"

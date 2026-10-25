@@ -2,11 +2,11 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Megaphone, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea, Label, FieldHint } from "@/components/ui/input";
-import { safeAction } from "@/lib/admin-action";
+import { safeAction } from "@/lib/safe-action";
 import { createBroadcastAction } from "@/server/actions/admin-telegram";
 
 const MAX = 3500;
@@ -39,8 +39,8 @@ export function BroadcastComposer({ audience, configured }: { audience: number; 
   const empty = body.trim().length === 0;
 
   return (
-    <section className="space-y-3 rounded-2xl border border-border bg-card p-6">
-      <h2 className="font-semibold">📣 Broadcast</h2>
+    <section className="space-y-3 rounded-card border border-border bg-card p-6">
+      <h2 className="flex items-center gap-2 font-semibold"><Megaphone className="h-4 w-4 text-primary" aria-hidden />Broadcast</h2>
       <div className="space-y-1.5">
         <Label htmlFor="broadcast-body">Message</Label>
         <Textarea
@@ -65,7 +65,7 @@ export function BroadcastComposer({ audience, configured }: { audience: number; 
           Send to {audience} user{audience === 1 ? "" : "s"}
         </Button>
       ) : (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-warning/40 bg-warning/10 p-3">
+        <div className="flex flex-wrap items-center gap-2 rounded-nested border border-warning/40 bg-warning/10 p-3">
           <span className="text-sm">
             Send this to <strong>{audience}</strong> user{audience === 1 ? "" : "s"}? This cannot be undone.
           </span>

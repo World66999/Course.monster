@@ -9,7 +9,7 @@ import { logAudit } from "@/lib/audit";
 import { courseFormSchema, parseLines, parseTags } from "@/lib/validation";
 import { invalidateShortLinks } from "@/lib/shortener";
 import { slugify } from "@/lib/utils";
-import { deleteUpload } from "@/lib/uploads";
+import { deleteOrphanedUploads, deleteUpload } from "@/lib/uploads";
 
 export type ActionResult = { ok: true; id?: string } | { ok: false; error: string };
 
@@ -85,6 +85,7 @@ export async function saveCourseAction(
     featured: v.featured,
     trending: v.trending,
     popular: v.popular,
+    premium: v.premium,
     seoTitle: v.seoTitle || null,
     seoDescription: v.seoDescription || null,
     metaImage: v.metaImage || null,
@@ -165,16 +166,24 @@ export async function deleteCoursesAction(ids: unknown): Promise<ActionResult> {
 
   // Clean up images that only the now-deleted courses referenced. Checked
   // against what's left in the table, not the pre-delete row set, so an
-  // image shared with a course outside this batch is correctly kept.
-  const candidates = new Set(
-    doomed.flatMap((c) => [c.thumbnail, c.banner, c.metaImage]).filter((p): p is string => Boolean(p))
+  // image shared with a course outside this batch is correctly kept — and in
+  // one query for the whole batch rather than one per candidate path.
+  await deleteOrphanedUploads(
+    doomed.flatMap((c) => [c.thumbnail, c.banner, c.metaImage]),
+    async (paths) => {
+      const rows = await db.course.findMany({
+        where: {
+          OR: [
+            { thumbnail: { in: paths } },
+            { banner: { in: paths } },
+            { metaImage: { in: paths } },
+          ],
+        },
+        select: { thumbnail: true, banner: true, metaImage: true },
+      });
+      return rows.flatMap((r) => [r.thumbnail, r.banner, r.metaImage]).filter((p): p is string => Boolean(p));
+    }
   );
-  for (const path of candidates) {
-    const stillUsed = await db.course.count({
-      where: { OR: [{ thumbnail: path }, { banner: path }, { metaImage: path }] },
-    });
-    if (stillUsed === 0) await deleteUpload(path);
-  }
 
   await logAudit({
     userId: user.id,

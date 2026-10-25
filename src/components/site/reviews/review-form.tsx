@@ -80,7 +80,7 @@ export function ReviewForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl border border-border bg-card p-5 shadow-soft">
+    <form onSubmit={handleSubmit} className="space-y-3 rounded-card border border-border bg-card p-5 shadow-soft">
       <div className="space-y-1.5">
         <Label>Your rating</Label>
         <StarInput value={rating} onChange={setRating} />

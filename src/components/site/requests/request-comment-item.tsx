@@ -14,6 +14,7 @@ import {
   deleteRequestCommentAction,
   toggleRequestCommentReactionAction,
 } from "@/server/actions/request-comments";
+import { safeAction } from "@/lib/safe-action";
 import { CommentForm } from "@/components/site/comments/comment-form";
 import { EmojiReactionPicker } from "@/components/site/chat/emoji-reaction-picker";
 import { ReportButton } from "@/components/site/report-dialog";
@@ -43,7 +44,7 @@ function Avatar({ author, size = 32 }: { author: RequestCommentDTO["author"]; si
       <span
         aria-hidden
         style={{ width: size, height: size }}
-        className="flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-primary text-white shadow-sm shadow-primary/30"
+        className="flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet to-primary text-white shadow-sm shadow-primary/30"
       >
         <ShieldCheck className="h-4 w-4" />
       </span>
@@ -87,6 +88,14 @@ function CommentBody({ body, isReply }: { body: string; isReply: boolean }) {
     </p>
   );
 }
+
+/**
+ * Reply / Edit / Delete under a request comment — 16px-tall text buttons, right
+ * for their visual weight and too small to hit reliably with a thumb, so
+ * `tap-target` extends each one's reach to 44px on a coarse pointer. Mirrors
+ * `ACTION_BUTTON` in components/site/comments/comment-item.tsx.
+ */
+const ACTION_BUTTON = "tap-target inline-flex cursor-pointer items-center gap-1 hover:text-primary";
 
 export function RequestCommentItem({
   comment,
@@ -163,7 +172,7 @@ export function RequestCommentItem({
         };
         addOptimisticReply({ type: "add", reply: optimisticReply });
 
-        const result = await createRequestCommentAction({ requestId, parentId: comment.id, body });
+        const result = await safeAction(() => createRequestCommentAction({ requestId, parentId: comment.id, body }), "reply to request comment");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;
@@ -185,7 +194,7 @@ export function RequestCommentItem({
     return new Promise((resolve) => {
       startReplyTransition(async () => {
         addOptimisticReply({ type: "update", id, body });
-        const result = await editRequestCommentAction(id, body);
+        const result = await safeAction(() => editRequestCommentAction(id, body), "edit request comment");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;
@@ -200,7 +209,7 @@ export function RequestCommentItem({
     return new Promise((resolve) => {
       startReplyTransition(async () => {
         addOptimisticReply({ type: "remove", id });
-        const result = await deleteRequestCommentAction(id);
+        const result = await safeAction(() => deleteRequestCommentAction(id), "delete request comment");
         if (!result.ok) {
           resolve({ ok: false, error: result.error });
           return;
@@ -226,7 +235,7 @@ export function RequestCommentItem({
       : [...reactions, { emoji, count: 1, reactedByMe: true }];
     setReactions(optimistic);
     try {
-      const result = await toggleRequestCommentReactionAction({ commentId: comment.id, emoji });
+      const result = await safeAction(() => toggleRequestCommentReactionAction({ commentId: comment.id, emoji }), "toggle request comment reaction");
       if (!result.ok) {
         setReactions(comment.reactions);
         toast.error(result.error);
@@ -265,7 +274,7 @@ export function RequestCommentItem({
     <div className={cn("flex gap-3", isReply && "pl-10", pending && "opacity-70")}>
       <Avatar author={comment.author} size={isReply ? 28 : 36} />
       <div className="min-w-0 flex-1">
-        <div className="rounded-2xl bg-muted/50 px-4 py-2.5">
+        <div className="rounded-card bg-muted/50 px-4 py-2.5">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-sm font-semibold">{isDeleted ? "Deleted" : comment.author.label}</span>
             {comment.author.isAdmin && (
@@ -303,7 +312,7 @@ export function RequestCommentItem({
               <button
                 type="button"
                 onClick={() => setReplying((r) => !r)}
-                className="inline-flex cursor-pointer items-center gap-1 hover:text-primary"
+                className={ACTION_BUTTON}
               >
                 <Reply className="h-3.5 w-3.5" aria-hidden />
                 Reply
@@ -317,7 +326,7 @@ export function RequestCommentItem({
                     setEditBody(comment.body);
                     setEditing(true);
                   }}
-                  className="inline-flex cursor-pointer items-center gap-1 hover:text-primary"
+                  className={ACTION_BUTTON}
                 >
                   <Pencil className="h-3.5 w-3.5" aria-hidden />
                   Edit
@@ -326,7 +335,7 @@ export function RequestCommentItem({
                   type="button"
                   onClick={() => void onDeleteClick()}
                   disabled={deleteBusy}
-                  className="inline-flex cursor-pointer items-center gap-1 hover:text-destructive disabled:opacity-60"
+                  className={cn(ACTION_BUTTON, "hover:text-destructive disabled:opacity-60")}
                 >
                   {deleteBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Trash2 className="h-3.5 w-3.5" aria-hidden />}
                   Delete
@@ -339,7 +348,7 @@ export function RequestCommentItem({
         )}
 
         {!isDeleted && !editing && (
-          <div className="mt-1.5 flex flex-wrap items-center gap-1 px-2">
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 px-2">
             {reactions.map((r) => (
               <button
                 key={r.emoji}
@@ -347,7 +356,10 @@ export function RequestCommentItem({
                 onClick={() => void onReact(r.emoji)}
                 disabled={reactBusy}
                 className={cn(
-                  "inline-flex cursor-pointer items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs transition-colors",
+                  // Real height rather than `tap-target`: chips this close
+                  // together would overlap each other's invisible hit boxes and
+                  // fire the wrong reaction. Matches the chat chips.
+                  "inline-flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1.5 text-xs transition-colors",
                   r.reactedByMe ? "border-primary/40 bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:bg-muted"
                 )}
               >

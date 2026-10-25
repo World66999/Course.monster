@@ -1,10 +1,12 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { AiPlatformCard, type AiPlatformCardDTO } from "@/components/site/ai-platforms/ai-platform-card";
 import { DirectoryCardSkeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/site/section";
+import { buttonClasses } from "@/components/ui/button";
 
 interface Props {
   initialItems: AiPlatformCardDTO[];
@@ -67,7 +69,12 @@ export function InfiniteAiPlatformList({ initialItems, initialCursor, total, que
       <EmptyState
         icon={<Sparkles aria-hidden />}
         title="No AI platforms found"
-        description="Try a different search, category or free-access type."
+        description="Try a different search, category or free-access type — or browse everything instead."
+        action={
+          <Link href="/ai-platforms" className={buttonClasses("outline", "sm")}>
+            Clear filters
+          </Link>
+        }
       />
     );
   }
@@ -93,7 +100,7 @@ export function InfiniteAiPlatformList({ initialItems, initialCursor, total, que
           <button
             type="button"
             onClick={() => void loadMore()}
-            className="cursor-pointer rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
+            className="cursor-pointer rounded-control border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
           >
             Try again
           </button>

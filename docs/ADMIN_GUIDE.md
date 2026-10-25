@@ -1,6 +1,10 @@
 # Admin Guide
 
-Everything in the admin panel lives under `https://yourdomain.com/admin`.
+Everything in the admin panel lives under `https://yourdomain.com/<ADMIN_SEGMENT>`,
+where `<ADMIN_SEGMENT>` is the random path constant in `src/lib/admin-path.ts`.
+`/admin` itself is not a route and never was on this deployment — the segment is an
+extra layer over the authentication checks, not a replacement for them, so treat the
+URL as sensitive but never as the thing keeping the panel private.
 Sign in with your admin email and password. Sessions last 12 hours.
 
 ## Dashboard

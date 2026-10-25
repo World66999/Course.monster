@@ -13,7 +13,7 @@ export default async function EditCodingChannelPage({ params }: { params: Promis
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">Edit coding channel</h1>
+      <h1 className="text-heading">Edit coding channel</h1>
       <CodingChannelForm
         channelId={channel.id}
         defaultValues={{

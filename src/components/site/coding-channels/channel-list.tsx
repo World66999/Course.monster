@@ -1,10 +1,12 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Radio } from "lucide-react";
 import { ChannelCard, type ChannelCardDTO } from "@/components/site/coding-channels/channel-card";
 import { ChannelCardSkeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/site/section";
+import { buttonClasses } from "@/components/ui/button";
 
 interface Props {
   initialItems: ChannelCardDTO[];
@@ -66,7 +68,12 @@ export function InfiniteChannelList({ initialItems, initialCursor, total, queryS
       <EmptyState
         icon={<Radio aria-hidden />}
         title="No channels found"
-        description="Try adjusting your search or filters."
+        description="Try adjusting your search or filters — or browse everything instead."
+        action={
+          <Link href="/coding-channels" className={buttonClasses("outline", "sm")}>
+            Clear filters
+          </Link>
+        }
       />
     );
   }
@@ -92,7 +99,7 @@ export function InfiniteChannelList({ initialItems, initialCursor, total, queryS
           <button
             type="button"
             onClick={() => void loadMore()}
-            className="cursor-pointer rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
+            className="cursor-pointer rounded-control border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
           >
             Try again
           </button>

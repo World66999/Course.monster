@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { listLearningResources, attachMyResourceState, getResourceCategories } from "@/lib/learning-resources";
 import { listLearningResourcesQuerySchema } from "@/lib/validation";
 import { absoluteUrl } from "@/lib/utils";
-import { Section } from "@/components/site/section";
+import { PageHeader, Section } from "@/components/site/section";
 import { ResourceFiltersBar } from "@/components/site/learn/resource-filters-bar";
 import { InfiniteResourceList } from "@/components/site/learn/resource-list";
 import { ResourceGridSkeleton } from "@/components/ui/skeleton";
@@ -66,13 +66,16 @@ async function ResourceResults({ searchParams }: { searchParams: SearchParams })
 export default function LearnPage({ searchParams }: { searchParams: SearchParams }) {
   return (
     <Section className="py-12">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Free Learning Hub</h1>
-        <p className="mt-2 max-w-2xl text-muted-foreground">
-          Hand-picked free YouTube videos and playlists — filter by topic, difficulty and type to find exactly what
+      <PageHeader
+        eyebrow="Free learning"
+        title="Free Learning Hub"
+        description={
+          <>
+            Hand-picked free YouTube videos and playlists — filter by topic, difficulty and type to find exactly what
           you need.
-        </p>
-      </div>
+          </>
+        }
+      />
       <Suspense fallback={<ResourceGridSkeleton />}>
         <ResourceResults searchParams={searchParams} />
       </Suspense>

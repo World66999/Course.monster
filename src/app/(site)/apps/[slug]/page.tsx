@@ -77,14 +77,14 @@ export default async function AppDetailPage({ params }: Props) {
         Back to Apps Hub
       </Link>
 
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-soft sm:p-8">
+      <div className="rounded-card border border-border bg-card p-6 shadow-soft sm:p-8">
         <div className="flex items-start gap-4">
           {app.icon ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={app.icon} alt={app.name} className="h-20 w-20 shrink-0 rounded-2xl object-cover" />
+            <img src={app.icon} alt={app.name} className="h-20 w-20 shrink-0 rounded-card object-cover" />
           ) : (
             <div
-              className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl"
+              className="flex h-20 w-20 shrink-0 items-center justify-center rounded-card"
               style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
             >
               <span className={cn("text-2xl font-bold", light ? "text-slate-900/85" : "text-white/90")}>
@@ -93,7 +93,7 @@ export default async function AppDetailPage({ params }: Props) {
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-bold tracking-tight">{app.name}</h1>
+            <h1 className="text-heading">{app.name}</h1>
             {app.developer && <p className="mt-0.5 text-muted-foreground">by {app.developer}</p>}
           </div>
         </div>
@@ -106,7 +106,7 @@ export default async function AppDetailPage({ params }: Props) {
           {app.license && <Badge variant="secondary">{app.license}</Badge>}
         </div>
 
-        <dl className="mt-6 grid grid-cols-2 gap-4 rounded-xl bg-muted/50 p-4 text-sm sm:grid-cols-3">
+        <dl className="mt-6 grid grid-cols-2 gap-4 rounded-nested bg-muted/50 p-4 text-sm sm:grid-cols-3">
           {app.version && (
             <div>
               <dt className="text-muted-foreground">Version</dt>
@@ -154,7 +154,7 @@ export default async function AppDetailPage({ params }: Props) {
                 src={src}
                 alt={`${app.name} screenshot ${i + 1}`}
                 loading="lazy"
-                className="h-48 w-auto shrink-0 rounded-xl border border-border object-cover"
+                className="h-48 w-auto shrink-0 rounded-nested border border-border object-cover"
               />
             ))}
           </div>

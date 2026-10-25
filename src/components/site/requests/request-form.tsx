@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Loader2, Eye, Lightbulb, Pencil, Sparkles, UploadCloud, X } from "lucide-react";
 import { toast } from "sonner";
 import { createCourseRequestAction, editCourseRequestAction } from "@/server/actions/course-requests";
+import { safeAction } from "@/lib/safe-action";
 import { parseTagsInput, REQUEST_TAG_SUGGESTIONS, type RequestKind } from "@/lib/request-shared";
 import { RequestStatusBadge } from "@/components/site/requests/status-badge";
 import { cn } from "@/lib/utils";
@@ -136,8 +137,8 @@ export function RequestForm({
         anonymous,
       };
       const result = existing
-        ? await editCourseRequestAction(existing.id, payload)
-        : await createCourseRequestAction(payload);
+        ? await safeAction(() => editCourseRequestAction(existing.id, payload), "edit request")
+        : await safeAction(() => createCourseRequestAction(payload), "create request");
 
       if (!result.ok) {
         toast.error(result.error);
@@ -161,7 +162,7 @@ export function RequestForm({
             Back to editing
           </Button>
         </div>
-        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+        <div className="overflow-hidden rounded-card border border-border bg-card shadow-soft">
           {previewUrl && (
             <div className="relative aspect-[16/9] bg-muted">
               <CourseImage src={previewUrl} title={title || "Course request"} />
@@ -180,7 +181,7 @@ export function RequestForm({
             <p className="text-sm font-medium text-muted-foreground">{subject}</p>
             <p className="break-words whitespace-pre-wrap text-sm text-foreground/90">{description}</p>
             {motivation && (
-              <div className="rounded-xl bg-muted/50 p-4">
+              <div className="rounded-nested bg-muted/50 p-4">
                 <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                   {kind === "REQUEST" ? "Why I want this" : "Why I recommend this"}
                 </p>
@@ -231,7 +232,7 @@ export function RequestForm({
             tabIndex={kind === "REQUEST" ? 0 : -1}
             onClick={() => setKind("REQUEST")}
             className={cn(
-              "flex items-start gap-3 rounded-xl border p-4 text-left transition-colors",
+              "flex items-start gap-3 rounded-nested border p-4 text-left transition-colors",
               kind === "REQUEST" ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-border bg-card hover:border-primary/40"
             )}
           >
@@ -249,7 +250,7 @@ export function RequestForm({
             tabIndex={kind === "RECOMMENDATION" ? 0 : -1}
             onClick={() => setKind("RECOMMENDATION")}
             className={cn(
-              "flex items-start gap-3 rounded-xl border p-4 text-left transition-colors",
+              "flex items-start gap-3 rounded-nested border p-4 text-left transition-colors",
               kind === "RECOMMENDATION" ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-border bg-card hover:border-primary/40"
             )}
           >
@@ -403,7 +404,7 @@ export function RequestForm({
       <div className="space-y-1.5">
         <Label>Course thumbnail (optional)</Label>
         {previewUrl ? (
-          <div className="relative h-40 w-full max-w-xs overflow-hidden rounded-xl border border-border bg-muted">
+          <div className="relative h-40 w-full max-w-xs overflow-hidden rounded-nested border border-border bg-muted">
             <Image src={previewUrl} alt="Course thumbnail preview" fill sizes="320px" className="object-cover" unoptimized />
             <button
               type="button"
@@ -424,7 +425,7 @@ export function RequestForm({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploadingImage}
-            className="flex h-32 w-full max-w-xs cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/30 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground disabled:opacity-60"
+            className="flex h-32 w-full max-w-xs cursor-pointer flex-col items-center justify-center gap-2 rounded-nested border border-dashed border-border bg-muted/30 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground disabled:opacity-60"
           >
             {uploadingImage ? (
               <Loader2 className="h-5 w-5 animate-spin" aria-hidden />

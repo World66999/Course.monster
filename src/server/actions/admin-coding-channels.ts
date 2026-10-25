@@ -8,7 +8,7 @@ import { requireAdmin } from "@/server/auth-helpers";
 import { logAudit } from "@/lib/audit";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { codingChannelFormSchema, parseTags, fetchYoutubeMetaSchema } from "@/lib/validation";
-import { deleteUpload } from "@/lib/uploads";
+import { deleteOrphanedUploads, deleteUpload } from "@/lib/uploads";
 import { fetchYoutubeOEmbed, type YoutubeMetaFailure } from "@/lib/youtube";
 import type { ActionResult } from "@/server/actions/courses";
 
@@ -102,11 +102,16 @@ export async function deleteChannelsAction(ids: unknown): Promise<ActionResult> 
   });
   const { count } = await db.codingChannel.deleteMany({ where: { id: { in: parsed.data } } });
 
-  const candidates = new Set(doomed.map((c) => c.logo).filter((p): p is string => Boolean(p)));
-  for (const path of candidates) {
-    const stillUsed = await db.codingChannel.count({ where: { logo: path } });
-    if (stillUsed === 0) await deleteUpload(path);
-  }
+  await deleteOrphanedUploads(
+    doomed.map((c) => c.logo),
+    async (paths) => {
+      const rows = await db.codingChannel.findMany({
+        where: { logo: { in: paths } },
+        select: { logo: true },
+      });
+      return rows.map((r) => r.logo).filter((p): p is string => Boolean(p));
+    }
+  );
 
   await logAudit({ userId: user.id, action: "codingChannel.delete", entity: "codingChannel", meta: { count } });
   revalidateSite();

@@ -13,7 +13,7 @@ export default async function EditFreeResourcePage({ params }: { params: Promise
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">Edit resource</h1>
+      <h1 className="text-heading">Edit resource</h1>
       <FreeResourceForm
         resourceId={resource.id}
         defaultValues={{
