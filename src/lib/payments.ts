@@ -4,13 +4,8 @@ import { Prisma, type PaymentStatus, type PremiumPlan } from "@prisma/client";
 import { db } from "@/lib/db";
 import { PLANS, isPlanKey, type PlanKey } from "@/lib/premium-plans";
 import { addPremiumPeriod, rechainPremium } from "@/lib/premium";
-import {
-  availableCoins,
-  candidateCoins,
-  coinSupportsPrice,
-  createInvoice,
-  verifyIpnSignature,
-} from "@/lib/nowpayments";
+import { coinMinimum, createInvoice, findCatalogCoin, verifyIpnSignature } from "@/lib/nowpayments";
+import { coinFitsPrice } from "@/lib/coins";
 import { siteUrl } from "@/lib/telegram/config";
 import { notifyAdmins, notifyUser } from "@/lib/telegram/notify";
 import { esc } from "@/lib/telegram/render";
@@ -52,20 +47,19 @@ export async function createCheckout(args: {
   if (!isPlanKey(args.plan)) return { ok: false, error: "Unknown plan." };
   const plan = PLANS[args.plan];
   const coin = typeof args.coin === "string" ? args.coin.toLowerCase() : "";
-  if (!candidateCoins().includes(coin)) return { ok: false, error: "That coin is not offered." };
-
-  const user = await db.user.findUnique({ where: { id: args.userId }, select: { disabled: true } });
-  if (!user || user.disabled) return { ok: false, error: "Your account is unavailable." };
-
-  const coins = await availableCoins();
-  const meta = coins.find((c) => c.ticker === coin);
-  if (!meta) {
-    return { ok: false, error: "Crypto payments are temporarily unavailable. Please try again in a few minutes." };
-  }
-  if (!coinSupportsPrice(meta, plan.priceUsd)) {
+  // The browser only names a coin; whether it may be used is decided here,
+  // fresh from NOWPayments: it must be enabled on this account and its live
+  // minimum must fit this plan's price. Anything else is refused.
+  const meta = await findCatalogCoin(coin);
+  if (!meta) return { ok: false, error: "That coin isn't available. Please pick one from the list." };
+  const minUsd = await coinMinimum(meta.ticker);
+  if (!coinFitsPrice(minUsd, plan.priceUsd)) {
     return {
       ok: false,
-      error: `${meta.label} on ${meta.network} can't take a $${plan.priceUsd} payment right now (its minimum is about $${meta.minUsd?.toFixed(2) ?? "?"}). Please pick another coin.`,
+      error:
+        minUsd === null
+          ? "We couldn't confirm that coin with the payment provider just now. Please try again in a minute or pick another coin."
+          : `${meta.symbol} on ${meta.network} isn't available for the ${plan.name} plan. Please pick another coin.`,
     };
   }
 

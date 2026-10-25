@@ -3,10 +3,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getViewer } from "@/server/premium-guard";
-import { availableCoins, coinSupportsPrice, isConfigured } from "@/lib/nowpayments";
+import { coinsForPrice, isConfigured, popularCatalogCoins } from "@/lib/nowpayments";
+import { toCheckoutCoin, type CheckoutCoin } from "@/lib/coins";
 import { PLANS, isPlanKey, type PlanKey } from "@/lib/premium-plans";
 import { Section } from "@/components/site/section";
-import { CheckoutForm, type CheckoutCoin } from "@/components/premium/checkout-form";
+import { CheckoutForm } from "@/components/premium/checkout-form";
 import { SecureBadge } from "@/components/premium/plan-cards";
 
 export const metadata: Metadata = { title: "Checkout — Premium", robots: { index: false } };
@@ -24,14 +25,18 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Sea
   if (!viewer) redirect(`/login?next=${encodeURIComponent(`/premium/checkout?plan=${plan}`)}`);
 
   const configured = isConfigured();
-  const coins = configured ? await availableCoins() : [];
-  const options: CheckoutCoin[] = coins.map((c) => ({
-    ticker: c.ticker,
-    label: c.label,
-    network: c.network,
-    minUsd: c.minUsd,
-    available: { MONTHLY: coinSupportsPrice(c, PLANS.MONTHLY.priceUsd), YEARLY: coinSupportsPrice(c, PLANS.YEARLY.priceUsd) },
-  }));
+  // Each plan gets its own list: only popular coins whose live minimum fits
+  // that plan's price are sent to the browser. Minimums are cached, so the
+  // second plan reuses the first plan's lookups.
+  const popular = configured ? await popularCatalogCoins() : [];
+  const [monthly, yearly] = await Promise.all([
+    coinsForPrice(popular, PLANS.MONTHLY.priceUsd),
+    coinsForPrice(popular, PLANS.YEARLY.priceUsd),
+  ]);
+  const coinsByPlan: Record<PlanKey, CheckoutCoin[]> = {
+    MONTHLY: monthly.map(toCheckoutCoin),
+    YEARLY: yearly.map(toCheckoutCoin),
+  };
 
   return (
     <Section className="max-w-2xl py-12 sm:py-16">
@@ -53,7 +58,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Sea
         </p>
       )}
       <div className="mt-8">
-        <CheckoutForm initialPlan={plan} coins={options} configured={configured} />
+        <CheckoutForm initialPlan={plan} coinsByPlan={coinsByPlan} configured={configured} />
       </div>
       <div className="mt-8 flex justify-center">
         <SecureBadge />

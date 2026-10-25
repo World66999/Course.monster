@@ -80,7 +80,7 @@ const FAQ = [
   },
   {
     q: "Which coins can I use?",
-    a: "Low-fee coins whose minimum payment is below the plan price — currently options such as USDT on BNB Smart Chain, Litecoin and TRON. The checkout checks the live minimums before showing each coin, and tells you plainly if one isn't available for your plan.",
+    a: "Popular low-fee coins like USDT and USDC on BNB Smart Chain, Litecoin, TRON, USDT on Polygon, Solana and Ethereum, and you can search hundreds more. The checkout checks each coin's live minimum with the payment provider and only lists coins that work for the plan you picked, so some coins appear for Yearly but not for Monthly.",
   },
   {
     q: "How long does activation take?",

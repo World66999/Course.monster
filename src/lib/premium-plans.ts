@@ -43,19 +43,3 @@ export const PLAN_KEYS: readonly PlanKey[] = ["MONTHLY", "YEARLY"];
 export function isPlanKey(value: unknown): value is PlanKey {
   return value === "MONTHLY" || value === "YEARLY";
 }
-
-/** Coins a checkout may offer, before the live minimum-amount check narrows them. */
-export interface CoinOption {
-  ticker: string;
-  label: string;
-  network: string;
-}
-
-export const COIN_LABELS: Record<string, Omit<CoinOption, "ticker">> = {
-  usdttrc20: { label: "USDT", network: "TRON (TRC20)" },
-  usdtbsc: { label: "USDT", network: "BNB Smart Chain (BEP20)" },
-  ltc: { label: "Litecoin", network: "Litecoin" },
-  trx: { label: "TRON", network: "TRON" },
-  usdcbsc: { label: "USDC", network: "BNB Smart Chain (BEP20)" },
-  usdtmatic: { label: "USDT", network: "Polygon" },
-};

@@ -1,6 +1,6 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { COIN_LABELS, type CoinOption } from "@/lib/premium-plans";
+import { cleanCoinName, coinFitsPrice, isTicker, networkLabel, POPULAR_COINS, type CatalogCoin } from "@/lib/coins";
 
 /**
  * NOWPayments client (server only).
@@ -59,23 +59,31 @@ async function call<T>(method: "GET" | "POST", path: string, body?: unknown): Pr
 // ---------------------------------------------------------------------------
 
 /**
- * Low-fee coins we are willing to offer. A $1 invoice is below the minimum for
- * many coins (BTC, ETH and most ERC-20 tokens), so this is only a candidate
- * list: each coin is checked live against /min-amount before it is shown, and
- * dropped if the provider says the price would not clear its minimum.
- * Overridable with NOWPAYMENTS_COINS (comma-separated tickers).
+ * The coin catalogue is the set of currencies enabled on this merchant account
+ * (/merchant/coins) joined with their public metadata (/full-currencies), minus
+ * anything NOWPayments has switched off for payments. It changes rarely, so it
+ * is cached for hours and refreshed in the background once stale; an outage
+ * keeps serving the last good copy.
  *
- * Checked 2026-10-24: USDT-BSC, LTC, TRX, USDC-BSC and USDT-Polygon all had
- * minimums well under $1, while USDT-TRC20 was ~$11 — above even the yearly
- * price. TRC20 stays on the list so the checkout can say plainly that it is
- * unavailable rather than silently hiding a coin people ask for.
+ * Whether a coin can be offered for a given plan is a separate, live question
+ * answered by /min-amount (see coinMinimum): a $1 invoice is below the minimum
+ * for coins like BTC (~$21) or USDT on TRON (~$11). The checkout only ever
+ * offers coins that are in the catalogue AND whose minimum fits the price.
  */
-export function candidateCoins(): string[] {
-  const raw = process.env.NOWPAYMENTS_COINS || "usdtbsc,ltc,trx,usdcbsc,usdtmatic,usdttrc20";
-  return raw
-    .split(",")
-    .map((c) => c.trim().toLowerCase())
-    .filter((c) => /^[a-z0-9]{2,20}$/.test(c));
+
+interface MerchantCoinsResponse {
+  selectedCurrencies?: string[];
+}
+
+interface FullCurrency {
+  code?: string;
+  name?: string;
+  ticker?: string;
+  network?: string | null;
+  logo_url?: string | null;
+  enable?: boolean;
+  available_for_payment?: boolean;
+  priority?: number;
 }
 
 interface MinAmountResponse {
@@ -85,50 +93,166 @@ interface MinAmountResponse {
   fiat_equivalent?: number;
 }
 
-export interface CoinAvailability extends CoinOption {
-  /** Smallest invoice in USD this coin accepts, per the provider. */
-  minUsd: number | null;
-}
+const CATALOG_TTL_MS = 6 * 60 * 60 * 1000;
+const CATALOG_RETRY_MS = 2 * 60 * 1000;
+const MIN_TTL_MS = 30 * 60 * 1000;
+const MIN_FAIL_TTL_MS = 2 * 60 * 1000;
+const LOGO_PATH = /^\/images\/coins\/[a-z0-9_.-]+\.(svg|png)$/i;
 
 /**
- * Safety margin over the provider's minimum. Network fees and rate movement
- * between invoice and payment can push a borderline amount under the line,
- * which turns into a partially_paid payment the user has to chase.
+ * Used only if NOWPayments can't be reached and there is no cached catalogue
+ * yet (e.g. right after a restart during an outage). All of these are enabled
+ * on the account (checked 2026-10-25); availability is still decided by the
+ * live minimum, which fails closed if the API is down.
  */
-const MIN_MARGIN = 0.85;
+const FALLBACK: Record<(typeof POPULAR_COINS)[number], { symbol: string; name: string; network: string }> = {
+  usdtbsc: { symbol: "USDT", name: "Tether USD", network: "bsc" },
+  usdcbsc: { symbol: "USDC", name: "USD Coin", network: "bsc" },
+  ltc: { symbol: "LTC", name: "Litecoin", network: "ltc" },
+  trx: { symbol: "TRX", name: "Tron", network: "trx" },
+  usdtmatic: { symbol: "USDT", name: "Tether USD", network: "matic" },
+  sol: { symbol: "SOL", name: "Solana", network: "sol" },
+  eth: { symbol: "ETH", name: "Ethereum", network: "eth" },
+};
 
-let coinCache: { at: number; coins: CoinAvailability[] } | null = null;
-const COIN_CACHE_MS = 10 * 60 * 1000;
-
-export async function availableCoins(force = false): Promise<CoinAvailability[]> {
-  if (!force && coinCache && Date.now() - coinCache.at < COIN_CACHE_MS) return coinCache.coins;
-
-  const results = await Promise.all(
-    candidateCoins().map(async (ticker): Promise<CoinAvailability | null> => {
-      try {
-        const res = await call<MinAmountResponse>(
-          "GET",
-          `/min-amount?currency_from=${ticker}&currency_to=${ticker}&fiat_equivalent=usd&is_fee_paid_by_user=false`
-        );
-        const minUsd = typeof res.fiat_equivalent === "number" ? res.fiat_equivalent : null;
-        const meta = COIN_LABELS[ticker] ?? { label: ticker.toUpperCase(), network: "" };
-        return { ticker, ...meta, minUsd };
-      } catch (err) {
-        console.warn(`[nowpayments] min-amount check failed for ${ticker}:`, err instanceof Error ? err.message : err);
-        return null;
-      }
-    })
-  );
-  const coins = results.filter((c): c is CoinAvailability => c !== null);
-  // Only cache a useful answer; an outage should be retried on the next view.
-  if (coins.length > 0) coinCache = { at: Date.now(), coins };
-  return coins;
+function logoUrl(path: string | null | undefined, ticker: string): string | null {
+  const p = path || `/images/coins/${ticker}.svg`;
+  return LOGO_PATH.test(p) ? `https://nowpayments.io${p}` : null;
 }
 
-/** True when `coin` can take an invoice of `priceUsd` with margin to spare. */
-export function coinSupportsPrice(coin: CoinAvailability, priceUsd: number): boolean {
-  if (coin.minUsd === null) return false;
-  return coin.minUsd <= priceUsd * MIN_MARGIN;
+function toCatalogCoin(ticker: string, symbol: string, name: string, network: string, logo: string | null | undefined, priority: number): CatalogCoin {
+  const networkCode = network && network !== "null" ? network.toLowerCase() : "";
+  return {
+    ticker,
+    symbol: (symbol || ticker).toUpperCase().slice(0, 16),
+    name: cleanCoinName(name || ticker.toUpperCase()).slice(0, 60),
+    networkCode,
+    network: networkLabel(networkCode) || cleanCoinName(name || ticker.toUpperCase()),
+    logoUrl: logoUrl(logo, ticker),
+    priority: Number.isFinite(priority) ? priority : 1000,
+  };
+}
+
+function fallbackCatalog(): CatalogCoin[] {
+  return POPULAR_COINS.map((t, i) => {
+    const f = FALLBACK[t];
+    return toCatalogCoin(t, f.symbol, f.name, f.network, null, i);
+  });
+}
+
+interface CoinCaches {
+  catalog: { at: number; ttl: number; coins: CatalogCoin[]; byTicker: Map<string, CatalogCoin> } | null;
+  catalogInflight: Promise<void> | null;
+  min: Map<string, { at: number; minUsd: number | null }>;
+  minInflight: Map<string, Promise<number | null>>;
+}
+
+// One store per process. Next.js bundles route handlers and pages/actions into
+// separate module graphs, so plain module-level variables would give the coin
+// search route and the checkout action two caches and double the API calls.
+const caches: CoinCaches = ((globalThis as unknown as { __nowpaymentsCoinCaches?: CoinCaches }).__nowpaymentsCoinCaches ??= {
+  catalog: null,
+  catalogInflight: null,
+  min: new Map(),
+  minInflight: new Map(),
+});
+
+async function loadCatalog(): Promise<void> {
+  try {
+    const [merchant, full] = await Promise.all([
+      call<MerchantCoinsResponse>("GET", "/merchant/coins"),
+      call<{ currencies?: FullCurrency[] }>("GET", "/full-currencies"),
+    ]);
+    const enabled = new Set((merchant.selectedCurrencies ?? []).map((c) => String(c).toLowerCase()));
+    const coins: CatalogCoin[] = [];
+    for (const c of full.currencies ?? []) {
+      const ticker = String(c.code ?? "").toLowerCase();
+      if (!isTicker(ticker) || !enabled.has(ticker)) continue;
+      if (c.enable === false || c.available_for_payment === false) continue;
+      coins.push(toCatalogCoin(ticker, c.ticker ?? "", c.name ?? "", c.network ?? "", c.logo_url, c.priority ?? 1000));
+    }
+    if (coins.length === 0) throw new Error("empty coin catalogue");
+    caches.catalog = { at: Date.now(), ttl: CATALOG_TTL_MS, coins, byTicker: new Map(coins.map((c) => [c.ticker, c])) };
+  } catch (err) {
+    console.warn("[nowpayments] coin catalogue refresh failed:", err instanceof Error ? err.message : err);
+    if (!caches.catalog) {
+      const coins = fallbackCatalog();
+      caches.catalog = { at: Date.now(), ttl: CATALOG_RETRY_MS, coins, byTicker: new Map(coins.map((c) => [c.ticker, c])) };
+    } else {
+      // Keep serving the last good copy; try again soon.
+      caches.catalog = { ...caches.catalog, at: Date.now(), ttl: CATALOG_RETRY_MS };
+    }
+  }
+}
+
+/** Every coin this account can be paid in. Cached; stale copies are served while refreshing. */
+export async function coinCatalog(): Promise<CatalogCoin[]> {
+  const fresh = caches.catalog && Date.now() - caches.catalog.at < caches.catalog.ttl;
+  if (!fresh) {
+    caches.catalogInflight ??= loadCatalog().finally(() => {
+      caches.catalogInflight = null;
+    });
+    if (!caches.catalog) await caches.catalogInflight;
+  }
+  return caches.catalog?.coins ?? [];
+}
+
+export async function findCatalogCoin(ticker: string): Promise<CatalogCoin | null> {
+  if (!isTicker(ticker)) return null;
+  await coinCatalog();
+  return caches.catalog?.byTicker.get(ticker) ?? null;
+}
+
+
+/**
+ * Smallest invoice in USD the coin accepts, live from NOWPayments, cached for
+ * 30 minutes (2 minutes after a failure). Null means it couldn't be checked,
+ * and an unchecked coin is never offered.
+ */
+export async function coinMinimum(ticker: string): Promise<number | null> {
+  if (!isTicker(ticker)) return null;
+  const hit = caches.min.get(ticker);
+  if (hit && Date.now() - hit.at < (hit.minUsd === null ? MIN_FAIL_TTL_MS : MIN_TTL_MS)) return hit.minUsd;
+  const pending = caches.minInflight.get(ticker);
+  if (pending) return pending;
+
+  const p = (async () => {
+    let minUsd: number | null = null;
+    try {
+      const res = await call<MinAmountResponse>(
+        "GET",
+        `/min-amount?currency_from=${ticker}&currency_to=${ticker}&fiat_equivalent=usd&is_fee_paid_by_user=false`
+      );
+      minUsd = typeof res.fiat_equivalent === "number" && Number.isFinite(res.fiat_equivalent) ? res.fiat_equivalent : null;
+    } catch (err) {
+      console.warn(`[nowpayments] min-amount check failed for ${ticker}:`, err instanceof Error ? err.message : err);
+    }
+    caches.min.set(ticker, { at: Date.now(), minUsd });
+    if (caches.min.size > 2000) caches.min.delete(caches.min.keys().next().value as string);
+    return minUsd;
+  })().finally(() => caches.minInflight.delete(ticker));
+  caches.minInflight.set(ticker, p);
+  return p;
+}
+
+/** Keeps only the coins whose live minimum fits `priceUsd`, preserving order. */
+export async function coinsForPrice<T extends { ticker: string }>(coins: readonly T[], priceUsd: number, concurrency = 8): Promise<T[]> {
+  const fits = new Array<boolean>(coins.length).fill(false);
+  let next = 0;
+  async function worker() {
+    while (next < coins.length) {
+      const i = next++;
+      fits[i] = coinFitsPrice(await coinMinimum(coins[i]!.ticker), priceUsd);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, coins.length) }, worker));
+  return coins.filter((_, i) => fits[i]);
+}
+
+/** Popular coins in display order, as far as the catalogue has them. */
+export async function popularCatalogCoins(): Promise<CatalogCoin[]> {
+  await coinCatalog();
+  return POPULAR_COINS.map((t) => caches.catalog?.byTicker.get(t)).filter((c): c is CatalogCoin => Boolean(c));
 }
 
 // ---------------------------------------------------------------------------
