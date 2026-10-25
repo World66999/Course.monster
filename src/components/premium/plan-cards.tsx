@@ -1,7 +1,8 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
-import { Check, Crown, History, RefreshCw, ShieldCheck } from "lucide-react";
+import { Check, Crown, History, Hourglass, RefreshCw, ShieldCheck, Zap } from "lucide-react";
 import { PLANS, type PlanKey } from "@/lib/premium-plans";
 import { usePremium } from "@/hooks/use-premium";
 import { buttonClasses } from "@/components/ui/button";
@@ -22,7 +23,7 @@ const PLAN_POINTS: Record<PlanKey, string[]> = {
  * a signed-out visitor is redirected to /login?next=… and lands back on
  * checkout after signing in, so the flow cannot be skipped from the browser.
  */
-function PlanCard({ plan, renew }: { plan: PlanKey; renew: boolean }) {
+function PlanCard({ plan, renew, next }: { plan: PlanKey; renew: boolean; next: string | null }) {
   const p = PLANS[plan];
   const highlighted = plan === "YEARLY";
   return (
@@ -58,7 +59,7 @@ function PlanCard({ plan, renew }: { plan: PlanKey; renew: boolean }) {
       </ul>
       <div className="mt-auto pt-7">
         <Link
-          href={`/premium/checkout?plan=${plan}`}
+          href={`/premium/checkout?plan=${plan}${next ? `&next=${encodeURIComponent(next)}` : ""}`}
           className={cn(
             buttonClasses(highlighted ? "accent" : "outline", "lg", "w-full"),
             highlighted && "bg-gold shadow-gold hover:shadow-gold"
@@ -92,9 +93,23 @@ const STATUS_LABEL: Record<string, { label: string; variant: "success" | "warnin
   REFUNDED: { label: "Refunded", variant: "destructive" },
 };
 
+/**
+ * The page a "Skip ads" button sent the visitor from (?next=). Read on the
+ * client because /premium is static; checkout and the server re-validate it.
+ */
+function useReturnPath(): string | null {
+  const [next, setNext] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    const raw = new URLSearchParams(window.location.search).get("next");
+    if (raw && /^\/download\/[a-z0-9][a-z0-9-]{0,190}$/.test(raw)) setNext(raw);
+  }, []);
+  return next;
+}
+
 /** Plans for visitors; plan, expiry, renew and history for members. */
 export function PlansOrAccount() {
   const { loading, me } = usePremium();
+  const next = useReturnPath();
 
   if (loading) {
     return (
@@ -109,6 +124,11 @@ export function PlansOrAccount() {
     const plan = me.plan ? PLANS[me.plan].name : "Premium";
     return (
       <div className="space-y-10">
+        {next && (
+          <Link href={next} className={cn(buttonClasses("accent", "lg", "w-full"), "bg-gold shadow-gold")}>
+            <Zap className="h-4 w-4" aria-hidden /> You&apos;re Premium — open your direct link
+          </Link>
+        )}
         <div className="glass-card edge-gold flex flex-wrap items-center justify-between gap-6 rounded-panel p-6 sm:p-8">
           <div className="flex items-center gap-4">
             <CrownMark size="lg" />
@@ -129,8 +149,8 @@ export function PlansOrAccount() {
         <div>
           <h3 className="mb-6 text-subheading">Renew or extend</h3>
           <div className="grid gap-6 md:grid-cols-2">
-            <PlanCard plan="MONTHLY" renew />
-            <PlanCard plan="YEARLY" renew />
+            <PlanCard plan="MONTHLY" renew next={next} />
+            <PlanCard plan="YEARLY" renew next={next} />
           </div>
         </div>
 
@@ -179,10 +199,43 @@ export function PlansOrAccount() {
     );
   }
 
+  const expired = me.expiredAt ? DATE.format(new Date(me.expiredAt)) : null;
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:mx-auto lg:max-w-4xl">
-      <PlanCard plan="MONTHLY" renew={false} />
-      <PlanCard plan="YEARLY" renew={false} />
+    <div className="space-y-8 lg:mx-auto lg:max-w-4xl">
+      {expired && (
+        <div className="flex flex-wrap items-center gap-4 rounded-panel border border-destructive/25 bg-destructive/5 p-5 sm:p-6">
+          <Hourglass className="h-6 w-6 shrink-0 text-destructive" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <p className="flex flex-wrap items-center gap-2 font-semibold">
+              <Badge variant="destructive">Expired</Badge>
+              Your Premium has expired – renew to keep access
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              It ended on {expired}. Pick a plan below to switch everything back on.
+            </p>
+          </div>
+          <Link
+            href={`/premium/checkout?plan=YEARLY${next ? `&next=${encodeURIComponent(next)}` : ""}`}
+            className={cn(buttonClasses("accent", "md"), "bg-gold shadow-gold")}
+          >
+            <RefreshCw className="h-4 w-4" aria-hidden /> Renew Premium
+          </Link>
+        </div>
+      )}
+      {next && <ReturnNotice />}
+      <div className="grid gap-6 md:grid-cols-2">
+        <PlanCard plan="MONTHLY" renew={Boolean(expired)} next={next} />
+        <PlanCard plan="YEARLY" renew={Boolean(expired)} next={next} />
+      </div>
     </div>
+  );
+}
+
+function ReturnNotice() {
+  return (
+    <p className="flex items-center justify-center gap-2 rounded-full border border-gold/30 bg-gold-soft px-4 py-2 text-center text-sm font-medium text-gold-ink">
+      <Zap className="h-4 w-4 shrink-0" aria-hidden />
+      Pick a plan — after payment you go straight to your direct link, no steps or ads.
+    </p>
   );
 }

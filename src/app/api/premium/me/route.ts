@@ -41,6 +41,8 @@ export async function GET() {
     subscribed,
     staff: viewer.role !== "USER",
     premiumUntil: subscribed ? viewer.premiumUntil?.toISOString() : null,
+    // Members whose time ran out (or was revoked) see "Expired" and a renew button.
+    expiredAt: !subscribed && viewer.premiumUntil ? viewer.premiumUntil.toISOString() : null,
     plan: subscribed ? (user?.subscriptions[0]?.plan ?? null) : null,
     telegramLinked: Boolean(user?.telegramId),
     payments: payments.map((p) => ({

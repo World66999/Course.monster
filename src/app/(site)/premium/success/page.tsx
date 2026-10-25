@@ -5,6 +5,7 @@ import { CheckCircle2, Clock3, XCircle } from "lucide-react";
 import { db } from "@/lib/db";
 import { getViewer } from "@/server/premium-guard";
 import { PLANS } from "@/lib/premium-plans";
+import { safeReturnPath } from "@/lib/return-path";
 import { Section } from "@/components/site/section";
 import { buttonClasses } from "@/components/ui/button";
 import { CrownMark } from "@/components/premium/crown";
@@ -29,7 +30,7 @@ export default async function SuccessPage({ searchParams }: { searchParams: Prom
     typeof order === "string" && order.length <= 100
       ? await db.payment.findFirst({
           where: { orderId: order, userId: viewer.id },
-          select: { status: true, plan: true, subscription: { select: { expiresAt: true } } },
+          select: { status: true, plan: true, returnPath: true, subscription: { select: { expiresAt: true } } },
         })
       : null;
 
@@ -44,6 +45,10 @@ export default async function SuccessPage({ searchParams }: { searchParams: Prom
   }
 
   if (payment.status === "FINISHED") {
+    // Came from "Skip ads": straight back to that page, which now hands a
+    // member the direct link without steps.
+    const back = safeReturnPath(payment.returnPath);
+    if (back && viewer.premium) redirect(back);
     return (
       <Section className="max-w-xl py-16 text-center">
         <div className="flex justify-center"><CrownMark size="lg" /></div>

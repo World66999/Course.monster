@@ -22,10 +22,16 @@ interface TokenPayload {
   /**
    * Premium instant download: /go sends the visitor straight to the course's
    * destination instead of the ad-supported short link. Only ever set by
-   * /api/download/premium after a server-side Premium check; it is inside the
+   * the download page or /api/download/premium after a server-side Premium check; it is inside the
    * signed payload, so a client cannot add it.
    */
   direct?: true;
+  /**
+   * The signed-in user the token was minted for. Required on direct tokens
+   * and premium-course tokens: /go re-reads that user's access from the
+   * database, so a link copied while Premium stops working once it ends.
+   */
+  uid?: string;
 }
 
 export interface DownloadAttribution {
@@ -49,7 +55,7 @@ export function createDownloadToken(
   courseId: string,
   ipHash: string,
   attribution?: DownloadAttribution,
-  opts: { direct?: boolean } = {}
+  opts: { direct?: boolean; userId?: string } = {}
 ): string {
   const payload: TokenPayload = {
     courseId,
@@ -58,13 +64,14 @@ export function createDownloadToken(
     exp: Date.now() + TOKEN_TTL_MS,
     ...(attribution ? { src: attribution.source, tgId: attribution.telegramUserId } : {}),
     ...(opts.direct ? { direct: true as const } : {}),
+    ...(opts.userId ? { uid: opts.userId } : {}),
   };
   const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return `${data}.${sign(data)}`;
 }
 
 export type TokenVerifyResult =
-  | { ok: true; courseId: string; direct: boolean; attribution?: DownloadAttribution }
+  | { ok: true; courseId: string; direct: boolean; userId: string | null; attribution?: DownloadAttribution }
   | { ok: false; reason: "invalid" | "expired" | "used" | "ip_mismatch" };
 
 export function consumeDownloadToken(token: string, ipHash: string): TokenVerifyResult {
@@ -108,8 +115,60 @@ export function consumeDownloadToken(token: string, ipHash: string): TokenVerify
     ok: true,
     courseId: payload.courseId,
     direct: payload.direct === true,
+    userId: typeof payload.uid === "string" ? payload.uid : null,
     ...(typeof payload.src === "string" && typeof payload.tgId === "string"
       ? { attribution: { source: payload.src, telegramUserId: payload.tgId } }
       : {}),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Bot hand-off for Premium members
+// ---------------------------------------------------------------------------
+
+/**
+ * A Premium member asking the bot for a download gets a /dl/<token> link
+ * instead of the steps page: they aren't signed in to the website inside
+ * Telegram, so the token itself names the linked account. It is bound to that
+ * user and course, lives HANDOFF_TTL_MS, and grants nothing on its own — /dl
+ * re-reads the user's access from the database every time it is opened, so a
+ * copied link dies with the membership.
+ */
+const HANDOFF_TTL_MS = 10 * 60 * 1000;
+const HANDOFF_DOMAIN = "premium-handoff:";
+
+interface HandoffPayload {
+  uid: string;
+  courseId: string;
+  tgId: string;
+  exp: number;
+}
+
+export function createHandoffToken(userId: string, courseId: string, telegramUserId: string, now = Date.now()): string {
+  const payload: HandoffPayload = { uid: userId, courseId, tgId: telegramUserId, exp: now + HANDOFF_TTL_MS };
+  const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  return `${data}.${sign(HANDOFF_DOMAIN + data)}`;
+}
+
+export function verifyHandoffToken(
+  token: string,
+  now = Date.now()
+): { ok: true; userId: string; courseId: string; telegramUserId: string } | { ok: false; reason: "invalid" | "expired" } {
+  const dot = token.lastIndexOf(".");
+  if (dot <= 0) return { ok: false, reason: "invalid" };
+  const data = token.slice(0, dot);
+  const a = Buffer.from(token.slice(dot + 1));
+  const b = Buffer.from(sign(HANDOFF_DOMAIN + data));
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return { ok: false, reason: "invalid" };
+  let p: HandoffPayload;
+  try {
+    p = JSON.parse(Buffer.from(data, "base64url").toString("utf8"));
+  } catch {
+    return { ok: false, reason: "invalid" };
+  }
+  if (typeof p.uid !== "string" || typeof p.courseId !== "string" || typeof p.tgId !== "string") {
+    return { ok: false, reason: "invalid" };
+  }
+  if (typeof p.exp !== "number" || now > p.exp) return { ok: false, reason: "expired" };
+  return { ok: true, userId: p.uid, courseId: p.courseId, telegramUserId: p.tgId };
 }

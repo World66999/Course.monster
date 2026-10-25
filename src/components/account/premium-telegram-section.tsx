@@ -56,11 +56,22 @@ export function PremiumTelegramSection({
           <p className="text-sm text-muted-foreground">
             Active until <strong className="text-foreground">{DATE.format(new Date(premiumUntil as string))}</strong>.
           </p>
+        ) : premiumUntil ? (
+          <p className="text-sm text-muted-foreground">
+            <span className="mr-1.5 inline-flex rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
+              Expired
+            </span>
+            Your Premium ended on <strong className="text-foreground">{DATE.format(new Date(premiumUntil))}</strong>.
+            Renew to keep access.
+          </p>
         ) : (
           <p className="text-sm text-muted-foreground">You&apos;re on the free plan.</p>
         )}
-        <Link href="/premium" className={buttonClasses(active ? "outline" : "accent", "sm", active ? "" : "bg-gold")}>
-          {active ? "Manage or renew" : "Go Premium"}
+        <Link
+          href={active ? "/premium" : "/premium#plans"}
+          className={buttonClasses(active ? "outline" : "accent", "sm", active ? "" : "bg-gold")}
+        >
+          {active ? "Manage or renew" : premiumUntil ? "Renew Premium" : "Go Premium"}
         </Link>
       </section>
 

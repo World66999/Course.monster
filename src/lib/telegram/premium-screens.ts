@@ -60,6 +60,18 @@ export function statusScreen(
       keyboard: [[{ text: "Renew", url: `${site}/premium` }]],
     };
   }
+  if (linked.premiumUntil) {
+    const y = PLANS.YEARLY;
+    return {
+      text:
+        `⌛ <b>Premium: Expired</b>\n\nAccount: ${esc(linked.name)}\nExpired on: <b>${DATE.format(linked.premiumUntil)}</b>\n\n` +
+        "Your Premium has expired – renew to keep access.",
+      keyboard: [
+        [{ text: "👑 Renew Premium", url: `${site}/premium#plans`, style: "success" }],
+        [{ text: `${y.name} — $${y.priceUsd} · Best value`, url: `${site}/premium/checkout?plan=YEARLY` }],
+      ],
+    };
+  }
   return {
     text: `Account: ${esc(linked.name)}\nPlan: <b>Free</b>\n\nUpgrade with /premium.`,
     keyboard: [[{ text: "Get Premium", url: `${site}/premium` }]],

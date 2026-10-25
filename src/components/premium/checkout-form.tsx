@@ -133,10 +133,13 @@ export function CheckoutForm({
   initialPlan,
   coinsByPlan,
   configured,
+  returnPath = null,
 }: {
   initialPlan: PlanKey;
   coinsByPlan: Record<PlanKey, CheckoutCoin[]>;
   configured: boolean;
+  /** Validated on the server again before it is stored. */
+  returnPath?: string | null;
 }) {
   const [plan, setPlan] = React.useState<PlanKey>(initialPlan);
   const [coin, setCoin] = React.useState<CheckoutCoin | null>(() => coinsByPlan[initialPlan][0] ?? null);
@@ -171,7 +174,7 @@ export function CheckoutForm({
     if (!coin) return;
     setBusy(true);
     setError("");
-    const res = await safeAction(() => createCheckoutAction(plan, coin.ticker), "checkout");
+    const res = await safeAction(() => createCheckoutAction(plan, coin.ticker, returnPath), "checkout");
     if (res.ok && "invoiceUrl" in res) {
       // Hand off to the provider's hosted page; it returns to /premium/success.
       window.location.assign(res.invoiceUrl);

@@ -26,6 +26,8 @@ export interface PremiumMe {
   subscribed?: boolean;
   staff?: boolean;
   premiumUntil?: string | null;
+  /** Set when the viewer had Premium and it has ended. */
+  expiredAt?: string | null;
   plan?: "MONTHLY" | "YEARLY" | null;
   telegramLinked?: boolean;
   payments?: PremiumPayment[];

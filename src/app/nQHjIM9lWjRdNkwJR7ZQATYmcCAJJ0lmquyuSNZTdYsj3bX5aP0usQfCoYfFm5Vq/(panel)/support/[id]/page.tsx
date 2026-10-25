@@ -24,7 +24,6 @@ export default async function AdminTicketPage({ params }: { params: Promise<{ id
       subject: true,
       topic: true,
       status: true,
-      priority: true,
       createdAt: true,
       user: { select: { id: true, email: true, name: true, premiumUntil: true, telegramId: true } },
       messages: { orderBy: { createdAt: "asc" }, select: { id: true, body: true, fromStaff: true, createdAt: true } },
@@ -48,7 +47,7 @@ export default async function AdminTicketPage({ params }: { params: Promise<{ id
           </p>
         </div>
         <div className="flex gap-2">
-          {ticket.priority && <Badge variant="premium"><Star aria-hidden />Priority</Badge>}
+          {isActiveUntil(ticket.user.premiumUntil) && <Badge variant="premium"><Star aria-hidden />Priority</Badge>}
           <Badge variant={TICKET_STATUS[ticket.status].variant}>{TICKET_STATUS[ticket.status].label}</Badge>
         </div>
       </div>

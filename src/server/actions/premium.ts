@@ -25,14 +25,18 @@ function limited(key: string, limit: number, windowMs: number): boolean {
   return !checkRateLimit(key, { limit, windowMs }).ok;
 }
 
-export async function createCheckoutAction(plan: unknown, coin: unknown): Promise<Result<{ invoiceUrl: string }>> {
+export async function createCheckoutAction(
+  plan: unknown,
+  coin: unknown,
+  returnPath?: unknown
+): Promise<Result<{ invoiceUrl: string }>> {
   const auth = await requireUserSafe();
   if (!auth.ok) return { ok: false, error: auth.error, code: "auth" };
   const ipKey = hashIp(await getClientIp());
   if (limited(`checkout:${auth.user.id}`, 5, 10 * 60_000) || limited(`checkout-ip:${ipKey}`, 15, 10 * 60_000)) {
     return { ok: false, error: "Too many checkout attempts. Please wait a few minutes." };
   }
-  const result = await createCheckout({ userId: auth.user.id, plan, coin });
+  const result = await createCheckout({ userId: auth.user.id, plan, coin, returnPath });
   if (!result.ok) return result;
   return { ok: true, invoiceUrl: result.invoiceUrl };
 }
@@ -115,15 +119,20 @@ export async function getPremiumChatInviteAction(chatId: unknown): Promise<Resul
     select: { telegramChatId: true },
   });
   if (!chat?.telegramChatId) return { ok: false, error: "This group is not available right now." };
+  const expiresAt = new Date(Date.now() + 15 * 60_000);
   const res = await callTelegram<{ invite_link: string }>("createChatInviteLink", {
     chat_id: chat.telegramChatId,
     member_limit: 1,
-    expire_date: Math.floor(Date.now() / 1000) + 15 * 60,
+    expire_date: Math.floor(expiresAt.getTime() / 1000),
     name: `cv-${auth.user.id.slice(-8)}`,
   });
   if (!res.ok) {
     console.error("[premium-chat] invite link failed:", res.description);
     return { ok: false, error: "Couldn't create an invite right now. Please try again shortly." };
   }
+  // Tracked so a lapse or revoke can kill links that haven't been used yet.
+  await db.premiumChatInvite.create({
+    data: { chatId: chatId as string, userId: auth.user.id, inviteLink: res.result.invite_link, expiresAt },
+  });
   return { ok: true, url: res.result.invite_link };
 }

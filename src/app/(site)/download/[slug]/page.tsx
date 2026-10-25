@@ -8,10 +8,13 @@ import { Section } from "@/components/site/section";
 import { CourseImage } from "@/components/site/course-image";
 import { Badge } from "@/components/ui/badge";
 import { DownloadGate } from "@/components/site/download-gate";
-import { InstantDownload } from "@/components/premium/instant-download";
+import { DirectRedirect } from "@/components/premium/direct-redirect";
 import { LockedPreview } from "@/components/premium/locked-preview";
+import { SkipAdsButton } from "@/components/premium/skip-ads-button";
 import { getViewer } from "@/server/premium-guard";
-import { canAccessPremiumCourse } from "@/lib/premium";
+import { canDownloadDirect } from "@/lib/premium";
+import { createDownloadToken } from "@/lib/download-token";
+import { getClientIp, hashIp } from "@/lib/ip";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -27,6 +30,9 @@ export async function generateMetadata({ params }: Pick<Props, "params">): Promi
   };
 }
 
+// Per-viewer: the page mints a user-bound token for members.
+export const dynamic = "force-dynamic";
+
 export default async function DownloadPage({ params, searchParams }: Props) {
   const { slug } = await params;
   // Opaque attribution blob from a Telegram hand-off. Passed through untouched
@@ -38,13 +44,16 @@ export default async function DownloadPage({ params, searchParams }: Props) {
 
   const captchaSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
-  // Which path to show. Display only: /api/download/premium and
-  // /api/download/init both re-check access on the request that issues a link.
+  // Premium members never see the steps: access is read from the database
+  // right now and, if it holds, a single-use direct token bound to this user
+  // is minted here. /go checks that user's access again when it is followed.
   const viewer = await getViewer();
-  const instant = course.premium
-    ? Boolean(viewer && (await canAccessPremiumCourse(viewer.id, course.id)))
-    : Boolean(viewer?.premium);
-  const locked = course.premium && !instant;
+  const direct = viewer ? await canDownloadDirect(viewer.id, course) : false;
+  const directHref =
+    direct && viewer
+      ? `/go/${createDownloadToken(course.id, hashIp(await getClientIp()), undefined, { direct: true, userId: viewer.id })}`
+      : null;
+  const locked = course.premium && !direct;
 
   return (
     <Section className="max-w-2xl py-12 sm:py-16">
@@ -85,8 +94,8 @@ export default async function DownloadPage({ params, searchParams }: Props) {
         </div>
 
         <div className="p-5 sm:p-8">
-          {instant ? (
-            <InstantDownload slug={course.slug} />
+          {directHref ? (
+            <DirectRedirect href={directHref} />
           ) : locked ? (
             <div className="space-y-4 text-center">
               <p className="font-semibold">This is a Premium course.</p>
@@ -98,33 +107,30 @@ export default async function DownloadPage({ params, searchParams }: Props) {
             </div>
           ) : (
             <>
+              <SkipAdsButton slug={course.slug} className="mb-6" />
               <DownloadGate
                 slug={course.slug}
                 countdownSeconds={settings.downloadCountdownSeconds}
                 captchaSiteKey={captchaSiteKey}
                 attribution={attribution}
               />
-              <p className="mt-6 text-center text-sm text-muted-foreground">
-                Skip the countdown and verification with{" "}
-                <Link href="/premium" className="font-semibold text-gold-ink underline underline-offset-2">
-                  Premium
-                </Link>
-                .
-              </p>
+              <SkipAdsButton slug={course.slug} className="mt-6" />
             </>
           )}
 
-          <div className="mt-8 flex items-start gap-3 rounded-nested bg-muted/60 p-4 text-sm text-muted-foreground">
-            <ShieldCheck className="mt-0.5 h-4.5 w-4.5 shrink-0 text-success" aria-hidden />
-            <p>
-              This quick verification keeps the site free for everyone by stopping bots and
-              abuse. Having trouble? Read the{" "}
-              <Link href="/how-to-download" className="text-primary underline underline-offset-2">
-                download guide
-              </Link>
-              .
-            </p>
-          </div>
+          {!directHref && (
+            <div className="mt-8 flex items-start gap-3 rounded-nested bg-muted/60 p-4 text-sm text-muted-foreground">
+              <ShieldCheck className="mt-0.5 h-4.5 w-4.5 shrink-0 text-success" aria-hidden />
+              <p>
+                This quick verification keeps the site free for everyone by stopping bots and
+                abuse. Having trouble? Read the{" "}
+                <Link href="/how-to-download" className="text-primary underline underline-offset-2">
+                  download guide
+                </Link>
+                .
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </Section>

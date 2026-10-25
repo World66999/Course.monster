@@ -249,14 +249,29 @@ export function courseDetail(
  * sends the website's own protected download page, so the verification
  * gateway, captcha, rate limits and download logging all still apply.
  */
-export function downloadHandoff(b: Branding, course: BotCourse, url: string): Screen {
-  return {
-    text:
-      `${iconHtml(b, "download")} <b>${esc(clamp(course.title, 100))}</b>\n\n` +
+export function downloadHandoff(
+  b: Branding,
+  course: BotCourse,
+  url: string,
+  opts: { direct?: boolean; skipAdsUrl?: string } = {}
+): Screen {
+  // Premium members get a direct link (re-checked by the site when opened);
+  // everyone else gets the steps page plus the offer to skip it.
+  const text = opts.direct
+    ? `👑 <b>${esc(clamp(course.title, 100))}</b>\n\n` +
+      "You're Premium — no steps, no ads. Tap below to go straight to the download. The link works for 10 minutes."
+    : `${iconHtml(b, "download")} <b>${esc(clamp(course.title, 100))}</b>\n\n` +
       "Tap below to open the protected download page on the website. " +
-      "You'll pass the usual quick verification step there, then the download starts.",
+      "You'll pass the usual quick verification step there, then the download starts.";
+  return {
+    text,
     keyboard: [
-      [btn(b, { label: "btn_continue", icon: "download", url })],
+      opts.direct
+        ? [{ text: "⚡ Direct download", url, style: "success" }]
+        : [btn(b, { label: "btn_continue", icon: "download", url })],
+      ...(opts.skipAdsUrl && !opts.direct
+        ? [[{ text: "👑 Skip ads – Get direct link with Premium", url: opts.skipAdsUrl }]]
+        : []),
       [
         btn(b, {
           label: "btn_back",

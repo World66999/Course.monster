@@ -23,22 +23,38 @@ export default async function AdminSupportPage({ searchParams }: { searchParams:
   const tabRaw = (Array.isArray(raw.status) ? raw.status[0] : raw.status) ?? "OPEN";
   const tab = TABS.some((t) => t.key === tabRaw) ? (tabRaw as TicketStatus | "ALL") : "OPEN";
 
-  // Priority (Premium) tickets first, then most recent activity.
-  const tickets = await db.supportTicket.findMany({
-    where: tab === "ALL" ? {} : { status: tab },
-    orderBy: [{ priority: "desc" }, { lastMessageAt: "desc" }],
-    take: 100,
-    select: {
-      id: true,
-      subject: true,
-      topic: true,
-      status: true,
-      priority: true,
-      lastMessageAt: true,
-      user: { select: { email: true, name: true } },
-      _count: { select: { messages: true } },
-    },
-  });
+  // Priority is whether the author is Premium *now*, read live from
+  // premiumUntil, so a lapsed member drops out of the priority lane at once.
+  // Priority tickets first, then most recent activity.
+  const now = new Date();
+  const where = tab === "ALL" ? {} : { status: tab };
+  const select = {
+    id: true,
+    subject: true,
+    topic: true,
+    status: true,
+    lastMessageAt: true,
+    user: { select: { email: true, name: true } },
+    _count: { select: { messages: true } },
+  } as const;
+  const [priorityTickets, otherTickets] = await Promise.all([
+    db.supportTicket.findMany({
+      where: { ...where, user: { premiumUntil: { gt: now } } },
+      orderBy: { lastMessageAt: "desc" },
+      take: 100,
+      select,
+    }),
+    db.supportTicket.findMany({
+      where: { ...where, user: { OR: [{ premiumUntil: null }, { premiumUntil: { lte: now } }] } },
+      orderBy: { lastMessageAt: "desc" },
+      take: 100,
+      select,
+    }),
+  ]);
+  const tickets = [
+    ...priorityTickets.map((t) => ({ ...t, priority: true })),
+    ...otherTickets.map((t) => ({ ...t, priority: false })),
+  ].slice(0, 100);
   const counts = await db.supportTicket.groupBy({ by: ["status"], _count: true });
   const countOf = (s: string) => counts.find((c) => c.status === s)?._count ?? 0;
 

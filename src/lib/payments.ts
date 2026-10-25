@@ -6,6 +6,8 @@ import { PLANS, isPlanKey, type PlanKey } from "@/lib/premium-plans";
 import { addPremiumPeriod, rechainPremium } from "@/lib/premium";
 import { coinMinimum, createInvoice, findCatalogCoin, verifyIpnSignature } from "@/lib/nowpayments";
 import { coinFitsPrice } from "@/lib/coins";
+import { onPremiumGained, onPremiumLost } from "@/lib/premium-lapse";
+import { safeReturnPath } from "@/lib/return-path";
 import { siteUrl } from "@/lib/telegram/config";
 import { notifyAdmins, notifyUser } from "@/lib/telegram/notify";
 import { esc } from "@/lib/telegram/render";
@@ -43,6 +45,8 @@ export async function createCheckout(args: {
   userId: string;
   plan: unknown;
   coin: unknown;
+  /** Page to return to once Premium is active (the "Skip ads" origin). */
+  returnPath?: unknown;
 }): Promise<CheckoutResult> {
   if (!isPlanKey(args.plan)) return { ok: false, error: "Unknown plan." };
   const plan = PLANS[args.plan];
@@ -63,11 +67,12 @@ export async function createCheckout(args: {
     };
   }
 
+  const returnPath = safeReturnPath(typeof args.returnPath === "string" ? args.returnPath : null);
   const since = new Date(Date.now() - PENDING_WINDOW_MS);
   const open = await db.payment.findMany({
     where: { userId: args.userId, status: { in: OPEN_STATUSES }, createdAt: { gte: since } },
     orderBy: { createdAt: "desc" },
-    select: { orderId: true, plan: true, payCurrency: true, invoiceUrl: true, createdAt: true },
+    select: { id: true, orderId: true, plan: true, payCurrency: true, invoiceUrl: true, createdAt: true },
   });
 
   const reusable = open.find(
@@ -77,7 +82,11 @@ export async function createCheckout(args: {
       p.invoiceUrl &&
       Date.now() - p.createdAt.getTime() < REUSE_WINDOW_MS
   );
-  if (reusable?.invoiceUrl) return { ok: true, invoiceUrl: reusable.invoiceUrl, orderId: reusable.orderId };
+  if (reusable?.invoiceUrl) {
+    // Same invoice, but follow the most recent page they came from.
+    await db.payment.update({ where: { id: reusable.id }, data: { returnPath } });
+    return { ok: true, invoiceUrl: reusable.invoiceUrl, orderId: reusable.orderId };
+  }
 
   if (open.length >= MAX_PENDING_INVOICES) {
     return {
@@ -96,6 +105,7 @@ export async function createCheckout(args: {
       priceCurrency: "usd",
       payCurrency: coin,
       status: "PENDING",
+      returnPath,
     },
   });
 
@@ -336,12 +346,18 @@ async function finishPayment(
     return { httpStatus: 200, outcome: "duplicate" };
   }
   await logEvent({ ...base, paymentId, outcome: "applied" });
+  await onPremiumGained(userId).catch(() => {});
 
   const until = result.expiresAt.toISOString().slice(0, 10);
+  const paid = await db.payment.findUnique({ where: { id: paymentId }, select: { returnPath: true } });
+  const returnPath = safeReturnPath(paid?.returnPath);
   await notifyUser(
     userId,
     `👑 <b>Premium is active!</b>\n\nThank you for upgrading. Your ${PLANS[plan].name.toLowerCase()} plan runs until <b>${until}</b>.\n\n` +
-      `Open <a href="${siteUrl()}/premium">your Premium page</a> to get started.`
+      (returnPath
+        ? "Tap below to pick up where you left off — no steps, no ads."
+        : `Open <a href="${siteUrl()}/premium">your Premium page</a> to get started.`),
+    returnPath ? [[{ text: "⚡ Continue — direct link", url: `${siteUrl()}${returnPath}` }]] : undefined
   );
   const user = await db.user.findUnique({ where: { id: userId }, select: { email: true } });
   await notifyAdmins(
@@ -373,6 +389,10 @@ async function refundPayment(
   const outcome = changed ? "refunded" : "duplicate";
   await logEvent({ ...base, paymentId, outcome });
   if (changed) {
+    // No-op if other paid time still covers them; otherwise ends access now.
+    await onPremiumLost(userId).catch((err) =>
+      console.error("[payments] lapse clean-up after refund failed:", err instanceof Error ? err.message : err)
+    );
     await notifyAdmins(`↩️ Payment refunded for user ${esc(userId)}; their Premium time was adjusted.`);
   }
   return { httpStatus: 200, outcome };

@@ -114,13 +114,15 @@ export async function POST(request: NextRequest) {
   if (!course) {
     return respond({ error: "Course not found" }, { status: 404 });
   }
+  let premiumUserId: string | undefined;
   if (course.premium) {
     // Premium courses never go through the free path for anyone without
-    // access; members use /api/download/premium instead.
+    // access; members get a direct link from the download page.
     const session = await auth();
     if (!session?.user?.id || !(await canAccessPremiumCourse(session.user.id, course.id))) {
       return respond({ error: "This course is part of Premium.", code: "premium" }, { status: 403 });
     }
+    premiumUserId = session.user.id;
   }
 
   // Warm the short-link cache now so the /go redirect is instant.
@@ -143,6 +145,6 @@ export async function POST(request: NextRequest) {
     if (telegramUserId) attribution = { source: "telegram", telegramUserId };
   }
 
-  const token = createDownloadToken(course.id, ipKey, attribution);
+  const token = createDownloadToken(course.id, ipKey, attribution, { userId: premiumUserId });
   return respond({ redirectUrl: `/go/${token}` });
 }

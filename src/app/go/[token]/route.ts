@@ -5,6 +5,7 @@ import { getShortLink } from "@/lib/shortener";
 import { getClientIp, hashIp, siteOrigin } from "@/lib/ip";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { isSafeExternalUrl } from "@/lib/safe-url";
+import { canAccessPremiumCourse, canDownloadDirect } from "@/lib/premium";
 
 /**
  * Final step of the download flow: validates the single-use token and
@@ -37,9 +38,24 @@ export async function GET(
 
   const course = await db.course.findFirst({
     where: { id: result.courseId, published: true },
-    select: { id: true, slug: true, downloadUrl: true },
+    select: { id: true, slug: true, downloadUrl: true, premium: true },
   });
   if (!course) return NextResponse.redirect(home);
+
+  // Access is re-read at the moment of the redirect, not trusted from when the
+  // token was minted: if Premium lapsed or was revoked since, a direct token
+  // falls back to the normal steps and a premium-course token is refused.
+  if (result.direct || course.premium) {
+    const allowed =
+      result.userId !== null &&
+      (result.direct
+        ? await canDownloadDirect(result.userId, course)
+        : await canAccessPremiumCourse(result.userId, course.id));
+    if (!allowed) {
+      const back = new URL(course.premium ? "/premium" : `/download/${course.slug}`, home);
+      return NextResponse.redirect(back, { status: 302, headers: { "Cache-Control": "no-store" } });
+    }
+  }
 
   let target: string;
   if (result.direct) {

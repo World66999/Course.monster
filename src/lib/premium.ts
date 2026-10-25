@@ -1,8 +1,10 @@
 import "server-only";
-import { addMonths } from "date-fns";
 import type { Prisma, PremiumPlan } from "@prisma/client";
 import { db } from "@/lib/db";
 import { PLANS } from "@/lib/premium-plans";
+import { isActiveUntil, periodEnd, periodStart } from "@/lib/premium-period";
+
+export { hasExpired, isActiveUntil, periodEnd, periodStart } from "@/lib/premium-period";
 
 /**
  * Premium status and the one place Premium time is added or removed.
@@ -19,10 +21,6 @@ export interface PremiumStatus {
   active: boolean;
   premiumUntil: Date | null;
   plan: PremiumPlan | null;
-}
-
-export function isActiveUntil(premiumUntil: Date | null | undefined, now = new Date()): boolean {
-  return Boolean(premiumUntil && premiumUntil.getTime() > now.getTime());
 }
 
 export async function getPremiumStatus(userId: string): Promise<PremiumStatus> {
@@ -50,18 +48,6 @@ export async function getPremiumStatus(userId: string): Promise<PremiumStatus> {
 
 export async function isPremium(userId: string): Promise<boolean> {
   return (await getPremiumStatus(userId)).active;
-}
-
-/**
- * Where a new period starts: at the current expiry when the user is still
- * active (so renewing early never loses paid time), otherwise now.
- */
-export function periodStart(currentUntil: Date | null, now = new Date()): Date {
-  return isActiveUntil(currentUntil, now) ? (currentUntil as Date) : now;
-}
-
-export function periodEnd(start: Date, months: number): Date {
-  return addMonths(start, months);
 }
 
 /**
@@ -169,4 +155,22 @@ export async function canAccessPremiumCourse(userId: string, courseId: string): 
   if (!user || user.disabled) return false;
   if (user.role === "ADMIN" || user.role === "EDITOR") return true;
   return Boolean(grant) || isActiveUntil(user.premiumUntil);
+}
+
+/**
+ * Whether a user's downloads skip the ad steps right now: active Premium, or
+ * staff. Read from the database, so it flips the moment premiumUntil passes.
+ */
+export async function hasPremiumAccess(userId: string): Promise<boolean> {
+  const user = await db.user.findUnique({ where: { id: userId }, select: { premiumUntil: true, disabled: true, role: true } });
+  if (!user || user.disabled) return false;
+  return user.role === "ADMIN" || user.role === "EDITOR" || isActiveUntil(user.premiumUntil);
+}
+
+/**
+ * The one rule for a no-ads direct download: a premium course needs Premium,
+ * staff or that course's grant; any other course needs Premium or staff.
+ */
+export function canDownloadDirect(userId: string, course: { id: string; premium: boolean }): Promise<boolean> {
+  return course.premium ? canAccessPremiumCourse(userId, course.id) : hasPremiumAccess(userId);
 }

@@ -30,6 +30,7 @@ const SELECT = {
   availableAt: true,
   createdAt: true,
   updatedAt: true,
+  premium: true,
   category: { select: { name: true } },
 } satisfies Prisma.CourseSelect;
 

@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Premium required", code: "premium" }, { status: 403 });
   }
 
-  const token = createDownloadToken(course.id, ipKey, undefined, { direct: true });
+  const token = createDownloadToken(course.id, ipKey, undefined, { direct: true, userId: viewer.id });
   return NextResponse.json(
     { redirectUrl: `/go/${token}` },
     { headers: { "Cache-Control": "private, no-store" } }

@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/server/auth-helpers";
 import { logAudit } from "@/lib/audit";
 import { addPremiumPeriod, revokePremium } from "@/lib/premium";
+import { onPremiumGained, onPremiumLost } from "@/lib/premium-lapse";
 import { notifyUser } from "@/lib/telegram/notify";
 import { siteUrl } from "@/lib/telegram/config";
 import type { ActionResult } from "@/server/actions/courses";
@@ -48,6 +49,7 @@ export async function grantPremiumAction(input: unknown): Promise<ActionResult> 
     entityId: userId,
     meta: { months, until: result.expiresAt.toISOString() },
   });
+  await onPremiumGained(userId).catch(() => {});
   await notifyUser(
     userId,
     `👑 <b>Premium added to your account</b>\n\nYou now have Premium until <b>${result.expiresAt.toISOString().slice(0, 10)}</b>. ` +
@@ -64,6 +66,11 @@ export async function revokePremiumAction(userId: unknown): Promise<ActionResult
   const target = await db.user.findUnique({ where: { id: parsed.data }, select: { id: true } });
   if (!target) return { ok: false, error: "User not found" };
   await db.$transaction((tx) => revokePremium(tx, parsed.data));
+  // premiumUntil is now in the past, so every website gate already refuses;
+  // this also removes them from members' groups and revokes open invites.
+  await onPremiumLost(parsed.data).catch((err) =>
+    console.error("[admin-premium] lapse clean-up after revoke failed:", err instanceof Error ? err.message : err)
+  );
   await logAudit({ userId: admin.id, action: "premium.revoke", entity: "user", entityId: parsed.data });
   revalidatePath("/", "layout");
   return { ok: true };

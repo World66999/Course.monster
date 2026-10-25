@@ -2,10 +2,13 @@ import "server-only";
 import { db } from "@/lib/db";
 import { siteUrl } from "@/lib/telegram/config";
 import { notifyUser } from "@/lib/telegram/notify";
+import { onPremiumLost } from "@/lib/premium-lapse";
+import { PLANS } from "@/lib/premium-plans";
 
 /**
- * Scheduled Premium housekeeping: mark lapsed periods EXPIRED and send the
- * 3-day / 1-day expiry reminders.
+ * Scheduled Premium housekeeping: mark lapsed periods EXPIRED, clean up what
+ * lives outside a request (Telegram groups, invites, support priority), tell
+ * the user it expired, and send the 3-day / 1-day reminders.
  *
  * Access never depends on this job — every premium check compares
  * premiumUntil with the clock at request time, so a late or missed run only
@@ -43,10 +46,20 @@ export async function runPremiumJobs(now = new Date()): Promise<{ expired: numbe
     const user = await db.user.findUnique({ where: { id: sub.userId }, select: { premiumUntil: true } });
     // Only the end of the chain is a real expiry; a stacked renewal follows on.
     if (user?.premiumUntil && user.premiumUntil.getTime() <= now.getTime() && user.premiumUntil.getTime() <= sub.expiresAt.getTime()) {
+      // Website access already stopped at premiumUntil; this removes the
+      // things outside a request (group membership, invite links, priority).
+      await onPremiumLost(sub.userId).catch((err) =>
+        console.error("[premium-jobs] lapse clean-up failed:", err instanceof Error ? err.message : err)
+      );
       await notifyUser(
         sub.userId,
-        "⌛ <b>Your Premium has ended</b>\n\nThanks for being a member. Your benefits are paused, and you can " +
-          `renew any time at <a href="${siteUrl()}/premium">${siteUrl().replace(/^https?:\/\//, "")}/premium</a>.`
+        "⌛ <b>Your Premium has expired – renew to keep access</b>\n\n" +
+          "Instant downloads, premium courses, Premium Resources and members' chats are paused. " +
+          "Renew any time and everything comes straight back.",
+        [
+          [{ text: "👑 Renew Premium", url: `${siteUrl()}/premium#plans` }],
+          [{ text: `${PLANS.YEARLY.name} — $${PLANS.YEARLY.priceUsd} · Best value`, url: `${siteUrl()}/premium/checkout?plan=YEARLY` }],
+        ]
       );
     }
   }

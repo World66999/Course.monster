@@ -26,7 +26,9 @@ import { db } from "@/lib/db";
 import { adminHomeScreen, handleAdminCallback, handleAdminInput } from "./admin";
 import { premiumScreen, statusScreen } from "./premium-screens";
 import { consumeLinkToken, findLinkedUser, LINK_PREFIX } from "@/lib/telegram-link";
-import { isActiveUntil } from "@/lib/premium";
+import { canDownloadDirect, isActiveUntil } from "@/lib/premium";
+import { createHandoffToken } from "@/lib/download-token";
+import { kickFromGroup, mayJoinPremiumGroups } from "@/lib/premium-lapse";
 
 
 /**
@@ -53,11 +55,45 @@ interface CallbackQuery {
   data?: string;
   message?: { message_id: number; chat: { id: number } };
 }
+interface ChatMemberUpdated {
+  chat: { id: number; type: string };
+  from: TelegramFrom;
+  old_chat_member: { status: string; user: TelegramFrom };
+  new_chat_member: { status: string; user: TelegramFrom & { is_bot?: boolean } };
+}
 export interface Update {
   update_id: number;
   message?: Message;
   callback_query?: CallbackQuery;
   pre_checkout_query?: PreCheckout;
+  chat_member?: ChatMemberUpdated;
+}
+
+/**
+ * Join gate for the private members' groups. Invite links are single-use and
+ * revoked on lapse, but a link can still be forwarded or used late; whoever
+ * joins a registered Premium group without active Premium is removed again.
+ * Groups the site doesn't know about are left alone.
+ */
+async function handleChatMember(u: ChatMemberUpdated): Promise<void> {
+  const joined =
+    ["member", "restricted"].includes(u.new_chat_member.status) &&
+    ["left", "kicked"].includes(u.old_chat_member.status);
+  if (!joined || u.new_chat_member.user.is_bot) return;
+  const chatId = String(u.chat.id);
+  const group = await db.premiumChat.findFirst({
+    where: { kind: "TELEGRAM_GROUP", telegramChatId: chatId },
+    select: { id: true },
+  });
+  if (!group) return;
+  const telegramId = String(u.new_chat_member.user.id);
+  if (await mayJoinPremiumGroups(telegramId)) return;
+  await kickFromGroup(chatId, telegramId);
+  await sendMessage(
+    telegramId,
+    "⌛ <b>That group is for Premium members</b>\n\nYour Premium isn't active, so you were removed. Renew to rejoin.",
+    { replyMarkup: [[{ text: "👑 Renew Premium", url: `${siteUrl()}/premium#plans` }]] }
+  ).catch(() => {});
 }
 
 const MAX_TEXT = 200;
@@ -266,11 +302,21 @@ async function handleCallback(q: CallbackQuery): Promise<void> {
     }
     await answerCallbackQuery(q.id);
     await recordEvent(user.id, "DOWNLOAD_REQUESTED", { courseId: course.id });
-    // Hand off to the website's protected download page — never a file, never
-    // a storage path. `src` is attribution metadata only.
+    // A linked member with access right now gets a direct link bound to their
+    // account; the site re-checks it on open. Everyone else is handed off to
+    // the website's protected download page — never a file, never a storage
+    // path. `src` is attribution metadata only.
+    const linked = await findLinkedUser(telegramId);
+    if (linked && (await canDownloadDirect(linked.id, course))) {
+      const direct = `${siteUrl()}/dl/${createHandoffToken(linked.id, course.id, telegramId)}`;
+      await show(chatId, messageId, render.downloadHandoff(branding, course, direct, { direct: true }));
+      return;
+    }
     const token = createAttributionToken(telegramId, course.id);
-    const url = `${siteUrl()}/download/${encodeURIComponent(course.slug)}?src=${encodeURIComponent(token)}`;
-    await show(chatId, messageId, render.downloadHandoff(branding, course, url));
+    const page = `/download/${encodeURIComponent(course.slug)}`;
+    const url = `${siteUrl()}${page}?src=${encodeURIComponent(token)}`;
+    const skipAdsUrl = `${siteUrl()}/premium?next=${encodeURIComponent(page)}#plans`;
+    await show(chatId, messageId, render.downloadHandoff(branding, course, url, { skipAdsUrl }));
     return;
   }
 
@@ -443,6 +489,7 @@ export async function handleUpdate(update: Update): Promise<void> {
   // never queued behind anything else.
   if (update.pre_checkout_query) return handlePreCheckout(update.pre_checkout_query);
   if (update.callback_query) return handleCallback(update.callback_query);
+  if (update.chat_member) return handleChatMember(update.chat_member);
   if (update.message) return handleMessage(update.message);
   // Any other update type is acknowledged and ignored.
 }

@@ -258,7 +258,9 @@ export function setWebhook(url: string, secretToken: string) {
     // Only what the bot actually handles — fewer updates, less to validate.
     // pre_checkout_query is essential: without it Telegram never delivers the
     // payment confirmation step and every Stars payment stalls silently.
-    allowed_updates: ["message", "callback_query", "pre_checkout_query"],
+    // chat_member lets the bot remove anyone who joins a members' group
+    // without active Premium (e.g. through a link shared before they lapsed).
+    allowed_updates: ["message", "callback_query", "pre_checkout_query", "chat_member"],
     max_connections: 40,
   });
 }

@@ -88,6 +88,7 @@ model User {
   supportTickets        SupportTicket[]
   supportMessages       SupportMessage[]
   telegramLinkTokens    TelegramLinkToken[]
+  premiumChatInvites    PremiumChatInvite[]
 
   /// Covers the admin Users page's default sort (createdAt desc).
   @@index([createdAt(sort: Desc)])
@@ -1415,6 +1416,10 @@ model Payment {
   /// The conditional update on this column is the idempotency gate.
   fulfilledAt   DateTime?
   refundedAt    DateTime?
+  /// Internal path the buyer was trying to reach when they started checkout
+  /// (e.g. "/download/<slug>" from a "Skip ads" button). Validated on write;
+  /// the success page sends them there once Premium is active.
+  returnPath    String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   subscription  Subscription?
@@ -1525,6 +1530,7 @@ model PremiumChat {
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
   messages       PremiumChatMessage[]
+  invites        PremiumChatInvite[]
 
   @@index([published, order])
   @@map("premium_chats")
@@ -1608,4 +1614,22 @@ model TelegramLinkToken {
 
   @@index([userId, createdAt(sort: Desc)])
   @@map("telegram_link_tokens")
+}
+
+/// Single-use Telegram invite links minted for members. Kept so they can be
+/// revoked the moment the member's Premium ends (expiry, refund or revoke),
+/// rather than staying usable until Telegram's own 15-minute expiry.
+model PremiumChatInvite {
+  id         String      @id @default(cuid())
+  chatId     String
+  chat       PremiumChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inviteLink String
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime    @default(now())
+
+  @@index([userId, revokedAt, expiresAt])
+  @@map("premium_chat_invites")
 }
