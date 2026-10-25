@@ -1,3 +1,4 @@
+import { BarChart3, HeartPulse, Users } from "lucide-react";
 import type { Metadata } from "next";
 import { getOverview } from "@/lib/telegram/analytics";
 import { getWebhookInfo } from "@/lib/telegram/api";
@@ -42,7 +43,7 @@ export default async function TelegramOverviewPage() {
       )}
 
       <section className="space-y-3">
-        <h2 className="font-semibold">❤️ Health</h2>
+        <h2 className="flex items-center gap-2 font-semibold"><HeartPulse className="h-4 w-4 text-primary" aria-hidden />Health</h2>
         <div className="rounded-card border border-border bg-card p-4 text-sm">
           {!configured ? (
             <p className="text-muted-foreground">Not configured.</p>
@@ -94,7 +95,7 @@ export default async function TelegramOverviewPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="font-semibold">👥 Users</h2>
+        <h2 className="flex items-center gap-2 font-semibold"><Users className="h-4 w-4 text-primary" aria-hidden />Users</h2>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Stat label="Total bot users" value={overview.totalUsers} />
           <Stat label="Active (7 days)" value={overview.activeUsers} />
@@ -104,7 +105,7 @@ export default async function TelegramOverviewPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="font-semibold">📊 Activity</h2>
+        <h2 className="flex items-center gap-2 font-semibold"><BarChart3 className="h-4 w-4 text-primary" aria-hidden />Activity</h2>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Stat label="Course views" value={overview.courseViews} />
           <Stat label="Searches" value={overview.searches} />

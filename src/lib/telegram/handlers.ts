@@ -24,6 +24,9 @@ import * as render from "./render";
 import { lastSearch, recordEvent, rememberSearch, touchUser, type TelegramFrom } from "./users";
 import { db } from "@/lib/db";
 import { adminHomeScreen, handleAdminCallback, handleAdminInput } from "./admin";
+import { premiumScreen, statusScreen } from "./premium-screens";
+import { consumeLinkToken, findLinkedUser, LINK_PREFIX } from "@/lib/telegram-link";
+import { isActiveUntil } from "@/lib/premium";
 
 
 /**
@@ -101,6 +104,10 @@ async function passesGate(
   opts: { fresh?: boolean } = {}
 ): Promise<boolean> {
   if (!gateEnabled()) return true;
+  // Premium members skip the join-the-channel step entirely. Read from the
+  // database on each call, so it stops applying the moment Premium lapses.
+  const linked = await findLinkedUser(telegramId);
+  if (linked && isActiveUntil(linked.premiumUntil)) return true;
   const result = await checkMembership(telegramId, opts);
   if (result.state === "member") return true;
   const screen =
@@ -319,6 +326,48 @@ async function handleMessage(m: Message): Promise<void> {
   }
   if (text.startsWith("/") && (await isDonateWaiting(user.id))) {
     await setDonateWaiting(user.id, false);
+  }
+
+  // Account linking, plan info and status are never behind the channel gate:
+  // they are about the user's own account, not catalog content.
+  if (text.startsWith("/")) {
+    const [head, arg = ""] = text.split(/\s+/);
+    const cmd = head!.slice(1).split("@")[0]!.toLowerCase();
+    if (cmd === "start" && arg.startsWith(LINK_PREFIX)) {
+      if (!allow(telegramId, "link", 5, 10 * 60_000)) {
+        return void (await sendMessage(chatId, "Too many attempts. Please wait a few minutes."));
+      }
+      const res = await consumeLinkToken(arg.slice(LINK_PREFIX.length), telegramId);
+      return void (await sendMessage(
+        chatId,
+        res.ok
+          ? `✅ <b>Telegram linked</b> to ${render.esc(res.userName)}.\n\nYou'll get payment confirmations, expiry reminders and support replies here. Try /mystatus.`
+          : res.reason === "expired"
+            ? "That link has expired. Open your account page on the website and tap Connect Telegram again."
+            : "That link isn't valid any more. Open your account page on the website and tap Connect Telegram again."
+      ));
+    }
+    if (cmd === "premium") {
+      return void (await show(chatId, null, premiumScreen(siteUrl())));
+    }
+    if (cmd === "mystatus") {
+      const linked = await db.user.findFirst({
+        where: { telegramId, disabled: false },
+        select: {
+          name: true,
+          premiumUntil: true,
+          subscriptions: { where: { status: "ACTIVE" }, orderBy: { expiresAt: "desc" }, take: 1, select: { plan: true } },
+        },
+      });
+      return void (await show(
+        chatId,
+        null,
+        statusScreen(
+          siteUrl(),
+          linked ? { name: linked.name, premiumUntil: linked.premiumUntil, plan: linked.subscriptions[0]?.plan ?? null } : null
+        )
+      ));
+    }
   }
 
   // Everything below is protected content.

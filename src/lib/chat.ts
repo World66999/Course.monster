@@ -14,6 +14,7 @@ export const chatAuthorSelect = {
   image: true,
   chatDisplayName: true,
   role: true,
+  premiumUntil: true,
 } satisfies Prisma.UserSelect;
 
 type ChatAuthorRow = Prisma.UserGetPayload<{ select: typeof chatAuthorSelect }>;
@@ -22,6 +23,8 @@ export interface ChatAuthorDisplay {
   label: string;
   isAdmin: boolean;
   image: string | null;
+  /** Reduced to a boolean here; the expiry date itself never leaves the server. */
+  isPremium: boolean;
 }
 
 /**
@@ -31,9 +34,14 @@ export interface ChatAuthorDisplay {
  */
 export function resolveChatAuthorDisplay(user: ChatAuthorRow): ChatAuthorDisplay {
   if (isStaff(user.role)) {
-    return { label: "Admin", isAdmin: true, image: null };
+    return { label: "Admin", isAdmin: true, image: null, isPremium: false };
   }
-  return { label: user.chatDisplayName ?? user.name, isAdmin: false, image: user.image };
+  return {
+    label: user.chatDisplayName ?? user.name,
+    isAdmin: false,
+    image: user.image,
+    isPremium: Boolean(user.premiumUntil && user.premiumUntil.getTime() > Date.now()),
+  };
 }
 
 export const chatMessageSelect = {

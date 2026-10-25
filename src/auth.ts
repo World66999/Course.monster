@@ -7,6 +7,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { authConfig } from "@/auth.config";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getClientIp, hashIp } from "@/lib/ip";
+import { verifyInitData } from "@/lib/telegram/webapp-auth";
 
 const credentialsSchema = z.object({
   // `email` is kept for the admin login form (unchanged field name); the
@@ -38,12 +40,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const { password } = parsed.data;
         if (!raw) return null;
 
-        // Throttle brute-force attempts per identifier (in addition to IP limits).
+        // Throttle brute-force attempts per identifier, and per client IP so
+        // one address can't spray many identifiers either.
         const rl = checkRateLimit(`login:${raw.toLowerCase()}`, {
           limit: 10,
           windowMs: 15 * 60 * 1000,
         });
         if (!rl.ok) return null;
+        const ipRl = checkRateLimit(`login-ip:${hashIp(await getClientIp())}`, {
+          limit: 30,
+          windowMs: 15 * 60 * 1000,
+        });
+        if (!ipRl.ok) return null;
 
         const isEmail = raw.includes("@");
         const user = await db.user.findFirst({
@@ -64,6 +72,41 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           email: user.email,
           name: user.name,
+          role: user.role,
+          chatDisplayName: user.chatDisplayName,
+        };
+      },
+    }),
+    /**
+     * Telegram Mini App sign-in. The initData string Telegram hands the Mini
+     * App is verified here, on the server, with HMAC (see webapp-auth.ts)
+     * every time a session is created from it, and is refused once older than
+     * an hour. It only signs in a website account that the same Telegram
+     * account was already linked to through the bot's one-time /start link —
+     * it never creates accounts and never trusts a client-claimed user id.
+     */
+    Credentials({
+      id: "telegram-webapp",
+      name: "Telegram Mini App",
+      credentials: { initData: { label: "initData", type: "text" } },
+      async authorize(credentials) {
+        const initData = typeof credentials?.initData === "string" ? credentials.initData : "";
+        const token = process.env.TELEGRAM_BOT_TOKEN ?? "";
+        if (!initData || !token) return null;
+        const ipRl = checkRateLimit(`login-tgwebapp:${hashIp(await getClientIp())}`, {
+          limit: 30,
+          windowMs: 15 * 60 * 1000,
+        });
+        if (!ipRl.ok) return null;
+        const tg = verifyInitData(initData, token);
+        if (!tg) return null;
+        const user = await db.user.findFirst({ where: { telegramId: tg.telegramId } });
+        if (!user || user.disabled) return null;
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.image,
           role: user.role,
           chatDisplayName: user.chatDisplayName,
         };

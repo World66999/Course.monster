@@ -215,7 +215,7 @@ export function SettingsForm({ defaultValues }: { defaultValues: SiteSettings })
               <Input
                 id="announcement-text"
                 {...register("announcement.text")}
-                placeholder="🎉 100 new courses added this week!"
+                placeholder="100 new courses added this week!"
               />
               <FieldError message={errors.announcement?.text?.message} />
             </div>

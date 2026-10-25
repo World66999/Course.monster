@@ -3,7 +3,9 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
-import { Search, ChevronLeft, ChevronRight, Loader2, EyeOff, RotateCcw } from "lucide-react";
+import Link from "next/link";
+import { Search, ChevronLeft, ChevronRight, Crown, Loader2, EyeOff, RotateCcw, Settings2 } from "lucide-react";
+import { adminPath } from "@/lib/admin-path";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -31,6 +33,7 @@ export interface AdminUserRow {
   hasPassword: boolean;
   hasGoogle: boolean;
   createdAt: string;
+  premiumUntil: string | null;
 }
 
 const ALL = "__all__";
@@ -102,6 +105,7 @@ export function UsersTable({
               <SelectItem value="verified">Verified</SelectItem>
               <SelectItem value="unverified">Unverified</SelectItem>
               <SelectItem value="disabled">Disabled</SelectItem>
+              <SelectItem value="premium">Premium</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -117,7 +121,7 @@ export function UsersTable({
           isPending && "pointer-events-none opacity-60"
         )}
       >
-        <table className="w-full min-w-[880px] text-sm">
+        <table className="w-full min-w-[1000px] text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/50 text-left text-xs tracking-wider text-muted-foreground uppercase">
               <th className="p-3 font-medium">User</th>
@@ -125,8 +129,9 @@ export function UsersTable({
               <th className="p-3 font-medium">Provider</th>
               <th className="p-3 font-medium">Verified</th>
               <th className="p-3 font-medium">Status</th>
+              <th className="p-3 font-medium">Premium</th>
               <th className="p-3 font-medium">Joined</th>
-              <th className="w-16 p-3">
+              <th className="w-24 p-3">
                 <span className="sr-only">Actions</span>
               </th>
             </tr>
@@ -134,7 +139,7 @@ export function UsersTable({
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="p-10 text-center text-muted-foreground">
+                <td colSpan={8} className="p-10 text-center text-muted-foreground">
                   No users match your filters.
                 </td>
               </tr>
@@ -164,10 +169,27 @@ export function UsersTable({
                     {row.disabled ? "Disabled" : "Active"}
                   </Badge>
                 </td>
+                <td className="p-3">
+                  {row.premiumUntil ? (
+                    <Badge variant="premium">
+                      <Crown aria-hidden />
+                      until {new Date(row.premiumUntil).toISOString().slice(0, 10)}
+                    </Badge>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Free</span>
+                  )}
+                </td>
                 <td className="p-3 whitespace-nowrap text-muted-foreground">
                   <span suppressHydrationWarning>{formatDistanceToNow(new Date(row.createdAt), { addSuffix: true })}</span>
                 </td>
-                <td className="p-3">
+                <td className="flex items-center gap-1 p-3">
+                  <Link
+                    href={adminPath(`users/${row.id}`)}
+                    aria-label="Manage Premium and courses"
+                    className={buttonClasses("ghost", "icon")}
+                  >
+                    <Settings2 className="h-4 w-4" />
+                  </Link>
                   {row.role === "USER" && (
                     <Button
                       variant="ghost"

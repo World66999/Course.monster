@@ -6,6 +6,7 @@ import {
   CalendarDays,
   CheckCircle2,
   ChevronRight,
+  Crown,
   Clock3,
   Download,
   ExternalLink,
@@ -382,7 +383,13 @@ export default async function CoursePage({ params }: Props) {
                 <CourseImage src={course.thumbnail} title={course.title} />
               </div>
               <div className="space-y-3 p-5">
-                <p className="text-center text-2xl font-extrabold text-success">100% Free</p>
+                {course.premium ? (
+                  <p className="flex items-center justify-center gap-2 text-2xl font-extrabold text-gold-ink">
+                    <Crown className="h-6 w-6" aria-hidden /> Premium course
+                  </p>
+                ) : (
+                  <p className="text-center text-2xl font-extrabold text-success">100% Free</p>
+                )}
                 <Link
                   href={`/download/${course.slug}`}
                   className={buttonClasses("primary", "lg", "w-full")}

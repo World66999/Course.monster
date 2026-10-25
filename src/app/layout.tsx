@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Figtree, Geist_Mono } from "next/font/google";
+import { Inter, Sora, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import { ThemeProvider } from "next-themes";
 import { SessionProvider } from "next-auth/react";
@@ -8,11 +8,11 @@ import { getSiteSettings } from "@/lib/settings";
 import { absoluteUrl } from "@/lib/utils";
 import "./globals.css";
 
-// Body face. Figtree is a friendly geometric sans with open apertures, which
-// keeps long course descriptions readable while matching the brighter brand.
-// Variable font: one file covers every weight in use.
-const figtree = Figtree({
-  variable: "--font-figtree",
+// Body face. Inter is built for screens at text sizes, so long course
+// descriptions stay readable on the dark surfaces. Variable font: one file
+// covers every weight in use.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
   display: "swap",
 });
@@ -22,12 +22,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Display face for headings only. Weight axis only: adding the optical-size
-// axis tripled the preloaded file (77 kB vs ~25 kB) and measurably added to
-// mobile blocking time, for a difference only visible at hero sizes. Geist
-// Mono stays for figures and code.
-const bricolage = Bricolage_Grotesque({
-  variable: "--font-bricolage",
+// Display face for headings only: Sora's wide, geometric capitals carry the
+// premium look at hero sizes. Geist Mono stays for figures and code.
+const sora = Sora({
+  variable: "--font-sora",
   subsets: ["latin"],
   display: "swap",
 });
@@ -57,8 +55,8 @@ export const viewport: Viewport = {
   // Colours the browser chrome to match the page instead of leaving a white bar
   // above a dark page. Values are the light/dark `--background` tokens.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fafaf7" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0b14" },
+    { media: "(prefers-color-scheme: light)", color: "#fbfaf7" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0a12" },
   ],
 };
 
@@ -94,7 +92,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${figtree.variable} ${geistMono.variable} ${bricolage.variable} antialiased`}>
+      <body className={`${inter.variable} ${geistMono.variable} ${sora.variable} antialiased`}>
         {/* Safety net for scripting-disabled visitors.
 
             Every scroll reveal and the hero headline are server-rendered by

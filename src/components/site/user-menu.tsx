@@ -3,7 +3,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
-import { LogOut, User as UserIcon } from "lucide-react";
+import { Crown, LifeBuoy, LogOut, User as UserIcon } from "lucide-react";
+import { usePremium } from "@/hooks/use-premium";
+import { PremiumNameBadge } from "@/components/premium/crown";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buttonClasses } from "@/components/ui/button";
 import {
@@ -16,6 +18,7 @@ import {
 
 export function UserMenu() {
   const { data: session, status } = useSession();
+  const { me } = usePremium();
 
   if (status === "loading") {
     return <Skeleton className="h-9 w-9 rounded-full" />;
@@ -53,14 +56,27 @@ export function UserMenu() {
         </button>
       </DropdownTrigger>
       <DropdownContent align="end">
-        <div className="px-2.5 py-1.5">
+        <div className="flex items-center gap-2 px-2.5 py-1.5">
           <p className="truncate text-sm font-medium">{name}</p>
+          {me.subscribed && <PremiumNameBadge />}
         </div>
         <DropdownSeparator />
         <DropdownItem asChild>
           <Link href="/account">
             <UserIcon className="h-4 w-4" aria-hidden />
             Account
+          </Link>
+        </DropdownItem>
+        <DropdownItem asChild>
+          <Link href="/premium">
+            <Crown className="h-4 w-4" aria-hidden />
+            {me.subscribed ? "My Premium" : "Go Premium"}
+          </Link>
+        </DropdownItem>
+        <DropdownItem asChild>
+          <Link href="/premium/support">
+            <LifeBuoy className="h-4 w-4" aria-hidden />
+            Purchase support
           </Link>
         </DropdownItem>
         <DropdownSeparator />

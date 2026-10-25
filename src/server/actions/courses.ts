@@ -85,6 +85,7 @@ export async function saveCourseAction(
     featured: v.featured,
     trending: v.trending,
     popular: v.popular,
+    premium: v.premium,
     seoTitle: v.seoTitle || null,
     seoDescription: v.seoDescription || null,
     metaImage: v.metaImage || null,

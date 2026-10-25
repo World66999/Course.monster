@@ -143,6 +143,7 @@ export function ReviewsPanel({
             name: session.user.name ?? "You",
             image: session.user.image ?? null,
             accounts: [],
+            subscriptions: [],
           },
         };
         addOptimisticItem({ type: "add", review: optimisticReview });

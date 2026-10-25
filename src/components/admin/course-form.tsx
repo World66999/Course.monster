@@ -493,6 +493,21 @@ export function CourseForm({
                   )}
                 />
               </label>
+              <label className="flex cursor-pointer items-center justify-between gap-2 text-sm font-medium">
+                <span>
+                  Premium only
+                  <span className="block text-xs font-normal text-muted-foreground">
+                    Download needs Premium or a per-user grant
+                  </span>
+                </span>
+                <Controller
+                  control={control}
+                  name="premium"
+                  render={({ field }) => (
+                    <Switch checked={field.value} onCheckedChange={field.onChange} aria-label="Premium only" />
+                  )}
+                />
+              </label>
             </div>
           </section>
 

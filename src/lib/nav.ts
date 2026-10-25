@@ -17,6 +17,15 @@ export const NAV_LINKS = [
       { href: "/apps", label: "Apps" },
     ],
   },
+  {
+    label: "Premium",
+    children: [
+      { href: "/premium", label: "Premium Plans" },
+      { href: "/premium-resources", label: "Premium Resources" },
+      { href: "/premium-chats", label: "Premium Chats" },
+      { href: "/premium/support", label: "Purchase Support" },
+    ],
+  },
   { href: "/requests", label: "Requests" },
   { href: "/downloader", label: "Downloader" },
   { href: "/chat", label: "Chat" },

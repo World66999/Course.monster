@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Eye, Loader2, RotateCcw, Save, ShieldCheck, Sparkles } from "lucide-react";
+import { Brush, CircleDot, Eye, Loader2, Palette, RotateCcw, Save, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Label, FieldError, FieldHint } from "@/components/ui/input";
@@ -122,7 +122,7 @@ export function AppearanceManager({
 
       <section className="space-y-3">
         <header>
-          <h2 className="font-semibold">✨ Premium Emoji Library</h2>
+          <h2 className="flex items-center gap-2 font-semibold"><Sparkles className="h-4 w-4 text-primary" aria-hidden />Premium Emoji Library</h2>
           <p className="text-sm text-muted-foreground">
             Ids come only from Telegram&apos;s own <code>getForumTopicIconStickers</code> and public
             sets this bot has legitimately seen. Nothing is guessed or copied from the web, and
@@ -204,7 +204,7 @@ export function AppearanceManager({
       <section className="space-y-4">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-semibold">🎨 Icon Manager</h2>
+            <h2 className="flex items-center gap-2 font-semibold"><Palette className="h-4 w-4 text-primary" aria-hidden />Icon Manager</h2>
             <p className="text-sm text-muted-foreground">
               Every emoji the bot uses. Send a plain emoji, or a premium custom-emoji id with a
               fallback character.
@@ -228,7 +228,7 @@ export function AppearanceManager({
 
       <section className="space-y-4">
         <header>
-          <h2 className="font-semibold">🔘 Button Label Manager</h2>
+          <h2 className="flex items-center gap-2 font-semibold"><CircleDot className="h-4 w-4 text-primary" aria-hidden />Button Label Manager</h2>
           <p className="text-sm text-muted-foreground">
             Captions for every inline button, with an optional per-button colour. Max{" "}
             {MAX_LABEL_LENGTH} characters including the icon.
@@ -250,7 +250,7 @@ export function AppearanceManager({
 
       <section className="space-y-4">
         <header>
-          <h2 className="font-semibold">🖌️ Global Default Button Style</h2>
+          <h2 className="flex items-center gap-2 font-semibold"><Brush className="h-4 w-4 text-primary" aria-hidden />Global Default Button Style</h2>
           <p className="text-sm text-muted-foreground">
             Applies to every button without its own colour. &ldquo;Default&rdquo; sends no style at
             all, letting each Telegram client use its own appearance.
@@ -574,7 +574,7 @@ function Preview({ branding }: { branding: Branding }) {
   return (
     <section className="space-y-3">
       <header>
-        <h2 className="font-semibold">👀 Live preview</h2>
+        <h2 className="flex items-center gap-2 font-semibold"><Eye className="h-4 w-4 text-primary" aria-hidden />Live preview</h2>
         <p className="text-sm text-muted-foreground">
           The main menu as Telegram will render it with the saved values. Premium icons appear as
           their fallback character here.

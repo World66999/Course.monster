@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { PremiumNameBadge } from "@/components/premium/crown";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 import { Loader2, Pencil, Reply, ShieldCheck, Trash2 } from "lucide-react";
@@ -170,6 +171,7 @@ export function MessageItem({
         <div className="rounded-card bg-muted/50 px-4 py-2.5">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-sm font-semibold">{message.author.label}</span>
+            {message.author.isPremium && <PremiumNameBadge />}
             {message.author.isAdmin && (
               <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-primary uppercase ring-1 ring-primary/15 ring-inset">
                 Admin

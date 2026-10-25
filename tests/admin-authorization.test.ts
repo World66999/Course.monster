@@ -37,6 +37,8 @@ const PUBLIC_ACTION_FILES = new Set([
   "apps.ts",
   "coding-channels.ts",
   "learning-resources.ts",
+  "premium.ts",
+  "support.ts",
 ]);
 
 function adminActionFiles(): string[] {

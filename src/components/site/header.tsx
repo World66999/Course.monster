@@ -9,6 +9,7 @@ import { StickyHeader } from "@/components/site/sticky-header";
 import { UserMenu } from "@/components/site/user-menu";
 import { NotificationBell } from "@/components/site/notification-bell";
 import { buttonClasses } from "@/components/ui/button";
+import { PremiumHeaderLink } from "@/components/premium/header-link";
 
 import { NAV_LINKS } from "@/lib/nav";
 
@@ -84,6 +85,7 @@ export function Header({ settings }: { settings: SiteSettings }) {
           </div>
 
           <div className="flex items-center gap-0.5 sm:gap-1.5">
+            <PremiumHeaderLink className="mr-0.5 sm:mr-1" />
             <SearchDialog />
             <NotificationBell />
             <ThemeToggle />

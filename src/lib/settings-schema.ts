@@ -87,7 +87,8 @@ export const siteSettingsSchema = z.object({
     .default("User-agent: *\nAllow: /\nDisallow: /go/\nDisallow: /download/"),
   theme: z
     .object({
-      defaultMode: z.enum(["system", "dark", "light"]).default("system"),
+      // Dark is the designed-first look; visitors can still switch with the toggle.
+      defaultMode: z.enum(["system", "dark", "light"]).default("dark"),
     })
     .prefault({}),
   newsletterEnabled: z.boolean().default(true),

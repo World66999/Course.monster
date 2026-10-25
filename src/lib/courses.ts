@@ -18,6 +18,7 @@ export const courseCardSelect = {
   views: true,
   featured: true,
   trending: true,
+  premium: true,
   contentUpdatedAt: true,
   createdAt: true,
   category: { select: { name: true, slug: true } },

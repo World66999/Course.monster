@@ -32,9 +32,9 @@ export default async function TelegramBroadcastsPage() {
       <BroadcastList rows={rows} />
 
       <section className="grid gap-6 lg:grid-cols-3">
-        <TopList title="📈 Most requested" items={requested.map((r) => ({ label: r.title, count: r.count }))} />
-        <TopList title="📊 Most downloaded" items={downloaded.map((r) => ({ label: r.title, count: r.count }))} />
-        <TopList title="🔎 Top searches" items={searches.map((r) => ({ label: r.query, count: r.count }))} />
+        <TopList title="Most requested" items={requested.map((r) => ({ label: r.title, count: r.count }))} />
+        <TopList title="Most downloaded" items={downloaded.map((r) => ({ label: r.title, count: r.count }))} />
+        <TopList title="Top searches" items={searches.map((r) => ({ label: r.query, count: r.count }))} />
       </section>
     </div>
   );

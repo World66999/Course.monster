@@ -9,49 +9,56 @@
 @custom-variant pointer-coarse (@media (pointer: coarse));
 
 /* ============================================================================
-   DESIGN TOKENS — "Daylight"
+   DESIGN TOKENS — "Midnight Gold"
 
-   Ultra Blue (primary, action) + Citrus (accent, highlight) over warm
-   off-white neutrals, with a blue → violet → pink gradient family for washes
-   and decoration. Citrus is a *fill* colour: it is far too light to be text on
-   a light surface, so it always carries ink (`accent-foreground`) and anything
-   that needs accent-coloured text or strokes uses `accent-ink`, which is the
-   contrast-checked version of the same hue.
+   Dark-first premium palette: deep violet-black surfaces, Royal Purple
+   (primary, action) and Gold (accent, and the one colour reserved for
+   Premium — membership badges, locks, the crown). A purple → orchid → gold
+   gradient carries washes and decoration. Gold is a *fill* in light mode: it
+   carries ink (`accent-foreground`), and accent-coloured text or strokes use
+   `accent-ink` / `gold-ink`, the contrast-checked versions of the same hue.
 
    Token names are shared with every component in the app, so the whole
    product (admin included) re-skins from this block. New tokens are additive.
-   Text pairs below are AA against `--background` and `--card`.
+   Text pairs below are AA against `--background` and `--card`
+   (scripts/check-contrast.mjs).
    ========================================================================= */
 
 :root {
   color-scheme: light;
 
   /* Surfaces */
-  --background: #fafaf7;
-  --surface-sunken: #f2f2ec;
+  --background: #fbfaf7;
+  --surface-sunken: #f3f1ec;
   --card: #ffffff;
   --surface-raised: #ffffff;
-  --foreground: #0e1022;
-  --card-foreground: #0e1022;
-  --muted: #f1f1eb;
-  --muted-foreground: #565a70;
-  --border: #e7e7df;
-  --border-strong: #8a8d9f;
-  --input: #8a8d9f;
+  --foreground: #15112a;
+  --card-foreground: #15112a;
+  --muted: #f3f1ec;
+  --muted-foreground: #5b5670;
+  --border: #e9e5dc;
+  --border-strong: #8c879e;
+  --input: #8c879e;
 
   /* Brand */
-  --primary: #2f5bff;
-  --primary-hover: #1e47e8;
+  --primary: #6d3df5;
+  --primary-hover: #5b2ee0;
   --primary-foreground: #ffffff;
-  --primary-soft: #ebefff;
-  --accent: #c6f432;
-  --accent-hover: #b6e81c;
-  --accent-foreground: #0e1022;
-  --accent-soft: #f2fbd2;
-  --accent-ink: #4a6400;
-  --violet: #7c4dff;
-  --pink: #ff4f9a;
-  --ring: #2f5bff;
+  --primary-soft: #efe9ff;
+  --accent: #f2b929;
+  --accent-hover: #e5aa12;
+  --accent-foreground: #1a1206;
+  --accent-soft: #fdf3d6;
+  --accent-ink: #7a5600;
+  --violet: #8b5cf6;
+  --pink: #d946ef;
+  --ring: #6d3df5;
+
+  /* Premium gold */
+  --gold: #d99a0b;
+  --gold-soft: #fdf3d6;
+  --gold-ink: #7a5600;
+  --grad-gold: linear-gradient(135deg, #f7d774 0%, #e3a514 55%, #b7790a 100%);
 
   /* Semantic status */
   --success: #037a5a;
@@ -60,64 +67,70 @@
   --warning-soft: #fcefdb;
   --destructive: #d12d3a;
   --destructive-soft: #fdeaec;
-  --info: #1f4fd8;
-  --info-soft: #e7edfe;
+  --info: #4f3bd8;
+  --info-soft: #ece9fe;
 
   /* Gradient family. `--grad-brand` is the one saturated gradient (CTAs,
      headline highlight); the wash stops are low-alpha for backgrounds. */
-  --grad-brand: linear-gradient(115deg, #2f5bff 0%, #7c4dff 52%, #ff4f9a 100%);
-  --wash-1: rgb(47 91 255 / 0.16);
-  --wash-2: rgb(124 77 255 / 0.13);
-  --wash-3: rgb(255 79 154 / 0.11);
-  --wash-4: rgb(198 244 50 / 0.22);
+  --grad-brand: linear-gradient(115deg, #6d3df5 0%, #a855f7 50%, #e0a106 100%);
+  --wash-1: rgb(109 61 245 / 0.14);
+  --wash-2: rgb(168 85 247 / 0.12);
+  --wash-3: rgb(217 70 239 / 0.08);
+  --wash-4: rgb(242 185 41 / 0.18);
 
   /* Effects */
   --glass: rgba(255, 255, 255, 0.72);
-  --glass-border: rgba(14, 16, 34, 0.07);
+  --glass-border: rgba(21, 17, 42, 0.08);
   --edge-light: rgba(255, 255, 255, 0.75);
 
-  /* Elevation: contact shadow + wide ambient shadow at every step. Tinted
+  /* Elevation: contact shadow + wide ambient shadow at every step, tinted
      toward the ink hue rather than pure black so they read soft, not dirty. */
-  --sh-soft: 0 1px 1px rgb(14 16 60 / 0.04), 0 2px 8px -2px rgb(14 16 60 / 0.06);
+  --sh-soft: 0 1px 1px rgb(21 17 60 / 0.04), 0 2px 8px -2px rgb(21 17 60 / 0.06);
   --sh-elevated:
-    0 1px 2px rgb(14 16 60 / 0.05), 0 10px 24px -8px rgb(14 16 60 / 0.12),
-    0 24px 44px -22px rgb(14 16 60 / 0.16);
+    0 1px 2px rgb(21 17 60 / 0.05), 0 10px 24px -8px rgb(21 17 60 / 0.12),
+    0 24px 44px -22px rgb(21 17 60 / 0.16);
   --sh-floating:
-    0 2px 4px rgb(14 16 60 / 0.05), 0 20px 40px -12px rgb(14 16 60 / 0.16),
-    0 48px 80px -28px rgb(14 16 60 / 0.22);
-  --sh-primary: 0 1px 2px rgb(47 91 255 / 0.25), 0 10px 24px -8px rgb(47 91 255 / 0.45);
-  --sh-glow: 0 0 0 1px rgb(47 91 255 / 0.18), 0 14px 40px -12px rgb(47 91 255 / 0.35);
+    0 2px 4px rgb(21 17 60 / 0.05), 0 20px 40px -12px rgb(21 17 60 / 0.16),
+    0 48px 80px -28px rgb(21 17 60 / 0.22);
+  --sh-primary: 0 1px 2px rgb(109 61 245 / 0.25), 0 10px 24px -8px rgb(109 61 245 / 0.45);
+  --sh-glow: 0 0 0 1px rgb(109 61 245 / 0.18), 0 14px 40px -12px rgb(109 61 245 / 0.35);
+  --sh-gold: 0 0 0 1px rgb(217 154 11 / 0.35), 0 14px 40px -14px rgb(217 154 11 / 0.45);
 }
 
 .dark {
   color-scheme: dark;
 
-  --background: #0a0b14;
-  --surface-sunken: #06070d;
-  --card: #12131f;
-  --surface-raised: #181a28;
-  --foreground: #eef0f8;
-  --card-foreground: #eef0f8;
-  --muted: #1a1c2a;
-  --muted-foreground: #a0a4bd;
-  --border: #252838;
-  --border-strong: #63677e;
-  --input: #63677e;
+  --background: #0b0a12;
+  --surface-sunken: #07060c;
+  --card: #14121f;
+  --surface-raised: #1b1829;
+  --foreground: #f2effa;
+  --card-foreground: #f2effa;
+  --muted: #1c1a2a;
+  --muted-foreground: #a9a3c2;
+  --border: #2a2640;
+  --border-strong: #6b6488;
+  --input: #6b6488;
 
-  /* Lighter, less saturated brand tones in dark mode; primary is light enough
-     here that its foreground flips to ink. */
-  --primary: #7c9bff;
-  --primary-hover: #9cb3ff;
-  --primary-foreground: #0a0b14;
-  --primary-soft: #151c3b;
-  --accent: #d4ff4f;
-  --accent-hover: #e1ff7d;
-  --accent-foreground: #0e1022;
-  --accent-soft: #20280b;
-  --accent-ink: #d4ff4f;
-  --violet: #a68bff;
-  --pink: #ff7ab4;
-  --ring: #7c9bff;
+  /* Lighter brand tones in dark mode; primary is light enough here that its
+     foreground flips to ink. */
+  --primary: #a78bfa;
+  --primary-hover: #c4b5fd;
+  --primary-foreground: #0b0a12;
+  --primary-soft: #221b3d;
+  --accent: #f5c451;
+  --accent-hover: #ffd572;
+  --accent-foreground: #1a1206;
+  --accent-soft: #2a2110;
+  --accent-ink: #f5c451;
+  --violet: #c4b5fd;
+  --pink: #f0abfc;
+  --ring: #a78bfa;
+
+  --gold: #f5c451;
+  --gold-soft: #2a2110;
+  --gold-ink: #f7cf6a;
+  --grad-gold: linear-gradient(135deg, #fde68a 0%, #f5c451 50%, #d99a0b 100%);
 
   --success: #3ddba6;
   --success-soft: #0d2a21;
@@ -125,18 +138,18 @@
   --warning-soft: #2c2010;
   --destructive: #ff6b78;
   --destructive-soft: #2e1418;
-  --info: #7ea6ff;
-  --info-soft: #131c33;
+  --info: #b4a5ff;
+  --info-soft: #1d1838;
 
-  --grad-brand: linear-gradient(115deg, #7c9bff 0%, #a68bff 52%, #ff7ab4 100%);
-  --wash-1: rgb(124 155 255 / 0.16);
-  --wash-2: rgb(166 139 255 / 0.13);
-  --wash-3: rgb(255 122 180 / 0.09);
-  --wash-4: rgb(212 255 79 / 0.08);
+  --grad-brand: linear-gradient(115deg, #8b5cf6 0%, #c084fc 48%, #f5c451 100%);
+  --wash-1: rgb(139 92 246 / 0.18);
+  --wash-2: rgb(192 132 252 / 0.12);
+  --wash-3: rgb(240 171 252 / 0.07);
+  --wash-4: rgb(245 196 81 / 0.09);
 
-  --glass: rgba(18, 19, 31, 0.72);
-  --glass-border: rgba(160, 164, 189, 0.14);
-  --edge-light: rgba(255, 255, 255, 0.06);
+  --glass: rgba(20, 18, 31, 0.66);
+  --glass-border: rgba(196, 181, 253, 0.13);
+  --edge-light: rgba(255, 255, 255, 0.07);
 
   --sh-soft: 0 1px 1px rgb(0 0 0 / 0.5), 0 2px 8px -2px rgb(0 0 0 / 0.4);
   --sh-elevated:
@@ -145,8 +158,9 @@
   --sh-floating:
     0 2px 4px rgb(0 0 0 / 0.55), 0 20px 40px -12px rgb(0 0 0 / 0.6),
     0 48px 80px -28px rgb(0 0 0 / 0.7);
-  --sh-primary: 0 1px 2px rgb(124 155 255 / 0.3), 0 10px 24px -8px rgb(124 155 255 / 0.4);
-  --sh-glow: 0 0 0 1px rgb(124 155 255 / 0.25), 0 14px 40px -12px rgb(124 155 255 / 0.35);
+  --sh-primary: 0 1px 2px rgb(167 139 250 / 0.3), 0 10px 24px -8px rgb(167 139 250 / 0.4);
+  --sh-glow: 0 0 0 1px rgb(167 139 250 / 0.25), 0 14px 40px -12px rgb(167 139 250 / 0.35);
+  --sh-gold: 0 0 0 1px rgb(245 196 81 / 0.3), 0 14px 40px -14px rgb(245 196 81 / 0.35);
 }
 
 @theme inline {
@@ -183,9 +197,12 @@
   --color-destructive-soft: var(--destructive-soft);
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-gold-ink: var(--gold-ink);
 
-  --font-sans: var(--font-figtree);
-  --font-display: var(--font-bricolage);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-sora);
   --font-mono: var(--font-geist-mono);
 
   /* Type scale — a real 1.2/1.25 ramp with tracking and leading baked in, so
@@ -239,6 +256,7 @@
   --shadow-floating: var(--sh-floating);
   --shadow-primary: var(--sh-primary);
   --shadow-glow: var(--sh-glow);
+  --shadow-gold: var(--sh-gold);
   --inset-shadow-highlight: inset 0 1px 0 0 var(--edge-light);
 
   /* Motion tokens. One rhythm for the whole product: shared durations and a
@@ -427,14 +445,14 @@ body {
   color: var(--foreground);
   /* Reference the next/font variable directly. Going through Tailwind's
      --font-sans does not work here: that token is declared on :root with the
-     value var(--font-figtree), but next/font only defines
-     --font-figtree on <body>, so at :root it resolves to the
+     value var(--font-inter), but next/font only defines
+     --font-inter on <body>, so at :root it resolves to the
      guaranteed-invalid value and the whole declaration is dropped. */
-  font-family: var(--font-figtree), system-ui, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  /* Figtree is open and round; a hair of negative tracking keeps body copy
-     from looking loose next to the tight display face. */
+  /* A hair of negative tracking keeps Inter body copy from looking loose
+     next to the tight display face. */
   letter-spacing: -0.005em;
 }
 
@@ -446,7 +464,7 @@ h2,
 h3,
 h4,
 .font-display {
-  font-family: var(--font-bricolage), var(--font-figtree), system-ui, sans-serif;
+  font-family: var(--font-sora), var(--font-inter), system-ui, sans-serif;
 }
 
 ::selection {
@@ -1068,4 +1086,70 @@ h4,
 
 * {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------- Premium ----------
+
+   "Glass" here is a translucent gradient fill, a hairline border and an inner
+   top highlight — deliberately WITHOUT backdrop-filter, which was removed
+   app-wide as the main scroll-jank source. It reads as frosted on the dark
+   surfaces at zero per-frame cost.                                         */
+@utility glass-card {
+  background-image: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--surface-raised) 92%, transparent) 0%,
+    color-mix(in srgb, var(--card) 78%, transparent) 100%
+  );
+  background-color: color-mix(in srgb, var(--card) 70%, transparent);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--sh-soft), inset 0 1px 0 0 var(--edge-light);
+}
+
+/* Gold fill (crown tiles, Premium CTAs). Carries `accent-foreground` ink. */
+@utility bg-gold {
+  background-image: var(--grad-gold);
+}
+
+@utility text-gold-gradient {
+  background: var(--grad-gold);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Highlighted card edge (the Yearly plan, Premium panels). */
+@utility edge-gold {
+  border-color: color-mix(in srgb, var(--gold) 55%, transparent);
+  box-shadow: var(--sh-gold), inset 0 1px 0 0 var(--edge-light);
+}
+
+/* Placeholder lines behind a locked item. The real content is never in the
+   page — these bars are decoration, blurred so they read as "hidden text". */
+@utility locked-preview {
+  filter: blur(5px);
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Slow ambient shimmer across the gold badge; off for reduced motion. */
+@utility gold-sheen {
+  background-image: linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 0.35) 50%, transparent 70%), var(--grad-gold);
+  background-size: 250% 100%, 100% 100%;
+  animation: gold-sheen 4.5s var(--ease-standard) infinite;
+}
+
+@keyframes gold-sheen {
+  0% {
+    background-position: 120% 0, 0 0;
+  }
+  60%,
+  100% {
+    background-position: -120% 0, 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gold-sheen {
+    animation: none;
+  }
 }

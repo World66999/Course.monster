@@ -45,6 +45,7 @@ export default async function NewCoursePage() {
           featured: false,
           trending: false,
           popular: false,
+          premium: false,
           seoTitle: "",
           seoDescription: "",
           metaImage: "",

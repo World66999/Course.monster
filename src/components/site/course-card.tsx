@@ -1,6 +1,6 @@
 import * as React from "react";
 import Link from "next/link";
-import { ArrowUpRight, Download, Film, HardDrive, Sparkles, Timer, TrendingUp } from "lucide-react";
+import { ArrowUpRight, Crown, Download, Film, HardDrive, Sparkles, Timer, TrendingUp } from "lucide-react";
 import type { CourseCard as CourseCardData } from "@/lib/courses";
 import { Badge } from "@/components/ui/badge";
 import { CourseImage } from "@/components/site/course-image";
@@ -54,6 +54,12 @@ const CourseCard = React.memo(function CourseCard({ course, priority = false }: 
  <ArrowUpRight className="h-4 w-4" />
  </span>
  <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+ {course.premium && (
+ <Badge variant="premium" className="shadow-soft">
+ <Crown aria-hidden />
+ Premium
+ </Badge>
+ )}
  {course.featured && (
  <Badge variant="accent" className="shadow-soft">
  <Sparkles aria-hidden />

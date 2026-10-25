@@ -7,6 +7,7 @@ export interface ChatAuthorDTO {
   label: string;
   isAdmin: boolean;
   image: string | null;
+  isPremium?: boolean;
 }
 
 export interface ChatReactionDTO {

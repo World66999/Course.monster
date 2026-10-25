@@ -8,6 +8,10 @@ import { Section } from "@/components/site/section";
 import { CourseImage } from "@/components/site/course-image";
 import { Badge } from "@/components/ui/badge";
 import { DownloadGate } from "@/components/site/download-gate";
+import { InstantDownload } from "@/components/premium/instant-download";
+import { LockedPreview } from "@/components/premium/locked-preview";
+import { getViewer } from "@/server/premium-guard";
+import { canAccessPremiumCourse } from "@/lib/premium";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -33,6 +37,14 @@ export default async function DownloadPage({ params, searchParams }: Props) {
   if (!course) notFound();
 
   const captchaSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
+
+  // Which path to show. Display only: /api/download/premium and
+  // /api/download/init both re-check access on the request that issues a link.
+  const viewer = await getViewer();
+  const instant = course.premium
+    ? Boolean(viewer && (await canAccessPremiumCourse(viewer.id, course.id)))
+    : Boolean(viewer?.premium);
+  const locked = course.premium && !instant;
 
   return (
     <Section className="max-w-2xl py-12 sm:py-16">
@@ -73,12 +85,34 @@ export default async function DownloadPage({ params, searchParams }: Props) {
         </div>
 
         <div className="p-5 sm:p-8">
-          <DownloadGate
-            slug={course.slug}
-            countdownSeconds={settings.downloadCountdownSeconds}
-            captchaSiteKey={captchaSiteKey}
-            attribution={attribution}
-          />
+          {instant ? (
+            <InstantDownload slug={course.slug} />
+          ) : locked ? (
+            <div className="space-y-4 text-center">
+              <p className="font-semibold">This is a Premium course.</p>
+              <LockedPreview
+                lines={3}
+                href={viewer ? "/premium" : `/login?next=${encodeURIComponent(`/download/${course.slug}`)}`}
+                cta={viewer ? "Unlock with Premium" : "Sign in to continue"}
+              />
+            </div>
+          ) : (
+            <>
+              <DownloadGate
+                slug={course.slug}
+                countdownSeconds={settings.downloadCountdownSeconds}
+                captchaSiteKey={captchaSiteKey}
+                attribution={attribution}
+              />
+              <p className="mt-6 text-center text-sm text-muted-foreground">
+                Skip the countdown and verification with{" "}
+                <Link href="/premium" className="font-semibold text-gold-ink underline underline-offset-2">
+                  Premium
+                </Link>
+                .
+              </p>
+            </>
+          )}
 
           <div className="mt-8 flex items-start gap-3 rounded-nested bg-muted/60 p-4 text-sm text-muted-foreground">
             <ShieldCheck className="mt-0.5 h-4.5 w-4.5 shrink-0 text-success" aria-hidden />

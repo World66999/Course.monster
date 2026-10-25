@@ -42,10 +42,15 @@ export async function GET(
   if (!course) return NextResponse.redirect(home);
 
   let target: string;
-  try {
-    ({ url: target } = await getShortLink(course));
-  } catch {
-    return NextResponse.redirect(home);
+  if (result.direct) {
+    // Premium: straight to the destination, no ad-supported short link.
+    target = course.downloadUrl;
+  } else {
+    try {
+      ({ url: target } = await getShortLink(course));
+    } catch {
+      return NextResponse.redirect(home);
+    }
   }
   // Defence in depth: the form layer now rejects non-http(s) download URLs, but
   // this value also comes back from an external shortener, so never emit a
@@ -64,7 +69,7 @@ export async function GET(
           courseId: course.id,
           ipHash: ipKey,
           userAgent,
-          source: result.attribution?.source ?? null,
+          source: result.direct ? "premium" : (result.attribution?.source ?? null),
           telegramUserId: result.attribution?.telegramUserId ?? null,
         },
       }),

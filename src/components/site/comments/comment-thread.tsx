@@ -118,6 +118,7 @@ export function CommentThread({
             // "Verified" badge briefly reflects this as unverified and
             // self-corrects the instant the real comment is merged in.
             accounts: [],
+            subscriptions: [],
           },
           _count: { replies: 0 },
           likedByMe: false,

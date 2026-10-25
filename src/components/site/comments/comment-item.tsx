@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import type { CommentWithMeta } from "@/lib/comments";
 import { createCommentAction, editCommentAction, deleteCommentAction, toggleCommentLikeAction } from "@/server/actions/comments";
 import { safeAction } from "@/lib/safe-action";
-import { AuthorAvatar, VerifiedBadge } from "@/components/site/comments/author-avatar";
+import { AuthorAvatar, AuthorPremiumBadge, VerifiedBadge } from "@/components/site/comments/author-avatar";
 import { CommentForm } from "@/components/site/comments/comment-form";
 import { ReportButton } from "@/components/site/report-dialog";
 import { Button } from "@/components/ui/button";
@@ -117,6 +117,7 @@ export function CommentItem({
             name: session.user.name ?? "You",
             image: session.user.image ?? null,
             accounts: [],
+            subscriptions: [],
           },
           _count: { replies: 0 },
           likedByMe: false,
@@ -239,6 +240,7 @@ export function CommentItem({
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-sm font-semibold">{isDeleted ? "Deleted" : comment.user.name}</span>
             {!isDeleted && <VerifiedBadge author={comment.user} />}
+            {!isDeleted && <AuthorPremiumBadge author={comment.user} />}
           </div>
           {isDeleted ? (
             <p className="mt-0.5 text-sm text-muted-foreground italic">[deleted]</p>

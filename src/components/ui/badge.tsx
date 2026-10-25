@@ -9,7 +9,8 @@ type Variant =
   | "warning"
   | "accent"
   | "destructive"
-  | "info";
+  | "info"
+  | "premium";
 
 /**
  * Tinted fill + inset ring rather than a solid block: a solid badge competes
@@ -27,6 +28,8 @@ const variants: Record<Variant, string> = {
   warning: "bg-warning-soft text-warning ring-1 ring-inset ring-warning/20",
   destructive: "bg-destructive-soft text-destructive ring-1 ring-inset ring-destructive/20",
   info: "bg-info-soft text-info ring-1 ring-inset ring-info/20",
+  // Gold is reserved for Premium — membership badges, locked items, the crown.
+  premium: "bg-gold-soft text-gold-ink ring-1 ring-inset ring-gold/35",
 };
 
 export function Badge({

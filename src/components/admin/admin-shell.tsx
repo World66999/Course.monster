@@ -26,6 +26,10 @@ import {
   Settings,
   Users,
   X,
+  Crown,
+  Gem,
+  LifeBuoy,
+  MessagesSquare,
 } from "lucide-react";
 import { logoutAction } from "@/server/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -46,6 +50,10 @@ const NAV = [
   { href: adminPath("free-resources"), label: "Free Resources", icon: Link2 },
   { href: adminPath("ai-platforms"), label: "AI Platforms", icon: Sparkles },
   { href: adminPath("users"), label: "Users", icon: Users },
+  { href: adminPath("premium"), label: "Payments & Premium", icon: Crown, exact: true },
+  { href: adminPath("premium-resources"), label: "Premium Resources", icon: Gem },
+  { href: adminPath("premium-chats"), label: "Premium Chats", icon: MessagesSquare },
+  { href: adminPath("support"), label: "Support Inbox", icon: LifeBuoy },
   { href: adminPath("pages"), label: "Pages", icon: FileText },
   { href: adminPath("subscribers"), label: "Subscribers", icon: Mail },
   { href: adminPath("telegram"), label: "Telegram Bot", icon: Send },

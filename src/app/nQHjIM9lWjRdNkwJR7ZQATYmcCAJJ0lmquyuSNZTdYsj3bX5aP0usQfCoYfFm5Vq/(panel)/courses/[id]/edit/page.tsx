@@ -54,6 +54,7 @@ export default async function EditCoursePage({
           featured: course.featured,
           trending: course.trending,
           popular: course.popular,
+          premium: course.premium,
           seoTitle: course.seoTitle ?? "",
           seoDescription: course.seoDescription ?? "",
           metaImage: course.metaImage ?? "",

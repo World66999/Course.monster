@@ -29,11 +29,19 @@ async function isDisabled(userId: string): Promise<boolean> {
  * commenters (role "USER") authenticate through the same Auth.js instance,
  * so the role check here (not just "is there a session") is load-bearing.
  */
-export async function requireAdmin() {
+export async function requireAdmin(opts: { adminOnly?: boolean } = {}) {
   const session = await auth();
   if (!session?.user?.id || !isStaff(session.user.role)) throw new UnauthorizedError();
-  if (await isDisabled(session.user.id)) throw new UnauthorizedError();
-  return session.user;
+  // Money and access (granting Premium, payments, revenue) are ADMIN-only:
+  // an EDITOR curates content but must not be able to hand out paid time.
+  // Read from the database, not the JWT, so a demotion takes effect at once.
+  const row = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { disabled: true, role: true },
+  });
+  if (!row || row.disabled || !isStaff(row.role)) throw new UnauthorizedError();
+  if (opts.adminOnly && row.role !== "ADMIN") throw new UnauthorizedError();
+  return { ...session.user, role: row.role };
 }
 
 /**

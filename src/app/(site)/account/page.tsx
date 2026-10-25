@@ -9,6 +9,7 @@ import { RequestActivitySection } from "@/components/account/request-activity-se
 import { PasswordSection } from "@/components/account/password-section";
 import { EmailSection } from "@/components/account/email-section";
 import { DangerZone } from "@/components/account/danger-zone";
+import { PremiumTelegramSection } from "@/components/account/premium-telegram-section";
 
 export const metadata: Metadata = {
   title: "Your account",
@@ -23,7 +24,15 @@ export default async function AccountPage() {
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { name: true, email: true, image: true, passwordHash: true, disabled: true },
+    select: {
+      name: true,
+      email: true,
+      image: true,
+      passwordHash: true,
+      disabled: true,
+      premiumUntil: true,
+      telegramId: true,
+    },
   });
   // A disabled account's JWT stays technically valid until it naturally
   // expires (sessions are stateless — see auth-helpers.ts's isDisabled()),
@@ -46,6 +55,10 @@ export default async function AccountPage() {
       />
       <div className="space-y-6">
         <ProfileSection name={user.name} image={user.image} />
+        <PremiumTelegramSection
+          premiumUntil={user.premiumUntil?.toISOString() ?? null}
+          telegramLinked={Boolean(user.telegramId)}
+        />
         <RequestActivitySection stats={requestStats} />
         <PasswordSection hasPassword={hasPassword} />
         <EmailSection email={user.email} hasPassword={hasPassword} />

@@ -19,6 +19,13 @@ interface TokenPayload {
   src?: string;
   /** Telegram user id when `src` is "telegram". */
   tgId?: string;
+  /**
+   * Premium instant download: /go sends the visitor straight to the course's
+   * destination instead of the ad-supported short link. Only ever set by
+   * /api/download/premium after a server-side Premium check; it is inside the
+   * signed payload, so a client cannot add it.
+   */
+  direct?: true;
 }
 
 export interface DownloadAttribution {
@@ -41,7 +48,8 @@ function sign(data: string): string {
 export function createDownloadToken(
   courseId: string,
   ipHash: string,
-  attribution?: DownloadAttribution
+  attribution?: DownloadAttribution,
+  opts: { direct?: boolean } = {}
 ): string {
   const payload: TokenPayload = {
     courseId,
@@ -49,13 +57,14 @@ export function createDownloadToken(
     nonce: randomBytes(12).toString("base64url"),
     exp: Date.now() + TOKEN_TTL_MS,
     ...(attribution ? { src: attribution.source, tgId: attribution.telegramUserId } : {}),
+    ...(opts.direct ? { direct: true as const } : {}),
   };
   const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return `${data}.${sign(data)}`;
 }
 
 export type TokenVerifyResult =
-  | { ok: true; courseId: string; attribution?: DownloadAttribution }
+  | { ok: true; courseId: string; direct: boolean; attribution?: DownloadAttribution }
   | { ok: false; reason: "invalid" | "expired" | "used" | "ip_mismatch" };
 
 export function consumeDownloadToken(token: string, ipHash: string): TokenVerifyResult {
@@ -98,6 +107,7 @@ export function consumeDownloadToken(token: string, ipHash: string): TokenVerify
   return {
     ok: true,
     courseId: payload.courseId,
+    direct: payload.direct === true,
     ...(typeof payload.src === "string" && typeof payload.tgId === "string"
       ? { attribution: { source: payload.src, telegramUserId: payload.tgId } }
       : {}),
