@@ -1,7 +1,8 @@
 import "server-only";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createAttributionToken } from "./attribution";
-import { answerCallbackQuery, editMessageText, sendMessage, type InlineKeyboard } from "./api";
+import { answerCallbackQuery, editMessageText, getMe, sendMessage, type InlineKeyboard } from "./api";
+import { addressedText, isGroupChat, type BotIdentity } from "./addressing";
 import { decode, type Callback } from "./callback";
 import {
   getPublishedBotCourseBySlug,
@@ -11,7 +12,7 @@ import {
   listUpcomingPage,
   searchPublishedPage,
 } from "./catalog";
-import { siteUrl, isBotAdmin } from "./config";
+import { siteUrl, isBotAdmin, botUsername } from "./config";
 import { getBranding } from "./branding";
 import { checkMembership, gateEnabled, requiredChannelUrl } from "./membership";
 import {
@@ -43,11 +44,12 @@ import { kickFromGroup, mayJoinPremiumGroups } from "@/lib/premium-lapse";
 interface Message {
   message_id: number;
   from?: TelegramFrom;
-  chat: { id: number };
+  chat: { id: number; type?: string };
   text?: string;
+  reply_to_message?: { from?: { id: number } };
   successful_payment?: SuccessfulPayment;
   /** Carries the custom_emoji id when a premium emoji is sent. */
-  entities?: { type: string; offset: number; length: number; custom_emoji_id?: string }[];
+  entities?: { type: string; offset: number; length: number; custom_emoji_id?: string; user?: { id: number } }[];
 }
 interface CallbackQuery {
   id: string;
@@ -324,10 +326,41 @@ async function handleCallback(q: CallbackQuery): Promise<void> {
   await show(chatId, messageId, await screenFor(cb, user.id, branding));
 }
 
+let identity: Promise<BotIdentity | null> | null = null;
+
+/** The bot's own id and username, fetched once per process. */
+function botIdentity(): Promise<BotIdentity | null> {
+  identity ??= getMe().then((r) => {
+    if (r.ok) return { id: r.result.id, username: r.result.username };
+    identity = null; // retry on the next group message
+    const username = botUsername()?.replace(/^@/, "");
+    const id = Number(process.env.TELEGRAM_BOT_TOKEN?.split(":")[0]);
+    return username && id ? { id, username } : null;
+  });
+  return identity;
+}
+
 async function handleMessage(m: Message): Promise<void> {
   if (!m.from) return;
   const telegramId = String(m.from.id);
   const chatId = String(m.chat.id);
+
+  // In a group, stay silent unless the message is meant for the bot: a
+  // mention, a reply to the bot, or a command. Checked before rate limiting
+  // and user tracking so ordinary group chatter costs nothing. A payment
+  // receipt is never chatter and always goes through.
+  let rawText = m.text;
+  let entities = m.entities;
+  if (isGroupChat(m.chat.type) && !m.successful_payment) {
+    const bot = await botIdentity();
+    if (!bot) return;
+    const addressed = addressedText(m, bot);
+    if (addressed === null) return;
+    // Offsets no longer match once a mention is cut out. A bare "@bot" with
+    // nothing else gets the help screen.
+    if (addressed !== rawText) entities = undefined;
+    rawText = addressed || "/help";
+  }
 
   if (!allow(telegramId, "msg", 20, 60_000)) return;
 
@@ -345,12 +378,12 @@ async function handleMessage(m: Message): Promise<void> {
     return;
   }
 
-  const text = (m.text ?? "").slice(0, MAX_TEXT).trim();
+  const text = (rawText ?? "").slice(0, MAX_TEXT).trim();
   if (!text) return;
 
   // A half-finished admin edit consumes the next message before anything else,
   // otherwise "send me the new label" would be treated as a course search.
-  if (await handleAdminInput(telegramId, user.id, chatId, text, m.entities)) return;
+  if (await handleAdminInput(telegramId, user.id, chatId, text, entities)) return;
 
   // A pending custom-amount entry consumes the next plain message.
   if (!text.startsWith("/") && (await isDonateWaiting(user.id))) {
