@@ -17,11 +17,12 @@ import { Reveal } from "@/components/site/reveal";
 import { buttonClasses } from "@/components/ui/button";
 import { CrownMark } from "@/components/premium/crown";
 import { PlansOrAccount, SecureBadge } from "@/components/premium/plan-cards";
+import { inrPricesSafe } from "@/lib/razorpay-config";
 
 export const metadata: Metadata = {
   title: "Premium — Instant Downloads, Premium Courses & Members' Chats",
   description:
-    "Courses Monster Premium: instant downloads with no timers or ads, premium courses, curated Premium Resources, members-only chats and priority support. $1 a month or $10 a year.",
+    "Courses Monster Premium: instant downloads with no timers or ads, premium courses, curated Premium Resources, members-only chats and priority support. $1 a month or $10 a year — pay with UPI, card or crypto.",
   alternates: { canonical: "/premium" },
   openGraph: { title: "Courses Monster Premium", url: absoluteUrl("/premium") },
 };
@@ -76,7 +77,15 @@ const COMPARISON: { feature: string; free: string | boolean; premium: string | b
 const FAQ = [
   {
     q: "How do I pay?",
-    a: "With crypto, through NOWPayments' hosted checkout. You pick a coin, send the exact amount shown, and Premium switches on automatically once the network confirms the payment. We never see or store your wallet keys.",
+    a: "Two ways. In India, pay in rupees with UPI, a debit or credit card, or netbanking through Razorpay's secure checkout. Anywhere, pay with crypto through NOWPayments' hosted checkout. Either way Premium switches on automatically once the payment is confirmed, and we never see or store your card, UPI or wallet details.",
+  },
+  {
+    q: "What does it cost in rupees?",
+    a: "The rupee price is shown next to every plan and again before you pay — it is fixed from the dollar price, so there are no surprises at checkout.",
+  },
+  {
+    q: "Can I get a refund?",
+    a: "No. Premium is a digital product that is delivered instantly, so all sales are final and there are no refunds. Please check the plan before you buy — see our Refund Policy for details.",
   },
   {
     q: "Which coins can I use?",
@@ -92,11 +101,11 @@ const FAQ = [
   },
   {
     q: "Does it renew automatically?",
-    a: "No. Crypto payments are one-off, so nothing is ever charged without you. We send a reminder 3 days and 1 day before your Premium ends (via Telegram, once linked).",
+    a: "No. Every payment is one-off, so nothing is ever charged without you. We send a reminder 3 days and 1 day before your Premium ends (via Telegram, once linked).",
   },
   {
-    q: "Can I pay another way, or I have a payment problem?",
-    a: "Open a ticket in Premium Purchase Support. Tickets are private between you and our team.",
+    q: "I have a payment problem — who do I contact?",
+    a: "Open a ticket in Premium Purchase Support, or message us on Telegram (see the Contact page) with your payment ID. We'll make sure your Premium is activated.",
   },
 ];
 
@@ -107,6 +116,8 @@ function Cell({ value }: { value: string | boolean }) {
 }
 
 export default function PremiumPage() {
+  const prices = inrPricesSafe();
+  const inr = prices ? { MONTHLY: prices.MONTHLY.label, YEARLY: prices.YEARLY.label } : null;
   return (
     <>
       {/* Hero */}
@@ -198,15 +209,26 @@ export default function PremiumPage() {
       {/* Plans / account */}
       <Section rhythm="tight" id="plans" className="scroll-mt-24">
         <SectionHeading eyebrow="Plans" title="Pick your plan" align="center" />
-        <PlansOrAccount />
+        <PlansOrAccount inr={inr} />
         <div className="mt-8 flex flex-col items-center gap-3 text-center">
           <SecureBadge />
+          <p className="rounded-full border border-warning/30 bg-warning-soft px-4 py-1.5 text-sm font-semibold text-warning">
+            Digital product. All sales are final. No refunds.
+          </p>
           <p className="max-w-xl text-sm text-muted-foreground">
-            One-off payments — nothing renews by itself. Want to pay another way or have a payment
-            problem?{" "}
+            One-off payments — nothing renews by itself. Payment problem?{" "}
             <Link href="/premium/support" className="font-medium text-primary underline underline-offset-2">
               Premium Purchase Support
             </Link>
+          </p>
+          <p className="text-xs text-muted-foreground">
+            <Link href="/terms" className="underline underline-offset-2">Terms &amp; Conditions</Link>
+            {" · "}
+            <Link href="/refund-policy" className="underline underline-offset-2">Refund Policy</Link>
+            {" · "}
+            <Link href="/privacy" className="underline underline-offset-2">Privacy Policy</Link>
+            {" · "}
+            <Link href="/contact" className="underline underline-offset-2">Contact Us</Link>
           </p>
         </div>
       </Section>

@@ -64,6 +64,8 @@ export async function addPremiumPeriod(
     months?: number;
     source: "PAYMENT" | "ADMIN";
     paymentId?: string;
+    /** RazorpayPayment.id that bought this period (unique, like paymentId). */
+    razorpayPaymentId?: string;
     grantedById?: string;
     note?: string;
     now?: Date;
@@ -86,6 +88,7 @@ export async function addPremiumPeriod(
       status: "ACTIVE",
       source: args.source,
       paymentId: args.paymentId ?? null,
+      razorpayPaymentId: args.razorpayPaymentId ?? null,
       grantedById: args.grantedById ?? null,
       note: args.note ?? null,
     },

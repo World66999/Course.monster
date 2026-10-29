@@ -82,6 +82,7 @@ model User {
   premiumChatMutedUntil DateTime?
   subscriptions         Subscription[]
   payments              Payment[]
+  razorpayPayments      RazorpayPayment[]
   courseGrants          CourseGrant[]        @relation("CourseGrantUser")
   courseGrantsGiven     CourseGrant[]        @relation("CourseGrantGrantor")
   premiumChatMessages   PremiumChatMessage[]
@@ -1352,24 +1353,27 @@ enum SubscriptionSource {
 /// the current expiry, so rows chain end to end and User.premiumUntil is the
 /// end of the chain.
 model Subscription {
-  id          String             @id @default(cuid())
-  userId      String
-  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan        PremiumPlan
-  startAt     DateTime
-  expiresAt   DateTime
-  status      SubscriptionStatus @default(ACTIVE)
-  source      SubscriptionSource @default(PAYMENT)
+  id                String             @id @default(cuid())
+  userId            String
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan              PremiumPlan
+  startAt           DateTime
+  expiresAt         DateTime
+  status            SubscriptionStatus @default(ACTIVE)
+  source            SubscriptionSource @default(PAYMENT)
   /// The payment that bought this period. Unique: one payment can never be
   /// turned into two periods, whatever happens to the webhook.
-  paymentId   String?            @unique
-  payment     Payment?           @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  paymentId         String?            @unique
+  payment           Payment?           @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  /// Same guarantee for Razorpay: one captured Razorpay payment, one period.
+  razorpayPaymentId String?            @unique
+  razorpayPayment   RazorpayPayment?   @relation(fields: [razorpayPaymentId], references: [id], onDelete: SetNull)
   /// Staff member who granted it (source ADMIN). Not a relation, so audit
   /// history survives the staff account.
-  grantedById String?
-  note        String?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  grantedById       String?
+  note              String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([status, expiresAt])
@@ -1451,6 +1455,83 @@ model PaymentEvent {
   @@index([paymentId, createdAt])
   @@index([createdAt(sort: Desc)])
   @@map("payment_events")
+}
+
+/// Razorpay (UPI / card / netbanking) lifecycle on our side. Only PAID grants
+/// Premium; FLAGGED means Razorpay reported something that did not match the
+/// row (amount, currency, order) and it waits for an admin.
+enum RazorpayPaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+  CANCELLED
+  FLAGGED
+}
+
+enum RazorpayChannel {
+  WEB
+  TELEGRAM
+}
+
+/// One Razorpay order (website checkout) or Payment Link (Telegram bot),
+/// created on the server *before* the buyer sees it, so every callback and
+/// webhook is checked against an amount we computed ourselves. Deliberately
+/// holds no personal data: no email, phone, card or UPI details — only ids,
+/// plan, amount and state.
+model RazorpayPayment {
+  id            String                @id @default(cuid())
+  userId        String
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Telegram user id for bot purchases (where the confirmation is sent).
+  telegramId    String?
+  plan          PremiumPlan
+  channel       RazorpayChannel
+  /// Amount in paise, computed from the plan on the server. Never from a client.
+  amount        Int
+  currency      String                @default("INR")
+  /// The plan's USD price at creation time, for reporting.
+  priceUsd      Decimal               @db.Decimal(10, 2)
+  /// Our own unique reference (order receipt / payment link reference_id).
+  referenceId   String                @unique
+  /// Razorpay order id (order_...). Set at creation for WEB, on payment for links.
+  orderId       String?               @unique
+  /// Razorpay payment link id (plink_...) and its hosted URL, TELEGRAM only.
+  paymentLinkId String?               @unique
+  shortUrl      String?
+  /// Razorpay payment id (pay_...). Unique: one payment can settle one row only.
+  paymentId     String?               @unique
+  status        RazorpayPaymentStatus @default(PENDING)
+  flagReason    String?
+  expiresAt     DateTime
+  /// Set exactly once, in the transaction that adds the Premium period.
+  fulfilledAt   DateTime?
+  /// Set when the buyer has been told about an expiry/failure (sent once).
+  notifiedAt    DateTime?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  subscription  Subscription?
+
+  @@index([userId, plan, channel, status])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([status, expiresAt])
+  @@index([createdAt(sort: Desc)])
+  @@map("razorpay_payments")
+}
+
+/// Every Razorpay webhook delivery we accepted (signature valid), keyed by
+/// Razorpay's own event id so retries are recognised. Ids and outcome only,
+/// never the body.
+model RazorpayWebhookEvent {
+  id        String   @id @default(cuid())
+  eventId   String   @unique
+  event     String
+  entityId  String?
+  outcome   String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt(sort: Desc)])
+  @@map("razorpay_webhook_events")
 }
 
 /// Admin-granted access to one premium course for one user, independent of a

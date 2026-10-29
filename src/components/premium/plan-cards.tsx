@@ -23,7 +23,10 @@ const PLAN_POINTS: Record<PlanKey, string[]> = {
  * a signed-out visitor is redirected to /login?next=… and lands back on
  * checkout after signing in, so the flow cannot be skipped from the browser.
  */
-function PlanCard({ plan, renew, next }: { plan: PlanKey; renew: boolean; next: string | null }) {
+/** INR labels per plan, computed on the server (null when UPI/card is unavailable). */
+export type InrLabels = Record<PlanKey, string> | null;
+
+function PlanCard({ plan, renew, next, inr }: { plan: PlanKey; renew: boolean; next: string | null; inr: InrLabels }) {
   const p = PLANS[plan];
   const highlighted = plan === "YEARLY";
   return (
@@ -46,6 +49,11 @@ function PlanCard({ plan, renew, next }: { plan: PlanKey; renew: boolean; next: 
         <span className="font-display text-5xl font-extrabold tracking-tight">${p.priceUsd}</span>
         <span className="text-muted-foreground">/ {p.periodLabel}</span>
       </p>
+      {inr && (
+        <p className="mt-1 text-sm font-medium text-foreground">
+          or {inr[plan]} with UPI / card
+        </p>
+      )}
       {plan === "YEARLY" && (
         <p className="mt-1 text-sm text-muted-foreground">Works out to about $0.83 a month.</p>
       )}
@@ -82,13 +90,15 @@ export function SecureBadge({ className }: { className?: string }) {
       )}
     >
       <ShieldCheck className="h-4 w-4" aria-hidden />
-      Secure crypto payment via NOWPayments
+      Secure checkout · UPI, cards &amp; netbanking via Razorpay · crypto via NOWPayments
     </p>
   );
 }
 
 const STATUS_LABEL: Record<string, { label: string; variant: "success" | "warning" | "destructive" }> = {
   FINISHED: { label: "Paid", variant: "success" },
+  PAID: { label: "Paid", variant: "success" },
+  FLAGGED: { label: "Under review", variant: "warning" },
   PARTIALLY_PAID: { label: "Partially paid", variant: "warning" },
   REFUNDED: { label: "Refunded", variant: "destructive" },
 };
@@ -107,7 +117,7 @@ function useReturnPath(): string | null {
 }
 
 /** Plans for visitors; plan, expiry, renew and history for members. */
-export function PlansOrAccount() {
+export function PlansOrAccount({ inr = null }: { inr?: InrLabels }) {
   const { loading, me } = usePremium();
   const next = useReturnPath();
 
@@ -149,8 +159,8 @@ export function PlansOrAccount() {
         <div>
           <h3 className="mb-6 text-subheading">Renew or extend</h3>
           <div className="grid gap-6 md:grid-cols-2">
-            <PlanCard plan="MONTHLY" renew next={next} />
-            <PlanCard plan="YEARLY" renew next={next} />
+            <PlanCard plan="MONTHLY" renew next={next} inr={inr} />
+            <PlanCard plan="YEARLY" renew next={next} inr={inr} />
           </div>
         </div>
 
@@ -178,7 +188,7 @@ export function PlansOrAccount() {
                         <td className="p-3 whitespace-nowrap">{DATE.format(new Date(p.createdAt))}</td>
                         <td className="p-3">{PLANS[p.plan]?.name ?? p.plan}</td>
                         <td className="p-3 numeric">
-                          ${p.amount} <span className="text-muted-foreground uppercase">· {p.coin}</span>
+                          {p.amountLabel ?? `$${p.amount}`} <span className="text-muted-foreground uppercase">· {p.coin}</span>
                         </td>
                         <td className="p-3">
                           <Badge variant={s.variant}>{s.label}</Badge>
@@ -224,8 +234,8 @@ export function PlansOrAccount() {
       )}
       {next && <ReturnNotice />}
       <div className="grid gap-6 md:grid-cols-2">
-        <PlanCard plan="MONTHLY" renew={Boolean(expired)} next={next} />
-        <PlanCard plan="YEARLY" renew={Boolean(expired)} next={next} />
+        <PlanCard plan="MONTHLY" renew={Boolean(expired)} next={next} inr={inr} />
+        <PlanCard plan="YEARLY" renew={Boolean(expired)} next={next} inr={inr} />
       </div>
     </div>
   );

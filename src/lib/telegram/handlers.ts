@@ -1,7 +1,8 @@
 import "server-only";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createAttributionToken } from "./attribution";
-import { answerCallbackQuery, editMessageText, sendMessage, type InlineKeyboard } from "./api";
+import { answerCallbackQuery, editMessageText, getMe, sendMessage, type InlineKeyboard } from "./api";
+import { addressedText, isGroupChat, type BotIdentity } from "./addressing";
 import { decode, type Callback } from "./callback";
 import {
   getPublishedBotCourseBySlug,
@@ -11,7 +12,7 @@ import {
   listUpcomingPage,
   searchPublishedPage,
 } from "./catalog";
-import { siteUrl, isBotAdmin } from "./config";
+import { siteUrl, isBotAdmin, botUsername } from "./config";
 import { getBranding } from "./branding";
 import { checkMembership, gateEnabled, requiredChannelUrl } from "./membership";
 import {
@@ -24,7 +25,17 @@ import * as render from "./render";
 import { lastSearch, recordEvent, rememberSearch, touchUser, type TelegramFrom } from "./users";
 import { db } from "@/lib/db";
 import { adminHomeScreen, handleAdminCallback, handleAdminInput } from "./admin";
-import { premiumScreen, statusScreen } from "./premium-screens";
+import {
+  parseRzpCallback,
+  premiumScreen,
+  razorpayErrorScreen,
+  razorpayLinkScreen,
+  razorpayNeedsLinkScreen,
+  statusScreen,
+} from "./premium-screens";
+import { inrPricesSafe, supportTelegram } from "@/lib/razorpay-config";
+import { createTelegramLink } from "@/lib/razorpay-payments";
+import { formatInr } from "@/lib/premium-plans";
 import { consumeLinkToken, findLinkedUser, LINK_PREFIX } from "@/lib/telegram-link";
 import { canDownloadDirect, isActiveUntil } from "@/lib/premium";
 import { createHandoffToken } from "@/lib/download-token";
@@ -43,11 +54,12 @@ import { kickFromGroup, mayJoinPremiumGroups } from "@/lib/premium-lapse";
 interface Message {
   message_id: number;
   from?: TelegramFrom;
-  chat: { id: number };
+  chat: { id: number; type?: string };
   text?: string;
+  reply_to_message?: { from?: { id: number } };
   successful_payment?: SuccessfulPayment;
   /** Carries the custom_emoji id when a premium emoji is sent. */
-  entities?: { type: string; offset: number; length: number; custom_emoji_id?: string }[];
+  entities?: { type: string; offset: number; length: number; custom_emoji_id?: string; user?: { id: number } }[];
 }
 interface CallbackQuery {
   id: string;
@@ -169,6 +181,71 @@ async function show(chatId: string, messageId: number | null, screen: Screen): P
   await sendMessage(chatId, screen.text, { replyMarkup: screen.keyboard });
 }
 
+/** Premium plans screen with live prices (INR only when Razorpay is configured). */
+function premiumPlans(): Screen {
+  return premiumScreen(siteUrl(), { inr: inrPricesSafe(), support: supportTelegram() });
+}
+
+/**
+ * Telegram ids with a Razorpay link being created right now. A double tap or
+ * a redelivered callback while the first request is still running is dropped
+ * instead of racing it (the database also allows only one open link per plan).
+ */
+const rzpInflight = new Set<string>();
+
+async function handleRazorpayCallback(
+  q: CallbackQuery,
+  choice: "MONTHLY" | "YEARLY" | "back",
+  telegramId: string,
+  chatId: string,
+  messageId: number | null
+): Promise<void> {
+  if (choice === "back") {
+    await answerCallbackQuery(q.id);
+    await show(chatId, messageId, premiumPlans());
+    return;
+  }
+  // A payment link is personal: never post one into a group.
+  if (chatId !== telegramId) {
+    await answerCallbackQuery(q.id, "Open the bot in a private chat to pay.", true);
+    return;
+  }
+  if (rzpInflight.has(telegramId)) {
+    await answerCallbackQuery(q.id, "Already preparing your payment link…");
+    return;
+  }
+  if (!allow(telegramId, "rzp-tap", 8, 60_000)) {
+    await answerCallbackQuery(q.id, "You're going a bit fast — please wait a moment.", true);
+    return;
+  }
+  const support = supportTelegram();
+  const linked = await findLinkedUser(telegramId);
+  if (!linked) {
+    await answerCallbackQuery(q.id);
+    await show(chatId, messageId, razorpayNeedsLinkScreen(siteUrl()));
+    return;
+  }
+  rzpInflight.add(telegramId);
+  try {
+    await answerCallbackQuery(q.id, "Preparing your secure payment link…");
+    const res = await createTelegramLink(linked.id, telegramId, choice);
+    if (!res.ok) {
+      await show(chatId, messageId, razorpayErrorScreen(res.error, support));
+      return;
+    }
+    await show(
+      chatId,
+      messageId,
+      razorpayLinkScreen(siteUrl(), { url: res.url, plan: res.plan, amountLabel: formatInr(res.amount), expiresAt: res.expiresAt }, support)
+    );
+  } catch (err) {
+    console.error("[telegram] razorpay link failed:", err instanceof Error ? err.message : "unknown");
+    await show(chatId, messageId, razorpayErrorScreen("We couldn't create your payment link just now. Please try again in a moment.", support));
+  } finally {
+    rzpInflight.delete(telegramId);
+  }
+}
+
 async function screenFor(cb: Callback, userId: string, b: Branding): Promise<Screen> {
   switch (cb.kind) {
     case "home":
@@ -228,6 +305,15 @@ async function handleCallback(q: CallbackQuery): Promise<void> {
 
   // Admin callbacks live in their own namespace and re-check the id themselves.
   if (await handleAdminCallback(q, telegramId, user.id)) return;
+
+  // Buying Premium is about the user's own account, so like /premium it is
+  // never behind the channel gate. The callback carries only a plan key; the
+  // price is computed on the server.
+  const rzpChoice = parseRzpCallback(q.data);
+  if (rzpChoice) {
+    await handleRazorpayCallback(q, rzpChoice, telegramId, chatId, messageId);
+    return;
+  }
 
   const branding = await getBranding();
   if (q.data === "mb:v") {
@@ -324,10 +410,41 @@ async function handleCallback(q: CallbackQuery): Promise<void> {
   await show(chatId, messageId, await screenFor(cb, user.id, branding));
 }
 
+let identity: Promise<BotIdentity | null> | null = null;
+
+/** The bot's own id and username, fetched once per process. */
+function botIdentity(): Promise<BotIdentity | null> {
+  identity ??= getMe().then((r) => {
+    if (r.ok) return { id: r.result.id, username: r.result.username };
+    identity = null; // retry on the next group message
+    const username = botUsername()?.replace(/^@/, "");
+    const id = Number(process.env.TELEGRAM_BOT_TOKEN?.split(":")[0]);
+    return username && id ? { id, username } : null;
+  });
+  return identity;
+}
+
 async function handleMessage(m: Message): Promise<void> {
   if (!m.from) return;
   const telegramId = String(m.from.id);
   const chatId = String(m.chat.id);
+
+  // In a group, stay silent unless the message is meant for the bot: a
+  // mention, a reply to the bot, or a command. Checked before rate limiting
+  // and user tracking so ordinary group chatter costs nothing. A payment
+  // receipt is never chatter and always goes through.
+  let rawText = m.text;
+  let entities = m.entities;
+  if (isGroupChat(m.chat.type) && !m.successful_payment) {
+    const bot = await botIdentity();
+    if (!bot) return;
+    const addressed = addressedText(m, bot);
+    if (addressed === null) return;
+    // Offsets no longer match once a mention is cut out. A bare "@bot" with
+    // nothing else gets the help screen.
+    if (addressed !== rawText) entities = undefined;
+    rawText = addressed || "/help";
+  }
 
   if (!allow(telegramId, "msg", 20, 60_000)) return;
 
@@ -345,12 +462,12 @@ async function handleMessage(m: Message): Promise<void> {
     return;
   }
 
-  const text = (m.text ?? "").slice(0, MAX_TEXT).trim();
+  const text = (rawText ?? "").slice(0, MAX_TEXT).trim();
   if (!text) return;
 
   // A half-finished admin edit consumes the next message before anything else,
   // otherwise "send me the new label" would be treated as a course search.
-  if (await handleAdminInput(telegramId, user.id, chatId, text, m.entities)) return;
+  if (await handleAdminInput(telegramId, user.id, chatId, text, entities)) return;
 
   // A pending custom-amount entry consumes the next plain message.
   if (!text.startsWith("/") && (await isDonateWaiting(user.id))) {
@@ -394,7 +511,7 @@ async function handleMessage(m: Message): Promise<void> {
       ));
     }
     if (cmd === "premium") {
-      return void (await show(chatId, null, premiumScreen(siteUrl())));
+      return void (await show(chatId, null, premiumPlans()));
     }
     // Public links: never behind the channel gate or Premium.
     if (cmd === "community") {

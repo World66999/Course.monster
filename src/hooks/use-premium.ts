@@ -18,6 +18,8 @@ export interface PremiumPayment {
   coin: string;
   status: string;
   createdAt: string;
+  /** Preformatted amount (e.g. "₹1,000") for non-USD payments. */
+  amountLabel?: string;
 }
 
 export interface PremiumMe {

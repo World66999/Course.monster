@@ -10,6 +10,9 @@ import { safeReturnPath } from "@/lib/return-path";
 import { Section } from "@/components/site/section";
 import { CheckoutForm } from "@/components/premium/checkout-form";
 import { SecureBadge } from "@/components/premium/plan-cards";
+import { RazorpayCheckout } from "@/components/premium/razorpay-checkout";
+import { PaymentMethodTabs } from "@/components/premium/payment-method-tabs";
+import { inrPricesSafe, supportTelegram } from "@/lib/razorpay-config";
 
 export const metadata: Metadata = { title: "Checkout — Premium", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -18,6 +21,7 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 export default async function CheckoutPage({ searchParams }: { searchParams: SearchParams }) {
   const raw = await searchParams;
+  const methodParam = Array.isArray(raw.method) ? raw.method[0] : raw.method;
   const planParam = Array.isArray(raw.plan) ? raw.plan[0] : raw.plan;
   const plan: PlanKey = isPlanKey(planParam) ? planParam : "YEARLY";
   // The page a "Skip ads" click came from; buyers go back there once paid.
@@ -41,6 +45,8 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Sea
     MONTHLY: monthly.map(toCheckoutCoin),
     YEARLY: yearly.map(toCheckoutCoin),
   };
+  const inr = inrPricesSafe();
+  const support = supportTelegram();
 
   return (
     <Section className="max-w-2xl py-12 sm:py-16">
@@ -53,7 +59,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Sea
       </Link>
       <h1 className="text-title">Checkout</h1>
       <p className="mt-2 text-muted-foreground">
-        Choose your plan and a coin. You&apos;ll pay on NOWPayments&apos; secure hosted page, and Premium
+        Pay in INR with UPI, card or netbanking through Razorpay, or in crypto through NOWPayments. Premium
         activates automatically once the payment is confirmed.
       </p>
       {next && (
@@ -67,8 +73,18 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Sea
         </p>
       )}
       <div className="mt-8">
-        <CheckoutForm initialPlan={plan} coinsByPlan={coinsByPlan} configured={configured} returnPath={next} />
+        <PaymentMethodTabs
+          initial={methodParam === "crypto" || !inr ? "crypto" : "razorpay"}
+          razorpay={<RazorpayCheckout initialPlan={plan} prices={inr} support={support} returnPath={next} />}
+          crypto={<CheckoutForm initialPlan={plan} coinsByPlan={coinsByPlan} configured={configured} returnPath={next} />}
+        />
       </div>
+      <p className="mt-6 text-center text-xs text-muted-foreground">
+        Digital product. All sales are final. No refunds. See our{" "}
+        <Link href="/terms" className="underline underline-offset-2">Terms</Link>,{" "}
+        <Link href="/refund-policy" className="underline underline-offset-2">Refund Policy</Link> and{" "}
+        <Link href="/privacy" className="underline underline-offset-2">Privacy Policy</Link>.
+      </p>
       <div className="mt-8 flex justify-center">
         <SecureBadge />
       </div>

@@ -12,6 +12,9 @@ import { callTelegram } from "@/lib/telegram/api";
 import { isActiveUntil } from "@/lib/premium";
 import { isStaff } from "@/lib/roles";
 import { cleanText } from "@/lib/sanitize";
+import { confirmWebCheckout, createWebOrder, type ConfirmResult, type WebOrderResult } from "@/lib/razorpay-payments";
+import { isRazorpayConfigured } from "@/lib/razorpay-config";
+import { isSameOrigin } from "@/server/same-origin";
 
 /**
  * Member-facing Premium actions. Server actions get Next.js's built-in CSRF
@@ -39,6 +42,63 @@ export async function createCheckoutAction(
   const result = await createCheckout({ userId: auth.user.id, plan, coin, returnPath });
   if (!result.ok) return result;
   return { ok: true, invoiceUrl: result.invoiceUrl };
+}
+
+const razorpayOrderSchema = z.object({
+  plan: z.enum(["MONTHLY", "YEARLY"]),
+  // The Terms / No Refund Policy checkbox must be ticked; enforced here too.
+  agreed: z.literal(true),
+});
+
+/**
+ * Starts a Razorpay checkout. Only the plan key comes from the browser: the
+ * amount and currency are computed on the server from the plan, and the order
+ * is bound to the signed-in account.
+ */
+export async function createRazorpayOrderAction(input: unknown): Promise<WebOrderResult | { ok: false; error: string; code?: string }> {
+  if (!(await isSameOrigin())) return { ok: false, error: "Please reload the page and try again." };
+  const auth = await requireUserSafe();
+  if (!auth.ok) return { ok: false, error: auth.error, code: "auth" };
+  const parsed = razorpayOrderSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Please choose a plan and accept the Terms and the No Refund Policy." };
+  }
+  if (!isRazorpayConfigured()) return { ok: false, error: "UPI / card payments are temporarily unavailable." };
+  try {
+    return await createWebOrder(auth.user.id, parsed.data.plan, hashIp(await getClientIp()));
+  } catch (err) {
+    console.error("[razorpay] order action failed:", err instanceof Error ? err.message : "unknown");
+    return { ok: false, error: "We couldn't start the payment just now. Please try again in a moment." };
+  }
+}
+
+const razorpayConfirmSchema = z.object({
+  orderId: z.string().regex(/^order_[A-Za-z0-9]{6,40}$/),
+  paymentId: z.string().regex(/^pay_[A-Za-z0-9]{6,40}$/),
+  signature: z.string().regex(/^[0-9a-f]{64}$/i),
+});
+
+/**
+ * Called by Razorpay Checkout's success handler. The browser's word is only a
+ * pointer: the signature is verified, then the payment is fetched from
+ * Razorpay and checked against our order before Premium is granted.
+ */
+export async function confirmRazorpayPaymentAction(input: unknown): Promise<ConfirmResult | { ok: false; error: string; code?: string }> {
+  if (!(await isSameOrigin())) return { ok: false, error: "Please reload the page and try again." };
+  const auth = await requireUserSafe();
+  if (!auth.ok) return { ok: false, error: auth.error, code: "auth" };
+  const parsed = razorpayConfirmSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "We couldn't verify this payment." };
+  if (limited(`rzp-confirm:${auth.user.id}`, 20, 10 * 60_000)) {
+    return { ok: false, error: "Too many attempts. Please wait a few minutes — if you paid, Premium activates automatically." };
+  }
+  try {
+    return await confirmWebCheckout(auth.user.id, parsed.data);
+  } catch (err) {
+    console.error("[razorpay] confirm action failed:", err instanceof Error ? err.message : "unknown");
+    // A transient fault (Razorpay API, database). The webhook will still settle it.
+    return { ok: true, state: "pending" };
+  }
 }
 
 export async function createTelegramLinkAction(): Promise<Result<{ url: string }>> {
