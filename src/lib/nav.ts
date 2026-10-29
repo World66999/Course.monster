@@ -22,13 +22,11 @@ export const NAV_LINKS = [
     children: [
       { href: "/premium", label: "Premium Plans" },
       { href: "/premium-resources", label: "Premium Resources" },
-      { href: "/premium-chats", label: "Premium Chats" },
+      { href: "/premium-chats", label: "Telegram Groups" },
       { href: "/premium/support", label: "Purchase Support" },
     ],
   },
-  { href: "/requests", label: "Requests" },
   { href: "/downloader", label: "Downloader" },
-  { href: "/chat", label: "Chat" },
   { href: "/how-to-download", label: "How to Download" },
 ] as const;
 

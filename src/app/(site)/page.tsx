@@ -331,8 +331,8 @@ export default async function HomePage() {
                   Explore courses
                   <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" aria-hidden />
                 </Link>
-                <Link href="/requests" className={buttonClasses("outline", "lg")}>
-                  Request a course
+                <Link href="/how-to-download" className={buttonClasses("outline", "lg")}>
+                  How to download
                 </Link>
               </div>
             </div>

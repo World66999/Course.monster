@@ -13,7 +13,7 @@ export const revalidate = 3600;
  * fails *completely* rather than gracefully. And each list is otherwise a full
  * table scan materialised in Node on a cache miss.
  *
- * `requests` and `resources` were already capped at 5000; courses, categories,
+ * `resources` was already capped at 5000; courses, categories,
  * channels and apps were not, which looks like an oversight rather than a
  * decision — six sections at 5000 each stays comfortably inside the limit. If
  * any section genuinely approaches this, the fix is to split into a sitemap
@@ -24,7 +24,7 @@ const SECTION_LIMIT = 5000;
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // One round trip's worth of latency, not six. These queries are independent
   // and were previously awaited one after another.
-  const [courses, categories, requests, channels, resources, apps] = await Promise.all([
+  const [courses, categories, channels, resources, apps] = await Promise.all([
     db.course.findMany({
       where: { published: true },
       select: { slug: true, updatedAt: true },
@@ -34,12 +34,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     db.category.findMany({
       where: { courses: { some: { published: true } } },
       select: { slug: true, updatedAt: true },
-      take: SECTION_LIMIT,
-    }),
-    db.courseRequest.findMany({
-      where: { moderationStatus: "VISIBLE" },
-      select: { slug: true, updatedAt: true },
-      orderBy: { createdAt: "desc" },
       take: SECTION_LIMIT,
     }),
     db.codingChannel.findMany({
@@ -65,7 +59,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     { url: absoluteUrl(), changeFrequency: "daily", priority: 1 },
     { url: absoluteUrl("/courses"), changeFrequency: "daily", priority: 0.9 },
-    { url: absoluteUrl("/requests"), changeFrequency: "daily", priority: 0.8 },
     { url: absoluteUrl("/coding-channels"), changeFrequency: "weekly", priority: 0.7 },
     { url: absoluteUrl("/learn"), changeFrequency: "daily", priority: 0.8 },
     { url: absoluteUrl("/apps"), changeFrequency: "weekly", priority: 0.7 },
@@ -94,12 +87,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: c.updatedAt,
       changeFrequency: "weekly" as const,
       priority: 0.8,
-    })),
-    ...requests.map((r) => ({
-      url: absoluteUrl(`/requests/${r.slug}`),
-      lastModified: r.updatedAt,
-      changeFrequency: "weekly" as const,
-      priority: 0.5,
     })),
     ...channels.map((c) => ({
       url: absoluteUrl(`/coding-channels/${c.slug}`),

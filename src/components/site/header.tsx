@@ -7,7 +7,6 @@ import { MobileNav } from "@/components/site/mobile-nav";
 import { NavLinks } from "@/components/site/nav-links";
 import { StickyHeader } from "@/components/site/sticky-header";
 import { UserMenu } from "@/components/site/user-menu";
-import { NotificationBell } from "@/components/site/notification-bell";
 import { buttonClasses } from "@/components/ui/button";
 import { PremiumHeaderLink } from "@/components/premium/header-link";
 
@@ -87,7 +86,6 @@ export function Header({ settings }: { settings: SiteSettings }) {
           <div className="flex items-center gap-0.5 sm:gap-1.5">
             <PremiumHeaderLink className="mr-0.5 sm:mr-1" />
             <SearchDialog />
-            <NotificationBell />
             <ThemeToggle />
             <div className="hidden sm:block">
               <UserMenu />
