@@ -4,6 +4,7 @@ import { siteUrl } from "@/lib/telegram/config";
 import { notifyUser } from "@/lib/telegram/notify";
 import { onPremiumLost } from "@/lib/premium-lapse";
 import { PLANS } from "@/lib/premium-plans";
+import { sweepExpiredRazorpay } from "@/lib/razorpay-payments";
 
 /**
  * Scheduled Premium housekeeping: mark lapsed periods EXPIRED, clean up what
@@ -28,7 +29,9 @@ function fmt(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-export async function runPremiumJobs(now = new Date()): Promise<{ expired: number; reminded3d: number; reminded1d: number }> {
+export async function runPremiumJobs(
+  now = new Date()
+): Promise<{ expired: number; reminded3d: number; reminded1d: number; razorpayExpired: number }> {
   // 1. Expire lapsed periods, and tell users whose *last* period just ended.
   const lapsed = await db.subscription.findMany({
     where: { status: "ACTIVE", expiresAt: { lte: now } },
@@ -101,7 +104,14 @@ export async function runPremiumJobs(now = new Date()): Promise<{ expired: numbe
     );
   }
 
-  return { expired, reminded3d: remind3.length, reminded1d: remind1.length };
+  // 3. Close Razorpay orders/links past their window (and tell bot buyers).
+  // Isolated so a problem there never stops the expiry and reminder work.
+  const razorpayExpired = await sweepExpiredRazorpay(now).catch((err) => {
+    console.error("[premium-jobs] razorpay sweep failed:", err instanceof Error ? err.message : err);
+    return 0;
+  });
+
+  return { expired, reminded3d: remind3.length, reminded1d: remind1.length, razorpayExpired };
 }
 
 let started = false;
@@ -114,7 +124,7 @@ export function startPremiumScheduler(): void {
   const tick = () => {
     runPremiumJobs()
       .then((r) => {
-        if (r.expired || r.reminded3d || r.reminded1d) console.info("[premium-jobs]", r);
+        if (r.expired || r.reminded3d || r.reminded1d || r.razorpayExpired) console.info("[premium-jobs]", r);
       })
       .catch((err) => console.error("[premium-jobs] run failed:", err instanceof Error ? err.message : err));
   };

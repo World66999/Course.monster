@@ -1,8 +1,7 @@
 /**
  * Registry of the site's standalone (admin-editable) pages.
  * Each page lives in the `pages` table keyed by slug; content is Markdown.
- * Adding an entry here makes it editable in Admin → Pages and rendered at
- * its public path (how-to-download and contact have their own dedicated routes).
+ * Adding an entry to STANDALONE_PAGES makes it editable in Admin → Pages.
  */
 export const STANDALONE_PAGES = [
   {
@@ -10,6 +9,38 @@ export const STANDALONE_PAGES = [
     title: "How to Download",
     path: "/how-to-download",
     description: "Step-by-step guide to downloading any course from this site.",
+  },
+] as const;
+
+export type StandalonePage = (typeof STANDALONE_PAGES)[number];
+export type PageSlug = StandalonePage["slug"];
+
+export const PAGE_SLUGS = STANDALONE_PAGES.map((p) => p.slug) as [PageSlug, ...PageSlug[]];
+
+/**
+ * Legal and contact pages. Written in code (src/lib/legal-content.ts), not in
+ * the admin-editable `pages` table: they state the payment, refund and
+ * privacy terms the checkout relies on, and the only contact they may show is
+ * the SUPPORT_TELEGRAM handle — no email, phone or address.
+ */
+export const LEGAL_PAGES = [
+  {
+    slug: "terms",
+    title: "Terms & Conditions",
+    path: "/terms",
+    description: "The terms that apply when you use Courses Monster and buy Premium.",
+  },
+  {
+    slug: "privacy",
+    title: "Privacy Policy",
+    path: "/privacy",
+    description: "What data Courses Monster collects, why, and how it is protected.",
+  },
+  {
+    slug: "refund-policy",
+    title: "Refund Policy",
+    path: "/refund-policy",
+    description: "All Courses Monster purchases are digital and non-refundable.",
   },
   {
     slug: "copyright",
@@ -19,43 +50,18 @@ export const STANDALONE_PAGES = [
       "Copyright policy and takedown process for rights holders. How to report content and request removal.",
   },
   {
-    slug: "terms",
-    title: "Terms of Use",
-    path: "/terms",
-    description: "The terms that apply when you use this website.",
-  },
-  {
-    slug: "privacy",
-    title: "Privacy Policy",
-    path: "/privacy",
-    description: "What data this website collects, why, and how it is protected.",
-  },
-  {
     slug: "contact",
-    title: "Contact",
+    title: "Contact Us",
     path: "/contact",
-    description: "How to reach the Courses Monster team, including for copyright matters.",
+    description: "How to reach the Courses Monster team on Telegram.",
   },
 ] as const;
 
-export type StandalonePage = (typeof STANDALONE_PAGES)[number];
-export type PageSlug = StandalonePage["slug"];
+export type LegalPage = (typeof LEGAL_PAGES)[number];
 
-export const PAGE_SLUGS = STANDALONE_PAGES.map((p) => p.slug) as [PageSlug, ...PageSlug[]];
+/** Pages linked from the footer's legal row and listed in the sitemap. */
+export const GENERIC_PAGES = LEGAL_PAGES;
 
-/** Pages linked from the footer's legal row (all except how-to-download). */
-export const GENERIC_PAGES = STANDALONE_PAGES.filter((p) => p.slug !== "how-to-download");
-
-/** Pages rendered by the generic /(site)/[slug] route. Contact has a dedicated route. */
-export const SLUG_ROUTE_PAGES = GENERIC_PAGES.filter((p) => p.slug !== "contact");
-
-/**
- * Business contact address. Inbound only: it is a Cloudflare Email Routing
- * forward, so there is no outgoing mail server behind it and the site links to
- * it with mailto: rather than sending anything itself.
- */
-export const CONTACT_EMAIL = "founder@courses.monster";
-
-export function getPageMeta(slug: string): StandalonePage | undefined {
-  return STANDALONE_PAGES.find((p) => p.slug === slug);
+export function getPageMeta(slug: string): StandalonePage | LegalPage | undefined {
+  return [...STANDALONE_PAGES, ...LEGAL_PAGES].find((p) => p.slug === slug);
 }

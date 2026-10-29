@@ -1,7 +1,7 @@
 import "server-only";
 import type { InlineKeyboard } from "./api";
 import { esc } from "./render";
-import { PLANS } from "@/lib/premium-plans";
+import { NO_REFUND_NOTICE, PLANS, type PlanKey } from "@/lib/premium-plans";
 import { isActiveUntil } from "@/lib/premium";
 
 /**
@@ -17,9 +17,45 @@ interface Screen {
 
 const DATE = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 
-export function premiumScreen(site: string): Screen {
+export interface PayOptions {
+  /** INR labels per plan; null hides the UPI / card buttons. */
+  inr: Record<PlanKey, { label: string }> | null;
+  support: { handle: string; url: string } | null;
+}
+
+/** Callback data for the Razorpay buttons. Carries only the plan key. */
+export const RZP_CALLBACK = { MONTHLY: "rz:m", YEARLY: "rz:y", back: "rz:back" } as const;
+
+export function parseRzpCallback(data: string | undefined): PlanKey | "back" | null {
+  if (data === RZP_CALLBACK.MONTHLY) return "MONTHLY";
+  if (data === RZP_CALLBACK.YEARLY) return "YEARLY";
+  if (data === RZP_CALLBACK.back) return "back";
+  return null;
+}
+
+function price(plan: PlanKey, inr: PayOptions["inr"]): string {
+  const p = PLANS[plan];
+  return `$${p.priceUsd}${inr ? ` (${inr[plan].label})` : ""}`;
+}
+
+function supportLine(support: PayOptions["support"]): string {
+  return support ? `\nSupport: ${esc(support.handle)}` : "";
+}
+
+export function premiumScreen(site: string, opts: PayOptions = { inr: null, support: null }): Screen {
   const m = PLANS.MONTHLY;
   const y = PLANS.YEARLY;
+  const { inr, support } = opts;
+  const keyboard: InlineKeyboard = [];
+  if (inr) {
+    keyboard.push([{ text: `💳 Pay with UPI / Card (Razorpay) — ${y.name} ${inr.YEARLY.label}`, callback_data: RZP_CALLBACK.YEARLY, style: "success" }]);
+  }
+  keyboard.push([{ text: `🪙 Pay with Crypto — ${y.name} $${y.priceUsd}`, url: `${site}/premium/checkout?plan=YEARLY&method=crypto` }]);
+  if (inr) {
+    keyboard.push([{ text: `💳 Pay with UPI / Card (Razorpay) — ${m.name} ${inr.MONTHLY.label}`, callback_data: RZP_CALLBACK.MONTHLY }]);
+  }
+  keyboard.push([{ text: `🪙 Pay with Crypto — ${m.name} $${m.priceUsd}`, url: `${site}/premium/checkout?plan=MONTHLY&method=crypto` }]);
+  keyboard.push([{ text: "See everything Premium includes", url: `${site}/premium` }]);
   return {
     text:
       "👑 <b>Courses Monster Premium</b>\n\n" +
@@ -27,14 +63,65 @@ export function premiumScreen(site: string): Screen {
       "• Premium courses and Premium Resources\n" +
       "• Members-only chats\n" +
       "• Priority support\n\n" +
-      `<b>${m.name}</b> — $${m.priceUsd} / ${m.periodLabel}\n` +
-      `<b>${y.name}</b> — $${y.priceUsd} / ${y.periodLabel}  (${esc(y.badge ?? "")})\n\n` +
-      "Payment is in crypto through NOWPayments. Tap a plan to continue on the website.",
+      `<b>${y.name}</b> — ${price("YEARLY", inr)} / ${y.periodLabel}  (${esc(y.badge ?? "")})\n` +
+      `<b>${m.name}</b> — ${price("MONTHLY", inr)} / ${m.periodLabel}\n\n` +
+      (inr
+        ? "Pay in INR with UPI, card or netbanking (Razorpay), or in crypto (NOWPayments).\n\n"
+        : "Payment is in crypto through NOWPayments. Tap a plan to continue on the website.\n\n") +
+      `⚠️ <b>${esc(NO_REFUND_NOTICE)}</b>` +
+      supportLine(support),
+    keyboard,
+  };
+}
+
+const TIME = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC", hour12: false });
+
+/** Shown with a fresh (or reused) Razorpay Payment Link. */
+export function razorpayLinkScreen(
+  site: string,
+  link: { url: string; plan: PlanKey; amountLabel: string; expiresAt: Date },
+  support: PayOptions["support"]
+): Screen {
+  const p = PLANS[link.plan];
+  const minutes = Math.max(1, Math.round((link.expiresAt.getTime() - Date.now()) / 60_000));
+  return {
+    text:
+      "💳 <b>Pay with UPI / Card</b>\n\n" +
+      `Plan: <b>Premium ${esc(p.name)}</b> (1 ${p.periodLabel})\n` +
+      `Price: <b>${esc(link.amountLabel)}</b> ($${p.priceUsd})\n` +
+      `Link valid for: <b>${minutes} min</b> (until ${TIME.format(link.expiresAt)} UTC)\n\n` +
+      "Tap the button below to pay securely on Razorpay with UPI, card or netbanking. " +
+      "Premium activates automatically once the payment is confirmed — we'll message you here.\n\n" +
+      `⚠️ <b>${esc(NO_REFUND_NOTICE)}</b>\nBy paying you agree to our Terms and No Refund Policy.` +
+      supportLine(support),
     keyboard: [
-      [{ text: `${y.name} — $${y.priceUsd} · Best value`, url: `${site}/premium/checkout?plan=YEARLY`, style: "success" }],
-      [{ text: `${m.name} — $${m.priceUsd}`, url: `${site}/premium/checkout?plan=MONTHLY` }],
-      [{ text: "See everything Premium includes", url: `${site}/premium` }],
+      [{ text: `Pay ${link.amountLabel} securely`, url: link.url, style: "success" }],
+      [
+        { text: "Terms", url: `${site}/terms` },
+        { text: "No Refund Policy", url: `${site}/refund-policy` },
+      ],
+      [{ text: "« Back to plans", callback_data: RZP_CALLBACK.back }],
     ],
+  };
+}
+
+export function razorpayNeedsLinkScreen(site: string): Screen {
+  return {
+    text:
+      "🔗 <b>Link your account first</b>\n\n" +
+      "Premium belongs to your website account, so it works on the site and here. " +
+      "Sign in on the website, open <b>Account → Telegram</b> and tap <b>Connect Telegram</b> — then come back and tap the plan again.",
+    keyboard: [
+      [{ text: "Open my account", url: `${site}/account#telegram` }],
+      [{ text: "« Back to plans", callback_data: RZP_CALLBACK.back }],
+    ],
+  };
+}
+
+export function razorpayErrorScreen(message: string, support: PayOptions["support"]): Screen {
+  return {
+    text: `⚠️ ${esc(message)}` + (support ? `\n\nIf this keeps happening, message ${esc(support.handle)}.` : ""),
+    keyboard: [[{ text: "« Back to plans", callback_data: RZP_CALLBACK.back }]],
   };
 }
 

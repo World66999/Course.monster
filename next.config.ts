@@ -18,20 +18,20 @@ export const securityHeaders = [
  // friends), which this site does not use — so it cost features for nothing.
  // tests/security-headers.test.ts keeps it out.
  {
- // Allows self-hosted assets, Cloudflare Turnstile + Web Analytics and Google
- // Analytics only.
+ // Allows self-hosted assets, Cloudflare Turnstile + Web Analytics, Google
+ // Analytics and Razorpay Checkout (script, iframe, its API) only.
  key: "Content-Security-Policy",
  value: [
  "default-src 'self'",
- "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://www.googletagmanager.com https://static.cloudflareinsights.com",
+ "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://www.googletagmanager.com https://static.cloudflareinsights.com https://checkout.razorpay.com",
  "style-src 'self' 'unsafe-inline'",
  "img-src 'self' data: blob: https:",
  "font-src 'self' data:",
- "connect-src 'self' https://challenges.cloudflare.com https://www.google-analytics.com https://cloudflareinsights.com",
- "frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com",
+ "connect-src 'self' https://challenges.cloudflare.com https://www.google-analytics.com https://cloudflareinsights.com https://api.razorpay.com https://lumberjack.razorpay.com",
+ "frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com https://api.razorpay.com https://checkout.razorpay.com",
  "object-src 'none'",
  "base-uri 'self'",
- "form-action 'self'",
+ "form-action 'self' https://api.razorpay.com",
  "frame-ancestors 'none'",
  ].join("; "),
  },
@@ -53,6 +53,13 @@ const nextConfig: NextConfig = {
  // never cache it, so installed copies pick up the replacement promptly.
  source: "/sw.js",
  headers: [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }],
+ },
+ {
+ // Razorpay Checkout opens bank / UPI windows that must be able to report
+ // back to the page; strict same-origin COOP would cut them off. Checkout
+ // only — every other page keeps "same-origin". Later rules override.
+ source: "/premium/checkout",
+ headers: [{ key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" }],
  },
  {
  source: "/go/:token*",

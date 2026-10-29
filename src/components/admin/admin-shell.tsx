@@ -30,6 +30,7 @@ import {
   Gem,
   LifeBuoy,
   MessagesSquare,
+  CreditCard,
 } from "lucide-react";
 import { logoutAction } from "@/server/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -51,6 +52,7 @@ const NAV = [
   { href: adminPath("ai-platforms"), label: "AI Platforms", icon: Sparkles },
   { href: adminPath("users"), label: "Users", icon: Users },
   { href: adminPath("premium"), label: "Payments & Premium", icon: Crown, exact: true },
+  { href: adminPath("razorpay"), label: "Razorpay Payments", icon: CreditCard },
   { href: adminPath("premium-resources"), label: "Premium Resources", icon: Gem },
   { href: adminPath("premium-chats"), label: "Premium Chats", icon: MessagesSquare },
   { href: adminPath("support"), label: "Support Inbox", icon: LifeBuoy },

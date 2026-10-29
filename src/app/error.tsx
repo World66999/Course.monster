@@ -34,19 +34,10 @@ export default function ErrorBoundary({
  <RotateCcw className="h-4 w-4" aria-hidden />
  Try again
  </Button>
- <Button
- variant="outline"
- size="lg"
- onClick={() => {
- const body = encodeURIComponent(
- `Error digest: ${error.digest ?? "none"}\nMessage: ${error.message}\n\nPage: ${typeof window !== "undefined" ? window.location.href : "unknown"}\nTime: ${new Date().toISOString()}`
- );
- window.open(`mailto:support@example.com?subject=Site Error&body=${body}`);
- }}
- >
+ <Link href="/contact" className={buttonClasses("outline", "lg")}>
  <Bug className="h-4 w-4" aria-hidden />
- Report
- </Button>
+ Report on Telegram
+ </Link>
  <Link href="/" className={buttonClasses("outline", "lg")}>
  <Home className="h-4 w-4" aria-hidden />
  Back home

@@ -25,7 +25,17 @@ import * as render from "./render";
 import { lastSearch, recordEvent, rememberSearch, touchUser, type TelegramFrom } from "./users";
 import { db } from "@/lib/db";
 import { adminHomeScreen, handleAdminCallback, handleAdminInput } from "./admin";
-import { premiumScreen, statusScreen } from "./premium-screens";
+import {
+  parseRzpCallback,
+  premiumScreen,
+  razorpayErrorScreen,
+  razorpayLinkScreen,
+  razorpayNeedsLinkScreen,
+  statusScreen,
+} from "./premium-screens";
+import { inrPricesSafe, supportTelegram } from "@/lib/razorpay-config";
+import { createTelegramLink } from "@/lib/razorpay-payments";
+import { formatInr } from "@/lib/premium-plans";
 import { consumeLinkToken, findLinkedUser, LINK_PREFIX } from "@/lib/telegram-link";
 import { canDownloadDirect, isActiveUntil } from "@/lib/premium";
 import { createHandoffToken } from "@/lib/download-token";
@@ -171,6 +181,71 @@ async function show(chatId: string, messageId: number | null, screen: Screen): P
   await sendMessage(chatId, screen.text, { replyMarkup: screen.keyboard });
 }
 
+/** Premium plans screen with live prices (INR only when Razorpay is configured). */
+function premiumPlans(): Screen {
+  return premiumScreen(siteUrl(), { inr: inrPricesSafe(), support: supportTelegram() });
+}
+
+/**
+ * Telegram ids with a Razorpay link being created right now. A double tap or
+ * a redelivered callback while the first request is still running is dropped
+ * instead of racing it (the database also allows only one open link per plan).
+ */
+const rzpInflight = new Set<string>();
+
+async function handleRazorpayCallback(
+  q: CallbackQuery,
+  choice: "MONTHLY" | "YEARLY" | "back",
+  telegramId: string,
+  chatId: string,
+  messageId: number | null
+): Promise<void> {
+  if (choice === "back") {
+    await answerCallbackQuery(q.id);
+    await show(chatId, messageId, premiumPlans());
+    return;
+  }
+  // A payment link is personal: never post one into a group.
+  if (chatId !== telegramId) {
+    await answerCallbackQuery(q.id, "Open the bot in a private chat to pay.", true);
+    return;
+  }
+  if (rzpInflight.has(telegramId)) {
+    await answerCallbackQuery(q.id, "Already preparing your payment link…");
+    return;
+  }
+  if (!allow(telegramId, "rzp-tap", 8, 60_000)) {
+    await answerCallbackQuery(q.id, "You're going a bit fast — please wait a moment.", true);
+    return;
+  }
+  const support = supportTelegram();
+  const linked = await findLinkedUser(telegramId);
+  if (!linked) {
+    await answerCallbackQuery(q.id);
+    await show(chatId, messageId, razorpayNeedsLinkScreen(siteUrl()));
+    return;
+  }
+  rzpInflight.add(telegramId);
+  try {
+    await answerCallbackQuery(q.id, "Preparing your secure payment link…");
+    const res = await createTelegramLink(linked.id, telegramId, choice);
+    if (!res.ok) {
+      await show(chatId, messageId, razorpayErrorScreen(res.error, support));
+      return;
+    }
+    await show(
+      chatId,
+      messageId,
+      razorpayLinkScreen(siteUrl(), { url: res.url, plan: res.plan, amountLabel: formatInr(res.amount), expiresAt: res.expiresAt }, support)
+    );
+  } catch (err) {
+    console.error("[telegram] razorpay link failed:", err instanceof Error ? err.message : "unknown");
+    await show(chatId, messageId, razorpayErrorScreen("We couldn't create your payment link just now. Please try again in a moment.", support));
+  } finally {
+    rzpInflight.delete(telegramId);
+  }
+}
+
 async function screenFor(cb: Callback, userId: string, b: Branding): Promise<Screen> {
   switch (cb.kind) {
     case "home":
@@ -230,6 +305,15 @@ async function handleCallback(q: CallbackQuery): Promise<void> {
 
   // Admin callbacks live in their own namespace and re-check the id themselves.
   if (await handleAdminCallback(q, telegramId, user.id)) return;
+
+  // Buying Premium is about the user's own account, so like /premium it is
+  // never behind the channel gate. The callback carries only a plan key; the
+  // price is computed on the server.
+  const rzpChoice = parseRzpCallback(q.data);
+  if (rzpChoice) {
+    await handleRazorpayCallback(q, rzpChoice, telegramId, chatId, messageId);
+    return;
+  }
 
   const branding = await getBranding();
   if (q.data === "mb:v") {
@@ -427,7 +511,7 @@ async function handleMessage(m: Message): Promise<void> {
       ));
     }
     if (cmd === "premium") {
-      return void (await show(chatId, null, premiumScreen(siteUrl())));
+      return void (await show(chatId, null, premiumPlans()));
     }
     // Public links: never behind the channel gate or Premium.
     if (cmd === "community") {

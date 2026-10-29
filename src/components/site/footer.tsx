@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Mail, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import type { SiteSettings } from "@/lib/settings-schema";
-import { CONTACT_EMAIL, GENERIC_PAGES } from "@/lib/pages";
+import { GENERIC_PAGES } from "@/lib/pages";
+import { supportTelegram } from "@/lib/razorpay-config";
 import { SiteLogo } from "@/components/site/header";
 import { NewsletterForm } from "@/components/site/newsletter-form";
 import { CommunityLinks } from "@/components/site/community-links";
@@ -41,6 +42,7 @@ function FooterHeading({ children }: { children: React.ReactNode }) {
 }
 
 export function Footer({ settings }: { settings: SiteSettings }) {
+  const support = supportTelegram();
   const socials = Object.entries(SOCIAL_ICONS).filter(
     ([key]) => settings.social[key as keyof typeof SOCIAL_ICONS]
   );
@@ -63,16 +65,20 @@ export function Footer({ settings }: { settings: SiteSettings }) {
             <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
               {settings.footerText}
             </p>
-            <div className="text-sm">
-              <p className="mb-1 text-muted-foreground">Business &amp; contact</p>
-              <a
-                href={`mailto:${CONTACT_EMAIL}`}
-                className={`${footerLinkClass} inline-flex items-center gap-2 font-medium text-foreground`}
-              >
-                <Mail className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                <span className="break-all">{CONTACT_EMAIL}</span>
-              </a>
-            </div>
+            {support && (
+              <div className="text-sm">
+                <p className="mb-1 text-muted-foreground">Support &amp; contact</p>
+                <a
+                  href={support.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${footerLinkClass} inline-flex items-center gap-2 font-medium text-foreground`}
+                >
+                  <Send className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                  <span>{support.handle}</span>
+                </a>
+              </div>
+            )}
             <div className="pt-1 text-sm">
               <p className="mb-2 text-muted-foreground">Talk courses with everyone on Telegram</p>
               <CommunityLinks size="sm" />

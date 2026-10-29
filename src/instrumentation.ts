@@ -1,12 +1,16 @@
 /**
- * Next.js boot hook. Starts the in-process Premium scheduler (expiry +
- * reminders) on the Node runtime only. Set PREMIUM_JOBS=off to disable it,
- * e.g. when an external cron calls /api/premium/cron instead.
+ * Next.js boot hook. Refuses to start without a complete Razorpay/support
+ * configuration, then starts the in-process Premium scheduler (expiry +
+ * reminders) on the Node runtime only. Set PREMIUM_JOBS=off to disable the
+ * scheduler, e.g. when an external cron calls /api/premium/cron instead.
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
-  if (process.env.PREMIUM_JOBS === "off") return;
   if (process.env.NEXT_PHASE === "phase-production-build") return;
+  const { assertPaymentEnv } = await import("@/lib/razorpay-config");
+  // Throws with the list of missing/invalid variable names (never values).
+  assertPaymentEnv();
+  if (process.env.PREMIUM_JOBS === "off") return;
   const { startPremiumScheduler } = await import("@/lib/premium-jobs");
   startPremiumScheduler();
 }

@@ -18,8 +18,9 @@ export default async function AdminPagesPage() {
       <div>
         <h1 className="text-heading">Pages</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Edit the content of your site&apos;s standalone pages — the download guide and the
-          legal pages linked in the footer.
+          Edit the download guide. The legal pages (Terms, Privacy, Refund Policy, Copyright,
+          Contact) are maintained in code so they always match the checkout and show only the
+          Telegram support contact.
         </p>
       </div>
       <Tabs defaultValue={STANDALONE_PAGES[0].slug}>
