@@ -33,7 +33,7 @@ Courses Monster is an educational discovery platform. It lists learning resource
 
 ## 3. Premium membership
 
-- Premium is a **digital membership** that unlocks extra features (such as instant downloads, Premium courses and resources, members-only chats and priority support) for the period you buy: one month or one year.
+- Premium is a **digital membership** that unlocks extra features (such as instant downloads, Premium courses and resources, private members' Telegram groups and priority support) for the period you buy: one month or one year.
 - Prices are set in US dollars. When you pay with UPI, card or netbanking, the amount is charged in Indian rupees (INR) at the price shown before you pay.
 - Payments are one-off. Nothing renews automatically. Renewing adds the new period on top of any time you have left.
 - Premium is activated automatically once the payment provider confirms your payment. It is personal to your account and may not be shared or resold.

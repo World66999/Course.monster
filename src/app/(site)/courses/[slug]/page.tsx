@@ -29,7 +29,6 @@ import { CourseCard } from "@/components/site/course-card";
 import { Markdown } from "@/components/site/markdown";
 import { Section, SectionHeading } from "@/components/site/section";
 import { ReviewsSection } from "@/components/site/reviews/reviews-section";
-import { CommentsSection } from "@/components/site/comments/comments-section";
 import { CourseViewBeacon } from "@/components/site/view-beacon";
 
 interface Props {
@@ -469,11 +468,8 @@ export default async function CoursePage({ params }: Props) {
         )}
       </Section>
 
-      <div className="border-t border-border">
-        <ReviewsSection courseId={course.id} />
-      </div>
       <div className="border-t border-border pb-28 lg:pb-0">
-        <CommentsSection courseId={course.id} />
+        <ReviewsSection courseId={course.id} />
       </div>
 
       {/* Mobile sticky download bar — the sidebar CTA is below the fold on phones.
