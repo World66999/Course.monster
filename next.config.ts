@@ -38,6 +38,10 @@ export const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Render <head> metadata up front for every client, not only known bots.
+  // Next 15 otherwise streams it into <body> for browsers on dynamic routes,
+  // which audits (and some crawlers outside Next's bot list) don't read.
+  htmlLimitedBots: /.*/,
  output: "standalone",
  poweredByHeader: false,
  compress: true,

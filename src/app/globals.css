@@ -1135,7 +1135,9 @@ h4,
 @utility gold-sheen {
   background-image: linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 0.35) 50%, transparent 70%), var(--grad-gold);
   background-size: 250% 100%, 100% 100%;
-  animation: gold-sheen 4.5s var(--ease-standard) infinite;
+  /* A few passes, then still: an endless background-position animation can't
+     be composited, so it repainted on the main thread for the life of the page. */
+  animation: gold-sheen 4.5s var(--ease-standard) 3;
 }
 
 @keyframes gold-sheen {

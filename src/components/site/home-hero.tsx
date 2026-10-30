@@ -175,9 +175,9 @@ export function HomeHero({ siteName, description, stats, categories = [] }: Home
                 Live
               </span>
             </div>
-            <dl className="grid grid-cols-3 gap-2 lg:grid-cols-1 lg:gap-3">
+            <ul className="grid grid-cols-3 gap-2 lg:grid-cols-1 lg:gap-3">
               {statItems.map(({ icon: Icon, value, label }, i) => (
-                <div
+                <li
                   key={label}
                   className="flex flex-col items-center gap-2 rounded-card bg-muted/70 px-2 py-4 text-center lg:flex-row lg:gap-4 lg:px-4 lg:text-left"
                 >
@@ -187,16 +187,16 @@ export function HomeHero({ siteName, description, stats, categories = [] }: Home
                     <Icon className="h-5 w-5" aria-hidden />
                   </span>
                   <div className="flex min-w-0 flex-col-reverse">
-                    <dt className="text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase sm:text-xs">
+                    <span className="text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase sm:text-xs">
                       {label}
-                    </dt>
-                    <dd className="numeric font-display text-xl font-extrabold tracking-tight sm:text-3xl">
+                    </span>
+                    <span className="numeric font-display text-xl font-extrabold tracking-tight sm:text-3xl">
                       <AnimatedCounter value={value} />
-                    </dd>
+                    </span>
                   </div>
-                </div>
+                </li>
               ))}
-            </dl>
+            </ul>
           </div>
 
           {/* Citrus sticker */}
