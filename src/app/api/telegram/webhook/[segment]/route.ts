@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { handleUpdate, type Update } from "@/lib/telegram/handlers";
 import { webhookPathSegment, webhookSecret } from "@/lib/telegram/config";
@@ -72,13 +72,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ ok: true });
   }
 
-  try {
-    await handleUpdate(update);
-  } catch (err) {
-    // Always 200: a non-2xx makes Telegram redeliver, and a persistent fault
-    // would turn into a redelivery storm. The failure is logged instead.
-    console.error(`[telegram] update ${update.update_id} failed:`, err);
-  }
+  // Telegram gets its 200 at once and the update is handled right after the
+  // response is sent, so Telegram never waits on our database or on our own
+  // Bot API calls before delivering the next update. Always 200: a non-2xx
+  // makes Telegram redeliver, and a persistent fault would turn into a
+  // redelivery storm. Failures are logged instead.
+  after(async () => {
+    try {
+      await handleUpdate(update);
+    } catch (err) {
+      console.error(`[telegram] update ${update.update_id} failed:`, err);
+    }
+  });
 
   return NextResponse.json({ ok: true });
 }
