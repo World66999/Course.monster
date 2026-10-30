@@ -4,6 +4,13 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireUserSafe } from "@/server/auth-helpers";
+import { checkRateLimit } from "@/lib/rate-limit";
+
+/** One budget for creating, editing and deleting reviews, per account. */
+function reviewWriteAllowed(userId: string): boolean {
+  return checkRateLimit(`review-write:${userId}`, { limit: 20, windowMs: 10 * 60_000 }).ok;
+}
+const TOO_MANY_REVIEW_WRITES = "You're doing that too often. Please wait a few minutes.";
 import { getClientIp, hashIp } from "@/lib/ip";
 import { checkContent } from "@/lib/profanity";
 import { checkPostingRate } from "@/lib/spam-guards";
@@ -29,6 +36,7 @@ export async function createReviewAction(
   const auth = await requireUserSafe();
   if (!auth.ok) return auth;
   const user = auth.user;
+  if (!reviewWriteAllowed(user.id)) return { ok: false, error: TOO_MANY_REVIEW_WRITES };
   const parsed = reviewFormSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const { courseId, rating, title, body } = parsed.data;
@@ -110,6 +118,7 @@ export async function editReviewAction(
   const auth = await requireUserSafe();
   if (!auth.ok) return auth;
   const user = auth.user;
+  if (!reviewWriteAllowed(user.id)) return { ok: false, error: TOO_MANY_REVIEW_WRITES };
   const parsedId = idSchema.safeParse(reviewId);
   if (!parsedId.success) return { ok: false, error: "Invalid review" };
 
@@ -162,6 +171,7 @@ export async function deleteReviewAction(
   const auth = await requireUserSafe();
   if (!auth.ok) return auth;
   const user = auth.user;
+  if (!reviewWriteAllowed(user.id)) return { ok: false, error: TOO_MANY_REVIEW_WRITES };
   const parsed = idSchema.safeParse(reviewId);
   if (!parsed.success) return { ok: false, error: "Invalid review" };
 

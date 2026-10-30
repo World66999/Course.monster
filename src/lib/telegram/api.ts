@@ -33,6 +33,15 @@ export interface TelegramError {
 }
 export type TelegramResult<T> = { ok: true; result: T } | TelegramError;
 
+/**
+ * Failures that are part of normal operation and not worth a log line: the
+ * user blocked the bot (403), or an edit was identical to what is already on
+ * screen (a double tap on the same button).
+ */
+export function isRoutineTelegramFailure(status: number, description: string): boolean {
+  return status === 403 || (status === 400 && description.includes("message is not modified"));
+}
+
 export async function callTelegram<T = unknown>(
   method: string,
   payload: Record<string, unknown> = {}
@@ -64,8 +73,7 @@ export async function callTelegram<T = unknown>(
 
   if (!res.ok || !body.ok) {
     const description = scrub(body.description ?? `HTTP ${res.status}`);
-    // 403 is routine (user blocked the bot) — don't log it as an error.
-    if (res.status !== 403) console.warn(`[telegram] ${method} failed ${res.status}: ${description}`);
+    if (!isRoutineTelegramFailure(res.status, description)) console.warn(`[telegram] ${method} failed ${res.status}: ${description}`);
     return { ok: false, status: res.status, description, retryAfter: body.parameters?.retry_after };
   }
   return { ok: true, result: body.result as T };
