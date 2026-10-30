@@ -3,13 +3,18 @@ import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { NAV_LINKS } from "../src/lib/nav.ts";
+import { SITE_COMMUNITY_LINKS } from "../src/lib/community.ts";
 
 /**
  * The website hosts no user-to-user communication (removed 2026-10-29 for
  * Razorpay onboarding: "We do not support platforms with individual chat
  * functionality"). Chat, on-site Premium rooms, course comments and the
  * request board with its comments must stay unreachable. Telegram community
- * links and the bot are separate and unaffected.
+ * channel link and the bot are separate and unaffected.
+ *
+ * The public Telegram community group (t.me/Unique_One_Chat) is not offered
+ * anywhere on the website either (Razorpay, 2026-10-30). The bot still links
+ * it through COMMUNITY_LINKS; the site uses SITE_COMMUNITY_LINKS (channel only).
  */
 
 const SRC = join(import.meta.dirname, "..", "src");
@@ -55,5 +60,13 @@ test("public pages and components never link to the removed features", () => {
     assert.doesNotMatch(text, /["'`]\/(chat|requests)(["'`/?#])/, `${file} links to a removed page`);
     assert.doesNotMatch(text, /\/api\/(chat|comments|course-requests|notifications)\b/, `${file} calls a removed API`);
     assert.doesNotMatch(text, /\b(to|can) comment\b|live chat|members-only chats?/i, `${file} still advertises messaging`);
+  }
+});
+
+test("the website offers the Telegram channel but never the public community group", () => {
+  assert.deepEqual(SITE_COMMUNITY_LINKS.map((l) => l.url), ["https://t.me/Unique_One_in"]);
+  for (const file of ["app", "components"].flatMap((p) => files(join(SRC, p)))) {
+    const text = readFileSync(file, "utf8");
+    assert.doesNotMatch(text, /Unique_One_Chat|\bCOMMUNITY_LINKS\b|community group/i, `${file} offers the community group`);
   }
 });
