@@ -19,6 +19,16 @@ import type { ActionResult } from "@/server/actions/courses";
 
 const avatarPathSchema = z.string().regex(/^\/uploads\/[a-zA-Z0-9._-]+$/, "Invalid image path");
 
+/**
+ * Shared budget for every action that checks the current password, so a
+ * stolen session can't be used to guess the account's password (and reuse it
+ * elsewhere) through change-password or delete-account.
+ */
+function passwordAttemptAllowed(userId: string): boolean {
+  return checkRateLimit(`password-check:${userId}`, { limit: 10, windowMs: 15 * 60_000 }).ok;
+}
+const TOO_MANY_PASSWORD_ATTEMPTS = "Too many attempts. Please wait a few minutes and try again.";
+
 export async function updateDisplayNameAction(input: unknown): Promise<ActionResult> {
   const auth = await requireUserSafe();
   if (!auth.ok) return auth;
@@ -53,6 +63,7 @@ export async function changePasswordAction(input: unknown): Promise<ActionResult
     if (!parsed.data.currentPassword) {
       return { ok: false, error: "Enter your current password." };
     }
+    if (!passwordAttemptAllowed(user.id)) return { ok: false, error: TOO_MANY_PASSWORD_ATTEMPTS };
     const valid = await bcrypt.compare(parsed.data.currentPassword, dbUser.passwordHash);
     if (!valid) return { ok: false, error: "Current password is incorrect." };
   }
@@ -171,6 +182,7 @@ export async function deleteAccountAction(input: unknown): Promise<ActionResult>
 
   const dbUser = await db.user.findUnique({ where: { id: user.id }, select: { passwordHash: true } });
   if (dbUser?.passwordHash) {
+    if (!passwordAttemptAllowed(user.id)) return { ok: false, error: TOO_MANY_PASSWORD_ATTEMPTS };
     const currentPassword = parsed.success ? parsed.data.currentPassword : "";
     const valid = currentPassword && (await bcrypt.compare(currentPassword, dbUser.passwordHash));
     if (!valid) return { ok: false, error: "Current password is incorrect." };
