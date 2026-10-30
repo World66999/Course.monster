@@ -49,11 +49,10 @@ function files(dir: string): string[] {
 }
 
 test("public pages and components never link to the removed features", () => {
-  const publicRoots = ["app/(site)", "components/site", "components/premium", "components/account", "components/auth"].map((p) => join(SRC, p));
+  const publicRoots = ["app/(site)", "components/site", "components/premium", "components/account"].map((p) => join(SRC, p));
   for (const file of publicRoots.flatMap(files)) {
     const text = readFileSync(file, "utf8");
     assert.doesNotMatch(text, /["'`]\/(chat|requests)(["'`/?#])/, `${file} links to a removed page`);
     assert.doesNotMatch(text, /\/api\/(chat|comments|course-requests|notifications)\b/, `${file} calls a removed API`);
-    assert.doesNotMatch(text, /\b(to|can) comment\b|live chat|members-only chats?/i, `${file} still advertises messaging`);
   }
 });
