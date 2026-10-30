@@ -7,6 +7,8 @@ import { addPremiumPeriod, rechainPremium } from "@/lib/premium";
 import { coinMinimum, createInvoice, findCatalogCoin, verifyIpnSignature } from "@/lib/nowpayments";
 import { coinFitsPrice } from "@/lib/coins";
 import { onPremiumGained, onPremiumLost } from "@/lib/premium-lapse";
+import { premiumWelcomeMessage } from "@/lib/premium-welcome";
+import { supportTelegram } from "@/lib/razorpay-config";
 import { safeReturnPath } from "@/lib/return-path";
 import { siteUrl } from "@/lib/telegram/config";
 import { notifyAdmins, notifyUser } from "@/lib/telegram/notify";
@@ -349,20 +351,26 @@ async function finishPayment(
   await onPremiumGained(userId).catch(() => {});
 
   const until = result.expiresAt.toISOString().slice(0, 10);
-  const paid = await db.payment.findUnique({ where: { id: paymentId }, select: { returnPath: true } });
-  const returnPath = safeReturnPath(paid?.returnPath);
-  await notifyUser(
-    userId,
-    `👑 <b>Premium is active!</b>\n\nThank you for upgrading. Your ${PLANS[plan].name.toLowerCase()} plan runs until <b>${until}</b>.\n\n` +
-      (returnPath
-        ? "Tap below to pick up where you left off — no steps, no ads."
-        : `Open <a href="${siteUrl()}/premium">your Premium page</a> to get started.`),
-    returnPath ? [[{ text: "⚡ Continue — direct link", url: `${siteUrl()}${returnPath}` }]] : undefined
-  );
-  const user = await db.user.findUnique({ where: { id: userId }, select: { email: true } });
-  await notifyAdmins(
-    `💰 New Premium payment: <b>${esc(PLANS[plan].name)}</b> ($${PLANS[plan].priceUsd}) by ${esc(user?.email ?? userId)} — active until ${until}.`
-  );
+  const [paid, user] = await Promise.all([
+    db.payment.findUnique({ where: { id: paymentId }, select: { returnPath: true } }),
+    db.user.findUnique({ where: { id: userId }, select: { email: true } }),
+  ]);
+  const welcome = premiumWelcomeMessage({
+    site: siteUrl(),
+    planName: PLANS[plan].name,
+    amountLabel: `$${PLANS[plan].priceUsd}`,
+    expiresAt: result.expiresAt,
+    supportHandle: supportTelegram()?.handle ?? null,
+    returnPath: safeReturnPath(paid?.returnPath),
+  });
+  // Premium is already committed; the Telegram messages go out in the
+  // background so NOWPayments gets its answer without waiting on them.
+  void Promise.allSettled([
+    notifyUser(userId, welcome.text, welcome.keyboard),
+    notifyAdmins(
+      `💰 New Premium payment: <b>${esc(PLANS[plan].name)}</b> ($${PLANS[plan].priceUsd}) by ${esc(user?.email ?? userId)} — active until ${until}.`
+    ),
+  ]);
   return { httpStatus: 200, outcome: "applied" };
 }
 

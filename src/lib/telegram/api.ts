@@ -1,5 +1,7 @@
 import "server-only";
 import { botToken, scrub } from "./config";
+import { noteTelegramCall } from "./timing";
+import { postJson, TransportError, type RawResponse } from "./transport";
 
 /**
  * Minimal Telegram Bot API client (Bot API 10.2).
@@ -42,41 +44,82 @@ export function isRoutineTelegramFailure(status: number, description: string): b
   return status === 403 || (status === 400 && description.includes("message is not modified"));
 }
 
+/** A 429 asking us to wait at most this long is retried once in place. */
+const MAX_INLINE_RETRY_AFTER_S = 3;
+
 export async function callTelegram<T = unknown>(
   method: string,
   payload: Record<string, unknown> = {}
 ): Promise<TelegramResult<T>> {
-  let res: Response;
+  keepWarm();
+  const first = await callOnce<T>(method, payload);
+  // A short "slow down" is waited out once rather than surfaced as a failure.
+  // The request was rejected, not processed, so repeating it is safe.
+  if (!first.ok && first.status === 429 && first.retryAfter !== undefined && first.retryAfter <= MAX_INLINE_RETRY_AFTER_S) {
+    await new Promise((r) => setTimeout(r, first.retryAfter! * 1000 + 100));
+    return callOnce<T>(method, payload);
+  }
+  return first;
+}
+
+async function callOnce<T>(method: string, payload: Record<string, unknown>): Promise<TelegramResult<T>> {
+  const started = Date.now();
+  let res: RawResponse;
   try {
     // The token lives in the path because that is the only form the Bot API
     // accepts; this URL is never logged or returned to a caller.
-    res = await fetch(`${apiBase()}/bot${botToken()}/${method}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(API_TIMEOUT_MS),
-      cache: "no-store",
-    });
+    res = await postJson(`${apiBase()}/bot${botToken()}/${method}`, payload, API_TIMEOUT_MS);
   } catch (err) {
-    const timedOut = err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError");
+    noteTelegramCall(method, Date.now() - started);
+    const timedOut = err instanceof TransportError && err.timedOut;
     console.error(`[telegram] ${method} transport failure:`, scrub(err instanceof Error ? err.message : err));
     return { ok: false, status: timedOut ? 504 : 0, description: timedOut ? "timeout" : "network error" };
   }
+  noteTelegramCall(method, Date.now() - started);
 
   let body: { ok?: boolean; result?: T; description?: string; parameters?: { retry_after?: number } };
   try {
-    body = (await res.json()) as typeof body;
+    body = JSON.parse(res.body) as typeof body;
   } catch {
     console.error(`[telegram] ${method} returned a non-JSON body (status ${res.status})`);
     return { ok: false, status: res.status, description: "invalid response" };
   }
 
-  if (!res.ok || !body.ok) {
+  if (res.status < 200 || res.status >= 300 || !body.ok) {
     const description = scrub(body.description ?? `HTTP ${res.status}`);
     if (!isRoutineTelegramFailure(res.status, description)) console.warn(`[telegram] ${method} failed ${res.status}: ${description}`);
     return { ok: false, status: res.status, description, retryAfter: body.parameters?.retry_after };
   }
   return { ok: true, result: body.result as T };
+}
+
+/**
+ * Keeps two connections to the Bot API warm (a tap answers the button and
+ * edits the message at the same time), so the first tap after a quiet spell
+ * doesn't pay for new TCP + TLS handshakes. Started at boot by
+ * instrumentation.ts or by the first real call, so builds and tests that never
+ * talk to Telegram never start it.
+ */
+const KEEP_WARM_MS = 60_000;
+const WARM_CONNECTIONS = 2;
+// Process-wide for the same reason as the connection pool (see transport.ts).
+const warm = ((globalThis as { __telegramWarm?: { timer: NodeJS.Timeout | null } }).__telegramWarm ??= { timer: null });
+function ping(): void {
+  for (let i = 0; i < WARM_CONNECTIONS; i++) {
+    void postJson(`${apiBase()}/bot${botToken()}/getMe`, {}, API_TIMEOUT_MS).catch(() => undefined);
+  }
+}
+export function keepWarm(): void {
+  if (warm.timer) return;
+  warm.timer = setInterval(ping, KEEP_WARM_MS);
+  warm.timer.unref();
+}
+
+/** Opens the warm connections now and keeps them open. */
+export function warmUp(): void {
+  if (!process.env.TELEGRAM_BOT_TOKEN) return;
+  ping();
+  keepWarm();
 }
 
 export interface InlineButton {

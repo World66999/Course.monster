@@ -28,6 +28,7 @@ import { CourseImage } from "@/components/site/course-image";
 import { CourseCard } from "@/components/site/course-card";
 import { Markdown } from "@/components/site/markdown";
 import { Section, SectionHeading } from "@/components/site/section";
+import { PremiumCtaBand } from "@/components/premium/cta-band";
 import { ReviewsSection } from "@/components/site/reviews/reviews-section";
 import { CourseViewBeacon } from "@/components/site/view-beacon";
 
@@ -455,6 +456,8 @@ export default async function CoursePage({ params }: Props) {
             </div>
           </aside>
         </div>
+
+        <PremiumCtaBand className="mt-16" />
 
         {related.length > 0 && (
           <div className="mt-20">

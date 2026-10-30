@@ -59,13 +59,17 @@ async function CourseResults({ searchParams }: { searchParams: SearchParams }) {
   if (query.sort !== "newest") qs.set("sort", query.sort);
 
   return (
-    <InfiniteCourseList
-      key={qs.toString()}
-      initialItems={items}
-      initialCursor={nextCursor}
-      total={total}
-      queryString={qs.toString()}
-    />
+    <>
+      {/* Cards are h3s; this keeps the outline h1 → h2 → h3 for screen readers. */}
+      <h2 className="sr-only">Courses</h2>
+      <InfiniteCourseList
+        key={qs.toString()}
+        initialItems={items}
+        initialCursor={nextCursor}
+        total={total}
+        queryString={qs.toString()}
+      />
+    </>
   );
 }
 

@@ -2,8 +2,7 @@ import Link from "next/link";
 import { GraduationCap, Send } from "lucide-react";
 import type { SiteSettings } from "@/lib/settings-schema";
 import { ThemeToggle } from "@/components/site/theme-toggle";
-import { SearchDialog } from "@/components/site/search-dialog";
-import { MobileNav } from "@/components/site/mobile-nav";
+import { LazyMobileNav, LazySearchDialog } from "@/components/site/lazy-widgets";
 import { NavLinks } from "@/components/site/nav-links";
 import { StickyHeader } from "@/components/site/sticky-header";
 import { UserMenu } from "@/components/site/user-menu";
@@ -85,7 +84,7 @@ export function Header({ settings }: { settings: SiteSettings }) {
 
           <div className="flex items-center gap-0.5 sm:gap-1.5">
             <PremiumHeaderLink className="mr-0.5 sm:mr-1" />
-            <SearchDialog />
+            <LazySearchDialog />
             <ThemeToggle />
             <div className="hidden sm:block">
               <UserMenu />
@@ -102,7 +101,7 @@ export function Header({ settings }: { settings: SiteSettings }) {
                 <span className="hidden 2xl:inline">Telegram</span>
               </a>
             )}
-            <MobileNav settings={settings} />
+            <LazyMobileNav settings={settings} />
           </div>
         </div>
       </StickyHeader>

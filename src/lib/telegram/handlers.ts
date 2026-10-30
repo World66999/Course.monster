@@ -2,6 +2,7 @@ import "server-only";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createAttributionToken } from "./attribution";
 import { answerCallbackQuery, editMessageText, getMe, sendMessage, type InlineKeyboard } from "./api";
+import { runTimed, updateLabel } from "./timing";
 import { addressedText, isGroupChat, type BotIdentity } from "./addressing";
 import { decode, type Callback } from "./callback";
 import {
@@ -14,7 +15,7 @@ import {
 } from "./catalog";
 import { siteUrl, isBotAdmin, botUsername } from "./config";
 import { getBranding } from "./branding";
-import { checkMembership, gateEnabled, requiredChannelUrl } from "./membership";
+import { checkMembership, gateEnabled, invalidateMembership, requiredChannelUrl } from "./membership";
 import {
   MAX_STARS, MIN_STARS, SUGGESTED_STARS,
   completeDonation, createStarInvoice, handlePreCheckout, parseStarAmount,
@@ -31,6 +32,7 @@ import {
   razorpayErrorScreen,
   razorpayLinkScreen,
   razorpayNeedsLinkScreen,
+  razorpayPreparingScreen,
   statusScreen,
 } from "./premium-screens";
 import { inrPricesSafe, supportTelegram } from "@/lib/razorpay-config";
@@ -88,6 +90,9 @@ export interface Update {
  * Groups the site doesn't know about are left alone.
  */
 async function handleChatMember(u: ChatMemberUpdated): Promise<void> {
+  // Someone leaving anywhere the bot can see drops their cached channel
+  // membership, so the gate re-checks on their next tap.
+  if (["left", "kicked"].includes(u.new_chat_member.status)) invalidateMembership(String(u.new_chat_member.user.id));
   const joined =
     ["member", "restricted"].includes(u.new_chat_member.status) &&
     ["left", "kicked"].includes(u.old_chat_member.status);
@@ -193,42 +198,54 @@ function premiumPlans(): Screen {
  */
 const rzpInflight = new Set<string>();
 
+/**
+ * Answers a callback query at most once. The first call goes to Telegram and
+ * later ones are no-ops, so a handler can answer straight away (the button's
+ * spinner stops immediately) and still pass through code that answers again.
+ */
+type Ack = (text?: string, showAlert?: boolean) => Promise<unknown>;
+function callbackAnswerer(queryId: string): Ack {
+  let sent: Promise<unknown> | null = null;
+  return (text, showAlert = false) => (sent ??= answerCallbackQuery(queryId, text, showAlert));
+}
+
+/**
+ * The reasons a pay button is refused with a message of its own. All checks
+ * are in memory, so they run before the early answer that every other tap gets.
+ */
+function razorpayTapRefusal(telegramId: string, chatId: string): { text: string; alert: boolean } | null {
+  // A payment link is personal: never post one into a group.
+  if (chatId !== telegramId) return { text: "Open the bot in a private chat to pay.", alert: true };
+  if (rzpInflight.has(telegramId)) return { text: "Already preparing your payment link…", alert: false };
+  if (!allow(telegramId, "rzp-tap", 8, 60_000)) return { text: "You're going a bit fast — please wait a moment.", alert: true };
+  return null;
+}
+
 async function handleRazorpayCallback(
-  q: CallbackQuery,
   choice: "MONTHLY" | "YEARLY" | "back",
   telegramId: string,
   chatId: string,
   messageId: number | null
 ): Promise<void> {
   if (choice === "back") {
-    await answerCallbackQuery(q.id);
     await show(chatId, messageId, premiumPlans());
-    return;
-  }
-  // A payment link is personal: never post one into a group.
-  if (chatId !== telegramId) {
-    await answerCallbackQuery(q.id, "Open the bot in a private chat to pay.", true);
-    return;
-  }
-  if (rzpInflight.has(telegramId)) {
-    await answerCallbackQuery(q.id, "Already preparing your payment link…");
-    return;
-  }
-  if (!allow(telegramId, "rzp-tap", 8, 60_000)) {
-    await answerCallbackQuery(q.id, "You're going a bit fast — please wait a moment.", true);
     return;
   }
   const support = supportTelegram();
   const linked = await findLinkedUser(telegramId);
   if (!linked) {
-    await answerCallbackQuery(q.id);
     await show(chatId, messageId, razorpayNeedsLinkScreen(siteUrl()));
     return;
   }
   rzpInflight.add(telegramId);
   try {
-    await answerCallbackQuery(q.id, "Preparing your secure payment link…");
-    const res = await createTelegramLink(linked.id, telegramId, choice);
+    // Creating the link takes a Razorpay round trip; show progress meanwhile.
+    // Both finish before the final edit, so the progress screen can never
+    // land on top of the link.
+    const [res] = await Promise.all([
+      createTelegramLink(linked.id, telegramId, choice),
+      messageId !== null ? show(chatId, messageId, razorpayPreparingScreen()) : Promise.resolve(),
+    ]);
     if (!res.ok) {
       await show(chatId, messageId, razorpayErrorScreen(res.error, support));
       return;
@@ -253,11 +270,11 @@ async function screenFor(cb: Callback, userId: string, b: Branding): Promise<Scr
     case "help":
       return render.help(b, siteUrl());
     case "browse": {
-      await recordEvent(userId, "BROWSE");
+      void recordEvent(userId, "BROWSE");
       return render.browseList(b, await listPublishedPage(cb.page));
     }
     case "upcoming": {
-      await recordEvent(userId, "UPCOMING_VIEW");
+      void recordEvent(userId, "UPCOMING_VIEW");
       return render.upcomingList(b, await listUpcomingPage(cb.page));
     }
     case "search": {
@@ -270,7 +287,7 @@ async function screenFor(cb: Callback, userId: string, b: Branding): Promise<Scr
       const published = await getPublishedBotCourse(cb.courseId);
       const course = published ?? (await getUpcomingBotCourse(cb.courseId));
       if (!course) return render.courseUnavailable(b);
-      await recordEvent(userId, "COURSE_VIEW", { courseId: course.id });
+      void recordEvent(userId, "COURSE_VIEW", { courseId: course.id });
       return render.courseDetail(b, course, {
         from: cb.from,
         page: cb.page,
@@ -290,16 +307,36 @@ async function handleCallback(q: CallbackQuery): Promise<void> {
   const telegramId = String(q.from.id);
   const chatId = q.message ? String(q.message.chat.id) : telegramId;
   const messageId = q.message?.message_id ?? null;
+  const ack = callbackAnswerer(q.id);
 
-  // Always answer, even when rejecting, or the client keeps spinning.
+  // Refusals that carry their own message are decided first, in memory.
   if (!allow(telegramId, "cb", 40, 60_000)) {
-    await answerCallbackQuery(q.id, "You're going a bit fast — try again in a moment.");
+    await ack("You're going a bit fast — try again in a moment.");
+    return;
+  }
+  const rzpChoice = parseRzpCallback(q.data);
+  if (rzpChoice && rzpChoice !== "back") {
+    const refusal = razorpayTapRefusal(telegramId, chatId);
+    if (refusal) {
+      await ack(refusal.text, refusal.alert);
+      return;
+    }
+  }
+  const isAdmin = q.data?.startsWith("a:") === true;
+  const cb = q.data && !isAdmin ? decode(q.data) : null;
+  if (cb?.kind === "download" && !allow(telegramId, "dl", 10, 5 * 60_000)) {
+    await ack("Too many download requests. Please wait a moment.", true);
     return;
   }
 
-  const user = await touchUser(q.from);
+  // Every other tap is answered now, before any database or network work, so
+  // the button never spins while the next screen is prepared. Admin buttons
+  // answer themselves, some with a toast describing the result.
+  if (!isAdmin) void ack();
+
+  const [user, branding] = await Promise.all([touchUser(q.from), getBranding()]);
   if (user.blocked) {
-    await answerCallbackQuery(q.id, "This bot is not available for your account.");
+    await ack("This bot is not available for your account.");
     return;
   }
 
@@ -309,18 +346,14 @@ async function handleCallback(q: CallbackQuery): Promise<void> {
   // Buying Premium is about the user's own account, so like /premium it is
   // never behind the channel gate. The callback carries only a plan key; the
   // price is computed on the server.
-  const rzpChoice = parseRzpCallback(q.data);
   if (rzpChoice) {
-    await handleRazorpayCallback(q, rzpChoice, telegramId, chatId, messageId);
+    await handleRazorpayCallback(rzpChoice, telegramId, chatId, messageId);
     return;
   }
 
-  const branding = await getBranding();
   if (q.data === "mb:v") {
     // Verify button: always a FRESH check, bypassing the cache, so joining and
     // immediately verifying can never return a stale "not a member".
-    await answerCallbackQuery(q.id);
-    const branding = await getBranding();
     if (!allow(telegramId, "verify", 8, 60_000)) {
       await sendMessage(chatId, `${iconPlain(branding, "warn")} Please wait a moment before verifying again.`);
       return;
@@ -331,15 +364,9 @@ async function handleCallback(q: CallbackQuery): Promise<void> {
     return;
   }
 
-  const gateBranding = await getBranding();
-  if (!(await passesGate(telegramId, chatId, messageId, gateBranding))) {
-    await answerCallbackQuery(q.id);
-    return;
-  }
+  if (!(await passesGate(telegramId, chatId, messageId, branding))) return;
 
   if (q.data?.startsWith("dn:")) {
-    await answerCallbackQuery(q.id);
-    const branding = await getBranding();
     const arg = q.data.slice(3);
     if (arg === "menu") {
       await setDonateWaiting(user.id, false);
@@ -363,36 +390,25 @@ async function handleCallback(q: CallbackQuery): Promise<void> {
     return;
   }
 
-  const cb = q.data ? decode(q.data) : null;
   if (!cb) {
-    // Malformed or tampered callback data: acknowledge and ignore.
-    await answerCallbackQuery(q.id);
+    // Malformed or tampered callback data: acknowledged above, otherwise ignored.
     console.warn("[telegram] rejected malformed callback data");
     return;
   }
 
-  if (cb.kind === "noop") {
-    await answerCallbackQuery(q.id);
-    return;
-  }
+  if (cb.kind === "noop") return;
 
   if (cb.kind === "download") {
-    if (!allow(telegramId, "dl", 10, 5 * 60_000)) {
-      await answerCallbackQuery(q.id, "Too many download requests. Please wait a moment.", true);
-      return;
-    }
-    const course = await getPublishedBotCourse(cb.courseId);
+    const [course, linked] = await Promise.all([getPublishedBotCourse(cb.courseId), findLinkedUser(telegramId)]);
     if (!course) {
-      await answerCallbackQuery(q.id, "This course is no longer available.", true);
+      await show(chatId, messageId, render.courseUnavailable(branding));
       return;
     }
-    await answerCallbackQuery(q.id);
-    await recordEvent(user.id, "DOWNLOAD_REQUESTED", { courseId: course.id });
+    void recordEvent(user.id, "DOWNLOAD_REQUESTED", { courseId: course.id });
     // A linked member with access right now gets a direct link bound to their
     // account; the site re-checks it on open. Everyone else is handed off to
     // the website's protected download page — never a file, never a storage
     // path. `src` is attribution metadata only.
-    const linked = await findLinkedUser(telegramId);
     if (linked && (await canDownloadDirect(linked.id, course))) {
       const direct = `${siteUrl()}/dl/${createHandoffToken(linked.id, course.id, telegramId)}`;
       await show(chatId, messageId, render.downloadHandoff(branding, course, direct, { direct: true }));
@@ -406,7 +422,6 @@ async function handleCallback(q: CallbackQuery): Promise<void> {
     return;
   }
 
-  await answerCallbackQuery(q.id);
   await show(chatId, messageId, await screenFor(cb, user.id, branding));
 }
 
@@ -448,15 +463,13 @@ async function handleMessage(m: Message): Promise<void> {
 
   if (!allow(telegramId, "msg", 20, 60_000)) return;
 
-  const user = await touchUser(m.from);
+  const [user, b] = await Promise.all([touchUser(m.from), getBranding()]);
   if (user.blocked) return;
-
-  const b = await getBranding();
   if (m.successful_payment) {
     const result = await completeDonation(m.successful_payment, telegramId);
     // A redelivered update must not thank the user twice.
     if (result.outcome === "completed") {
-      await recordEvent(user.id, "DONATION");
+      void recordEvent(user.id, "DONATION");
       await show(chatId, null, render.donationThanks(b, result.amount));
     }
     return;
@@ -546,7 +559,7 @@ async function handleMessage(m: Message): Promise<void> {
     const command = parts[0].slice(1).split("@")[0].toLowerCase();
     switch (command) {
       case "start": {
-        await recordEvent(user.id, "START");
+        void recordEvent(user.id, "START");
         // Deep link: t.me/<bot>?start=<course-slug>. The payload is a public
         // slug, never a database id, and is re-resolved under the published
         // gate — an unknown or unpublished slug just opens the main menu.
@@ -554,7 +567,7 @@ async function handleMessage(m: Message): Promise<void> {
         if (/^[a-z0-9-]{1,64}$/.test(payload)) {
           const course = await getPublishedBotCourseBySlug(payload);
           if (course) {
-            await recordEvent(user.id, "COURSE_VIEW", { courseId: course.id });
+            void recordEvent(user.id, "COURSE_VIEW", { courseId: course.id });
             return void (await show(
               chatId,
               null,
@@ -565,10 +578,10 @@ async function handleMessage(m: Message): Promise<void> {
         return void (await show(chatId, null, render.welcome(b, siteUrl()))); 
       }
       case "courses":
-        await recordEvent(user.id, "BROWSE");
+        void recordEvent(user.id, "BROWSE");
         return void (await show(chatId, null, render.browseList(b, await listPublishedPage(1))));
       case "upcoming":
-        await recordEvent(user.id, "UPCOMING_VIEW");
+        void recordEvent(user.id, "UPCOMING_VIEW");
         return void (await show(chatId, null, render.upcomingList(b, await listUpcomingPage(1))));
       case "search":
         return void (await show(chatId, null, render.searchPrompt(b)));
@@ -588,7 +601,7 @@ async function handleMessage(m: Message): Promise<void> {
       case "paysupport":
         return void (await show(chatId, null, render.paySupport(b, siteUrl())));
       case "help":
-        await recordEvent(user.id, "HELP");
+        void recordEvent(user.id, "HELP");
         return void (await show(chatId, null, render.help(b, siteUrl())));
       default:
         return void (await show(chatId, null, render.help(b, siteUrl())));
@@ -600,12 +613,17 @@ async function handleMessage(m: Message): Promise<void> {
     await sendMessage(chatId, `${iconPlain(b, "search")} That's a lot of searching — please wait a moment and try again.`);
     return;
   }
-  await rememberSearch(user.id, text);
-  await recordEvent(user.id, "SEARCH", { query: text });
-  await show(chatId, null, render.searchResults(b, text, await searchPublishedPage(text, 1)));
+  // The search runs alongside the bookkeeping; analytics never waits.
+  void recordEvent(user.id, "SEARCH", { query: text });
+  const [, results] = await Promise.all([rememberSearch(user.id, text), searchPublishedPage(text, 1)]);
+  await show(chatId, null, render.searchResults(b, text, results));
 }
 
 export async function handleUpdate(update: Update): Promise<void> {
+  return runTimed(updateLabel(update), () => dispatchUpdate(update));
+}
+
+async function dispatchUpdate(update: Update): Promise<void> {
   // Telegram expects an answer within seconds, so this is handled first and
   // never queued behind anything else.
   if (update.pre_checkout_query) return handlePreCheckout(update.pre_checkout_query);

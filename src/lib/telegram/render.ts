@@ -86,10 +86,17 @@ export function welcome(b: Branding, siteUrl: string): Screen {
       "Browse the latest available courses below.",
     keyboard: [
       [btn(b, { label: "btn_browse", icon: "browse", callback: encode({ kind: "browse", page: 1 }) })],
-      [btn(b, { label: "btn_search", icon: "search", callback: encode({ kind: "search", page: 1 }) })],
-      [btn(b, { label: "btn_upcoming", icon: "upcoming", callback: encode({ kind: "upcoming", page: 1 }) })],
-      [btn(b, { label: "btn_website", icon: "website", url: siteUrl })],
-      [btn(b, { label: "btn_donate", icon: "donate", callback: "dn:menu" })],
+      [
+        btn(b, { label: "btn_search", icon: "search", callback: encode({ kind: "search", page: 1 }) }),
+        btn(b, { label: "btn_upcoming", icon: "upcoming", callback: encode({ kind: "upcoming", page: 1 }) }),
+      ],
+      // Opens the Premium plans screen ("rz:back" is that screen's callback in
+      // premium-screens.ts, which imports this module, hence the literal).
+      [{ text: "👑 Get Premium — instant downloads", callback_data: "rz:back", style: "success" }],
+      [
+        btn(b, { label: "btn_website", icon: "website", url: siteUrl }),
+        btn(b, { label: "btn_donate", icon: "donate", callback: "dn:menu" }),
+      ],
       communityRow(),
     ],
   };

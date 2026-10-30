@@ -36,14 +36,17 @@ export function gateEnabled(): boolean {
 }
 
 /**
- * Short-lived positive cache.
+ * Positive cache.
  *
- * Deliberately brief: a long cache would let someone leave the channel and keep
- * access. Only *membership* is cached — a negative result is never cached, so a
- * user who has just joined is never told "not a member" from a stale entry.
- * Process-local by design; losing it on a deploy simply causes a fresh check.
+ * Each check is a Bot API round trip on the user's tap, so a member is
+ * re-checked at most every 10 minutes. Leaving is still noticed promptly: a
+ * chat_member "left"/"kicked" update drops the entry (see handleChatMember),
+ * and the TTL bounds the case where that update never arrives. Only
+ * *membership* is cached — a negative result is never cached, so a user who has
+ * just joined is never told "not a member" from a stale entry. Process-local by
+ * design; losing it on a deploy simply causes a fresh check.
  */
-const TTL_MS = 45_000;
+const TTL_MS = 10 * 60_000;
 const cache = new Map<string, number>();
 
 /**

@@ -28,6 +28,7 @@ import {
   type WebhookResult,
 } from "@/lib/razorpay-core";
 import { siteUrl } from "@/lib/telegram/config";
+import { premiumWelcomeMessage } from "@/lib/premium-welcome";
 import { sendMessage, type InlineKeyboard } from "@/lib/telegram/api";
 import { notifyAdmins, notifyUser } from "@/lib/telegram/notify";
 import { esc } from "@/lib/telegram/render";
@@ -63,7 +64,6 @@ const ROW_SELECT = {
 type DbRow = Prisma.RazorpayPaymentGetPayload<{ select: typeof ROW_SELECT }>;
 const toRow = (r: DbRow | null): RzpRow | null => r;
 
-const DATE = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 
 function isUniqueViolation(err: unknown, field?: string): boolean {
   if (!(err instanceof Prisma.PrismaClientKnownRequestError) || err.code !== "P2002") return false;
@@ -312,23 +312,28 @@ async function flag(row: RzpRow, reason: string): Promise<void> {
   }
 }
 
+/**
+ * Runs after the activation is committed. The buyer's welcome message and the
+ * admin alert are Telegram round trips, so they go out in the background: the
+ * webhook answers Razorpay, and the checkout page moves on, without waiting.
+ */
 async function onApplied(row: RzpRow, paymentId: string, expiresAt: Date): Promise<void> {
   await onPremiumGained(row.userId).catch(() => {});
   const p = PLANS[row.plan];
-  await tell(
-    row,
-    "✅ <b>Payment successful — Premium is active</b>\n\n" +
-      "Thank you for your purchase.\n\n" +
-      `Plan: <b>${esc(p.name)}</b>\n` +
-      `Amount: <b>${esc(formatInr(row.amount))}</b>\n` +
-      `Valid until: <b>${DATE.format(expiresAt)}</b>\n` +
-      `Payment ID: <code>${esc(paymentId)}</code>` +
-      supportLine(),
-    [[{ text: "👑 Open Premium", url: `${siteUrl()}/premium-resources` }]]
-  );
-  await notifyAdmins(
-    `💰 Razorpay payment: <b>${esc(p.name)}</b> (${esc(formatInr(row.amount))}, ${row.channel === "TELEGRAM" ? "bot" : "website"}) — active until ${expiresAt.toISOString().slice(0, 10)}.`
-  );
+  const welcome = premiumWelcomeMessage({
+    site: siteUrl(),
+    planName: p.name,
+    amountLabel: formatInr(row.amount),
+    expiresAt,
+    paymentId,
+    supportHandle: supportTelegram()?.handle ?? null,
+  });
+  void Promise.allSettled([
+    tell(row, welcome.text, welcome.keyboard),
+    notifyAdmins(
+      `💰 Razorpay payment: <b>${esc(p.name)}</b> (${esc(formatInr(row.amount))}, ${row.channel === "TELEGRAM" ? "bot" : "website"}) — active until ${expiresAt.toISOString().slice(0, 10)}.`
+    ),
+  ]);
 }
 
 /** Claims the one-time "we told the buyer" slot, so expiry/failure is never sent twice. */

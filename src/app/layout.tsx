@@ -3,7 +3,7 @@ import { Inter, Sora, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import { ThemeProvider } from "next-themes";
 import { SessionProvider } from "next-auth/react";
-import { Toaster } from "sonner";
+import { LazyToaster } from "@/components/site/lazy-widgets";
 import { getSiteSettings } from "@/lib/settings";
 import { absoluteUrl } from "@/lib/utils";
 import "./globals.css";
@@ -118,7 +118,7 @@ export default async function RootLayout({
               client-side loading flash. useSession() fetches on mount instead. */}
           <SessionProvider>
             {children}
-            <Toaster richColors position="bottom-right" />
+            <LazyToaster richColors position="bottom-right" />
           </SessionProvider>
         </ThemeProvider>
         {gaId ? (

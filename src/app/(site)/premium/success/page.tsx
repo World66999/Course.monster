@@ -1,20 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CheckCircle2, Clock3, XCircle } from "lucide-react";
+import { Clock3, XCircle } from "lucide-react";
 import { db } from "@/lib/db";
 import { getViewer } from "@/server/premium-guard";
 import { PLANS } from "@/lib/premium-plans";
 import { safeReturnPath } from "@/lib/return-path";
 import { Section } from "@/components/site/section";
 import { buttonClasses } from "@/components/ui/button";
-import { CrownMark } from "@/components/premium/crown";
+import { PremiumWelcome } from "@/components/premium/welcome-screen";
 import { AutoRefresh } from "@/components/premium/auto-refresh";
 
 export const metadata: Metadata = { title: "Payment status — Premium", robots: { index: false } };
 export const dynamic = "force-dynamic";
-
-const DATE = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 
 /**
  * Where NOWPayments sends the buyer back. Arriving here proves nothing — the
@@ -54,19 +52,8 @@ export default async function SuccessPage({ searchParams }: { searchParams: Prom
     const back = safeReturnPath(payment.returnPath);
     if (back && viewer.premium) redirect(back);
     return (
-      <Section className="max-w-xl py-16 text-center">
-        <div className="flex justify-center"><CrownMark size="lg" /></div>
-        <h1 className="mt-6 text-title">Welcome to <span className="text-gold-gradient">Premium</span></h1>
-        <p className="mt-4 flex items-center justify-center gap-2 text-success">
-          <CheckCircle2 className="h-5 w-5" aria-hidden /> Payment confirmed — {PLANS[payment.plan].name} plan
-        </p>
-        {payment.subscription && (
-          <p className="mt-2 text-muted-foreground">Active until {DATE.format(payment.subscription.expiresAt)}.</p>
-        )}
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link href="/premium-resources" className={buttonClasses("accent", "lg", "bg-gold shadow-gold")}>Open Premium Resources</Link>
-          <Link href="/courses" className={buttonClasses("outline", "lg")}>Browse courses</Link>
-        </div>
+      <Section className="py-14 sm:py-20">
+        <PremiumWelcome planName={PLANS[payment.plan].name} expiresAt={payment.subscription?.expiresAt ?? null} />
       </Section>
     );
   }
@@ -134,19 +121,8 @@ async function RazorpayStatus({
     // Came from "Skip ads": straight back to that page.
     if (next && premium) redirect(next);
     return (
-      <Section className="max-w-xl py-16 text-center">
-        <div className="flex justify-center"><CrownMark size="lg" /></div>
-        <h1 className="mt-6 text-title">Welcome to <span className="text-gold-gradient">Premium</span></h1>
-        <p className="mt-4 flex items-center justify-center gap-2 text-success">
-          <CheckCircle2 className="h-5 w-5" aria-hidden /> Payment confirmed — {PLANS[row.plan].name} plan
-        </p>
-        {row.subscription && (
-          <p className="mt-2 text-muted-foreground">Active until {DATE.format(row.subscription.expiresAt)}.</p>
-        )}
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link href="/premium-resources" className={buttonClasses("accent", "lg", "bg-gold shadow-gold")}>Open Premium Resources</Link>
-          <Link href="/courses" className={buttonClasses("outline", "lg")}>Browse courses</Link>
-        </div>
+      <Section className="py-14 sm:py-20">
+        <PremiumWelcome planName={PLANS[row.plan].name} expiresAt={row.subscription?.expiresAt ?? null} />
       </Section>
     );
   }

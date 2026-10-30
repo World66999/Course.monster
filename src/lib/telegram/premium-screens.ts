@@ -3,6 +3,7 @@ import type { InlineKeyboard } from "./api";
 import { esc } from "./render";
 import { NO_REFUND_NOTICE, PLANS, type PlanKey } from "@/lib/premium-plans";
 import { isActiveUntil } from "@/lib/premium";
+import { PREMIUM_BENEFIT_LINES } from "@/lib/premium-welcome";
 
 /**
  * Bot screens for Premium. Kept beside, not inside, the branded catalog
@@ -46,27 +47,29 @@ export function premiumScreen(site: string, opts: PayOptions = { inr: null, supp
   const m = PLANS.MONTHLY;
   const y = PLANS.YEARLY;
   const { inr, support } = opts;
+  // Best value first; one row per payment method so the buttons stay short.
   const keyboard: InlineKeyboard = [];
   if (inr) {
-    keyboard.push([{ text: `💳 Pay with UPI / Card (Razorpay) — ${y.name} ${inr.YEARLY.label}`, callback_data: RZP_CALLBACK.YEARLY, style: "success" }]);
+    keyboard.push([
+      { text: `💳 ${y.name} · ${inr.YEARLY.label}`, callback_data: RZP_CALLBACK.YEARLY, style: "success" },
+      { text: `💳 ${m.name} · ${inr.MONTHLY.label}`, callback_data: RZP_CALLBACK.MONTHLY },
+    ]);
   }
-  keyboard.push([{ text: `🪙 Pay with Crypto — ${y.name} $${y.priceUsd}`, url: `${site}/premium/checkout?plan=YEARLY&method=crypto` }]);
-  if (inr) {
-    keyboard.push([{ text: `💳 Pay with UPI / Card (Razorpay) — ${m.name} ${inr.MONTHLY.label}`, callback_data: RZP_CALLBACK.MONTHLY }]);
-  }
-  keyboard.push([{ text: `🪙 Pay with Crypto — ${m.name} $${m.priceUsd}`, url: `${site}/premium/checkout?plan=MONTHLY&method=crypto` }]);
-  keyboard.push([{ text: "See everything Premium includes", url: `${site}/premium` }]);
+  keyboard.push([
+    { text: `🪙 ${y.name} · $${y.priceUsd}`, url: `${site}/premium/checkout?plan=YEARLY&method=crypto` },
+    { text: `🪙 ${m.name} · $${m.priceUsd}`, url: `${site}/premium/checkout?plan=MONTHLY&method=crypto` },
+  ]);
+  keyboard.push([{ text: "✨ See everything Premium includes", url: `${site}/premium` }]);
   return {
     text:
-      "👑 <b>Courses Monster Premium</b>\n\n" +
-      "• Instant downloads — no timers, steps or ads\n" +
-      "• Premium courses and Premium Resources\n" +
-      "• Members-only chats\n" +
-      "• Priority support\n\n" +
-      `<b>${y.name}</b> — ${price("YEARLY", inr)} / ${y.periodLabel}  (${esc(y.badge ?? "")})\n` +
-      `<b>${m.name}</b> — ${price("MONTHLY", inr)} / ${m.periodLabel}\n\n` +
+      "👑 <b>Courses Monster Premium</b>\n" +
+      "<i>Learn without the wait.</i>\n\n" +
+      PREMIUM_BENEFIT_LINES.join("\n") +
+      "\n\n" +
+      `🏆 <b>${y.name}</b> — ${price("YEARLY", inr)} / ${y.periodLabel} · ${esc(y.badge ?? "")}\n` +
+      `📅 <b>${m.name}</b> — ${price("MONTHLY", inr)} / ${m.periodLabel}\n\n` +
       (inr
-        ? "Pay in INR with UPI, card or netbanking (Razorpay), or in crypto (NOWPayments).\n\n"
+        ? "💳 = UPI, card or netbanking (Razorpay, in INR)\n🪙 = crypto (NOWPayments, on the website)\nOne-off payments — nothing renews by itself.\n\n"
         : "Payment is in crypto through NOWPayments. Tap a plan to continue on the website.\n\n") +
       `⚠️ <b>${esc(NO_REFUND_NOTICE)}</b>` +
       supportLine(support),
@@ -103,6 +106,11 @@ export function razorpayLinkScreen(
       [{ text: "« Back to plans", callback_data: RZP_CALLBACK.back }],
     ],
   };
+}
+
+/** Shown while the payment link is being created, so the tap feels answered. */
+export function razorpayPreparingScreen(): Screen {
+  return { text: "⏳ <b>Preparing your secure payment link…</b>\n\nThis only takes a moment.", keyboard: [] };
 }
 
 export function razorpayNeedsLinkScreen(site: string): Screen {
