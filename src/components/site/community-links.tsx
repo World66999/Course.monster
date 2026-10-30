@@ -1,12 +1,12 @@
-import { COMMUNITY_LINKS } from "@/lib/community";
+import { SITE_COMMUNITY_LINKS } from "@/lib/community";
 import { TelegramIcon } from "@/components/site/brand-icons";
 import { cn } from "@/lib/utils";
 
-/** "Join our Channel" / "Join our Community Group" — public Telegram links. */
+/** "Join our Channel" — the public Telegram channel link. */
 export function CommunityLinks({ className, size = "md" }: { className?: string; size?: "sm" | "md" }) {
   return (
     <div className={cn("flex flex-wrap gap-2.5", className)}>
-      {COMMUNITY_LINKS.map((l) => (
+      {SITE_COMMUNITY_LINKS.map((l) => (
         <a
           key={l.key}
           href={l.url}
