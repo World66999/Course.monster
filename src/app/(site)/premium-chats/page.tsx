@@ -5,10 +5,10 @@ import { PageHeader, Section } from "@/components/site/section";
 import { PremiumChatGrid } from "@/components/premium/chat-grid";
 
 export const metadata: Metadata = {
-  title: "Members' Telegram Groups — Premium",
-  description: "Private Telegram groups for Courses Monster Premium members, joined with single-use invite links.",
+  title: "Premium Chats — Members-only Rooms",
+  description: "Smaller, moderated members-only chat rooms and private Telegram groups for Courses Monster Premium members.",
   alternates: { canonical: "/premium-chats" },
-  openGraph: { title: "Members' Telegram Groups — Courses Monster", url: absoluteUrl("/premium-chats") },
+  openGraph: { title: "Premium Chats — Courses Monster", url: absoluteUrl("/premium-chats") },
 };
 
 export const revalidate = 300;
@@ -19,8 +19,8 @@ export default async function PremiumChatsPage() {
     <Section className="py-12">
       <PageHeader
         eyebrow="Premium"
-        title="Members' Telegram Groups"
-        description="Private Telegram groups for Premium members. Each invite link works once and expires after 15 minutes, so a shared link can't be reused."
+        title="Premium Chats"
+        description="Members-only rooms, moderated by our team. Private Telegram groups use single-use invite links, so a shared link can't be reused."
       />
       <PremiumChatGrid chats={chats} />
     </Section>

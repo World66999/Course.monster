@@ -40,7 +40,7 @@ export function SignupForm() {
   return (
     <AuthCard
       title="Create your account"
-      subtitle="Join to review courses, get Premium and manage your account"
+      subtitle="Join to comment, review and track your courses"
       footer={
         <>
           Already have an account?{" "}

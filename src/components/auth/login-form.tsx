@@ -58,7 +58,7 @@ export function LoginForm() {
   return (
     <AuthCard
       title="Welcome back"
-      subtitle="Sign in to review courses, get Premium and manage your account"
+      subtitle="Sign in to comment, review and manage your account"
       footer={
         <>
           Don&apos;t have an account?{" "}

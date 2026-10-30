@@ -86,8 +86,8 @@ export default async function CoursesPage({ searchParams }: { searchParams: Sear
 
       <div className="mb-8 flex flex-col gap-3 rounded-card border border-border bg-card p-4 shadow-soft sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <p className="text-sm text-muted-foreground">
-          <span className="font-semibold text-foreground">Looking for a course or want to talk about one?</span>{" "}
-          Join the community on Telegram — free for everyone.
+          <span className="font-semibold text-foreground">Want new courses as they land?</span>{" "}
+          Follow our Telegram channel — free for everyone.
         </p>
         <CommunityLinks size="sm" className="shrink-0" />
       </div>

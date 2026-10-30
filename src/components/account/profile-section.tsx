@@ -47,14 +47,14 @@ export function ProfileSection({ name, image }: { name: string; image: string | 
     <section className="space-y-5 rounded-card border border-border bg-card p-6 shadow-soft">
       <div>
         <h2 className="font-semibold">Profile</h2>
-        <p className="text-sm text-muted-foreground">Shown publicly on your reviews.</p>
+        <p className="text-sm text-muted-foreground">Shown publicly on your comments and reviews.</p>
       </div>
       <AvatarUpload name={name} image={image} />
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
         <div className="space-y-1.5">
           <Label htmlFor="name">Display name</Label>
           <Input id="name" {...register("name")} />
-          <FieldHint>This is the only name shown alongside your reviews.</FieldHint>
+          <FieldHint>This is the only name shown alongside your comments and reviews.</FieldHint>
           <FieldError message={errors.name?.message} />
         </div>
         <div className="flex justify-end">

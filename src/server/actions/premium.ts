@@ -11,6 +11,7 @@ import { botUsername } from "@/lib/telegram/config";
 import { callTelegram } from "@/lib/telegram/api";
 import { isActiveUntil } from "@/lib/premium";
 import { isStaff } from "@/lib/roles";
+import { cleanText } from "@/lib/sanitize";
 import { confirmWebCheckout, createWebOrder, type ConfirmResult, type WebOrderResult } from "@/lib/razorpay-payments";
 import { isRazorpayConfigured } from "@/lib/razorpay-config";
 import { isSameOrigin } from "@/server/same-origin";
@@ -118,6 +119,40 @@ export async function unlinkTelegramAction(): Promise<Result> {
   if (!auth.ok) return { ok: false, error: auth.error, code: "auth" };
   await db.user.update({ where: { id: auth.user.id }, data: { telegramId: null } });
   return { ok: true };
+}
+
+const chatMessageSchema = z.object({ chatId: z.string().cuid(), body: z.string().min(1).max(4000) });
+const PREMIUM_CHAT_MAX = 1000;
+
+export async function sendPremiumChatMessageAction(input: unknown): Promise<Result<{ id: string }>> {
+  const auth = await requireUserSafe();
+  if (!auth.ok) return { ok: false, error: auth.error, code: "auth" };
+  const parsed = chatMessageSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid message." };
+  const body = cleanText(parsed.data.body, PREMIUM_CHAT_MAX);
+  if (!body) return { ok: false, error: "Message can't be empty." };
+
+  const me = await db.user.findUnique({
+    where: { id: auth.user.id },
+    select: { premiumUntil: true, role: true, premiumChatBanned: true, premiumChatMutedUntil: true },
+  });
+  if (!me || !(isActiveUntil(me.premiumUntil) || isStaff(me.role))) {
+    return { ok: false, error: "Members' chats are part of Premium.", code: "premium" };
+  }
+  if (me.premiumChatBanned) return { ok: false, error: "You can't post in members' chats." };
+  if (me.premiumChatMutedUntil && me.premiumChatMutedUntil.getTime() > Date.now()) {
+    return { ok: false, error: "You're muted for now. Try again later." };
+  }
+  if (limited(`pchat:${auth.user.id}`, 20, 60_000)) {
+    return { ok: false, error: "You're sending messages too fast." };
+  }
+  const chat = await db.premiumChat.findFirst({
+    where: { id: parsed.data.chatId, published: true, kind: "WEB_ROOM" },
+    select: { id: true },
+  });
+  if (!chat) return { ok: false, error: "Chat not found." };
+  const row = await db.premiumChatMessage.create({ data: { chatId: chat.id, userId: auth.user.id, body } });
+  return { ok: true, id: row.id };
 }
 
 /**

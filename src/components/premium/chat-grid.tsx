@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Loader2, Send } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Loader2, MessagesSquare, Send } from "lucide-react";
 import { toast } from "sonner";
 import type { PublicPremiumChat } from "@/lib/premium-catalog";
 import { usePremium } from "@/hooks/use-premium";
@@ -15,9 +16,11 @@ import { LockedPreview } from "@/components/premium/locked-preview";
 export function PremiumChatGrid({ chats }: { chats: PublicPremiumChat[] }) {
   const { me, loading } = usePremium();
   const premium = !loading && me.premium;
+  const router = useRouter();
   const [busyId, setBusyId] = React.useState<string | null>(null);
 
   async function join(chat: PublicPremiumChat) {
+    if (chat.kind === "WEB_ROOM") return router.push(`/premium-chats/${chat.id}`);
     setBusyId(chat.id);
     const res = await safeAction(() => getPremiumChatInviteAction(chat.id), "premium-invite");
     setBusyId(null);
@@ -32,7 +35,7 @@ export function PremiumChatGrid({ chats }: { chats: PublicPremiumChat[] }) {
   if (chats.length === 0) {
     return (
       <p className="rounded-card border border-dashed border-border p-10 text-center text-muted-foreground">
-        Members&apos; Telegram groups open soon.
+        Members&apos; chats open soon.
       </p>
     );
   }
@@ -44,8 +47,8 @@ export function PremiumChatGrid({ chats }: { chats: PublicPremiumChat[] }) {
           <div className="flex items-center gap-2">
             <Badge variant="secondary">{chat.category}</Badge>
             <Badge variant="outline">
-              <Send aria-hidden />
-              Telegram group
+              {chat.kind === "WEB_ROOM" ? <MessagesSquare aria-hidden /> : <Send aria-hidden />}
+              {chat.kind === "WEB_ROOM" ? "On-site room" : "Telegram group"}
             </Badge>
           </div>
           <h3 className="font-display text-[1.0625rem] font-bold">{chat.title}</h3>
@@ -54,7 +57,7 @@ export function PremiumChatGrid({ chats }: { chats: PublicPremiumChat[] }) {
             {premium ? (
               <Button variant="outline" size="sm" onClick={() => join(chat)} disabled={busyId === chat.id}>
                 {busyId === chat.id && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
-                Get one-time invite
+                {chat.kind === "WEB_ROOM" ? "Enter room" : "Get one-time invite"}
               </Button>
             ) : (
               <LockedPreview lines={2} cta="Unlock with Premium" />
@@ -64,7 +67,7 @@ export function PremiumChatGrid({ chats }: { chats: PublicPremiumChat[] }) {
       ))}
       {!loading && !premium && (
         <div className="glass-card edge-gold flex flex-col justify-center gap-3 rounded-card p-5 sm:col-span-2 lg:col-span-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="font-semibold">Members&apos; Telegram groups are part of Premium.</p>
+          <p className="font-semibold">Members&apos; chats are part of Premium.</p>
           <Link href="/premium" className={buttonClasses("accent", "md", "bg-gold shadow-gold")}>See Premium</Link>
         </div>
       )}

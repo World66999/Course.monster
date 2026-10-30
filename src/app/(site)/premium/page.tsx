@@ -6,7 +6,7 @@ import {
   Gem,
   GraduationCap,
   LifeBuoy,
-  Send,
+  MessagesSquare,
   Minus,
   Zap,
 } from "lucide-react";
@@ -20,9 +20,9 @@ import { PlansOrAccount, SecureBadge } from "@/components/premium/plan-cards";
 import { inrPricesSafe } from "@/lib/razorpay-config";
 
 export const metadata: Metadata = {
-  title: "Premium — Instant Downloads, Premium Courses & Resources",
+  title: "Premium — Instant Downloads, Premium Courses & Members' Chats",
   description:
-    "Courses Monster Premium: instant downloads with no timers or ads, premium courses, curated Premium Resources, private Telegram groups and priority support. $1 a month or $10 a year — pay with UPI, card or crypto.",
+    "Courses Monster Premium: instant downloads with no timers or ads, premium courses, curated Premium Resources, members-only chats and priority support. $1 a month or $10 a year — pay with UPI, card or crypto.",
   alternates: { canonical: "/premium" },
   openGraph: { title: "Courses Monster Premium", url: absoluteUrl("/premium") },
 };
@@ -52,9 +52,9 @@ const BENEFITS = [
     body: "Hand-written guides: coding help, getting the most out of AI tools, curated GitHub projects, learning roadmaps and free alternatives to paid apps.",
   },
   {
-    icon: Send,
-    title: "Private Telegram groups",
-    body: "Join members-only Telegram groups with single-use invite links that can't be shared or reused.",
+    icon: MessagesSquare,
+    title: "Members-only chats",
+    body: "Smaller, moderated rooms where members help each other — plus private Telegram groups with single-use invites.",
   },
   {
     icon: LifeBuoy,
@@ -69,7 +69,7 @@ const COMPARISON: { feature: string; free: string | boolean; premium: string | b
   { feature: "Ads on the download path", free: "Yes", premium: "None" },
   { feature: "Premium courses", free: false, premium: true },
   { feature: "Premium Resources", free: "Titles only", premium: "Full access" },
-  { feature: "Private Telegram groups", free: false, premium: true },
+  { feature: "Members-only chats", free: false, premium: true },
   { feature: "Support", free: "Standard", premium: "Priority" },
   { feature: "Premium badge on your name", free: false, premium: true },
 ];
@@ -142,7 +142,7 @@ export default function PremiumPage() {
           className="rise-in mx-auto mt-5 max-w-2xl text-lead text-pretty text-muted-foreground"
           style={{ "--d": "120ms" } as React.CSSProperties}
         >
-          Instant downloads, premium courses, hand-written resources and private Telegram groups — for $
+          Instant downloads, premium courses, hand-written resources and members-only chats — for $
           {PLANS.MONTHLY.priceUsd} a month, or ${PLANS.YEARLY.priceUsd} for the whole year.
         </p>
         <div
