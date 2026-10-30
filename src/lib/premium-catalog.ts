@@ -31,14 +31,9 @@ export async function listPremiumResourcesPublic() {
 
 export type PublicPremiumCategory = Awaited<ReturnType<typeof listPremiumResourcesPublic>>[number];
 
-/**
- * Members' private Telegram groups only. On-site chat rooms (kind WEB_ROOM)
- * were withdrawn from the website on 2026-10-29: the site hosts no
- * user-to-user messaging. Their rows stay in the database, unreachable.
- */
 export async function listPremiumChatsPublic() {
   return db.premiumChat.findMany({
-    where: { published: true, kind: "TELEGRAM_GROUP" },
+    where: { published: true },
     orderBy: [{ order: "asc" }, { createdAt: "asc" }],
     select: { id: true, title: true, description: true, category: true, kind: true },
   });

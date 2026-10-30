@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { getUserRequestStats } from "@/lib/course-requests";
 import { PageHeader, Section } from "@/components/site/section";
 import { ProfileSection } from "@/components/account/profile-section";
+import { RequestActivitySection } from "@/components/account/request-activity-section";
 import { PasswordSection } from "@/components/account/password-section";
 import { EmailSection } from "@/components/account/email-section";
 import { DangerZone } from "@/components/account/danger-zone";
@@ -42,6 +44,7 @@ export default async function AccountPage() {
   if (!user || user.disabled) redirect("/login");
 
   const hasPassword = Boolean(user.passwordHash);
+  const requestStats = await getUserRequestStats(session.user.id);
 
   return (
     <Section className="max-w-2xl py-12">
@@ -56,6 +59,7 @@ export default async function AccountPage() {
           premiumUntil={user.premiumUntil?.toISOString() ?? null}
           telegramLinked={Boolean(user.telegramId)}
         />
+        <RequestActivitySection stats={requestStats} />
         <PasswordSection hasPassword={hasPassword} />
         <EmailSection email={user.email} hasPassword={hasPassword} />
         <DangerZone hasPassword={hasPassword} />

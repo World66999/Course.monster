@@ -34,7 +34,7 @@ export function DangerZone({ hasPassword }: { hasPassword: boolean }) {
       <div>
         <h2 className="font-semibold text-destructive">Delete account</h2>
         <p className="text-sm text-muted-foreground">
-          Permanently disables your account and removes your personal info. Your past reviews
+          Permanently disables your account and removes your personal info. Your past comments and reviews
           stay visible, attributed to a deleted user.
         </p>
       </div>
