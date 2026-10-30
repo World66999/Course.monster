@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Check, Crown, History, Hourglass, RefreshCw, ShieldCheck, Zap } from "lucide-react";
+import { Check, Crown, History, Hourglass, RefreshCw, Zap } from "lucide-react";
 import { PLANS, type PlanKey } from "@/lib/premium-plans";
 import { usePremium } from "@/hooks/use-premium";
 import { buttonClasses } from "@/components/ui/button";
@@ -24,7 +24,7 @@ const PLAN_POINTS: Record<PlanKey, string[]> = {
  * checkout after signing in, so the flow cannot be skipped from the browser.
  */
 /** INR labels per plan, computed on the server (null when UPI/card is unavailable). */
-export type InrLabels = Record<PlanKey, string> | null;
+export type InrLabels = (Record<PlanKey, string> & { yearlyPerMonth?: string }) | null;
 
 function PlanCard({ plan, renew, next, inr }: { plan: PlanKey; renew: boolean; next: string | null; inr: InrLabels }) {
   const p = PLANS[plan];
@@ -46,16 +46,19 @@ function PlanCard({ plan, renew, next, inr }: { plan: PlanKey; renew: boolean; n
         <h3 className="text-subheading">{p.name}</h3>
       </div>
       <p className="mt-5 flex items-baseline gap-1.5">
-        <span className="font-display text-5xl font-extrabold tracking-tight">${p.priceUsd}</span>
+        <span className="font-display text-5xl font-extrabold tracking-tight numeric">${p.priceUsd}</span>
         <span className="text-muted-foreground">/ {p.periodLabel}</span>
       </p>
       {inr && (
-        <p className="mt-1 text-sm font-medium text-foreground">
-          or {inr[plan]} with UPI / card
+        <p className="mt-2 inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-muted/60 px-3 py-1 text-sm">
+          <span className="font-bold numeric">{inr[plan]}</span>
+          <span className="text-muted-foreground">with UPI, card or netbanking</span>
         </p>
       )}
       {plan === "YEARLY" && (
-        <p className="mt-1 text-sm text-muted-foreground">Works out to about $0.83 a month.</p>
+        <p className="mt-2 text-sm font-medium text-success">
+          About $0.83{inr?.yearlyPerMonth ? ` (${inr.yearlyPerMonth})` : ""} a month
+        </p>
       )}
       <ul className="mt-6 space-y-3 text-sm">
         {PLAN_POINTS[plan].map((point) => (
@@ -78,20 +81,6 @@ function PlanCard({ plan, renew, next, inr }: { plan: PlanKey; renew: boolean; n
         </Link>
       </div>
     </div>
-  );
-}
-
-export function SecureBadge({ className }: { className?: string }) {
-  return (
-    <p
-      className={cn(
-        "inline-flex items-center gap-2 rounded-full border border-success/25 bg-success-soft px-3.5 py-1.5 text-xs font-semibold text-success",
-        className
-      )}
-    >
-      <ShieldCheck className="h-4 w-4" aria-hidden />
-      Secure checkout · UPI, cards &amp; netbanking via Razorpay · crypto via NOWPayments
-    </p>
   );
 }
 

@@ -16,8 +16,12 @@ import { Section, SectionHeading } from "@/components/site/section";
 import { Reveal } from "@/components/site/reveal";
 import { buttonClasses } from "@/components/ui/button";
 import { CrownMark } from "@/components/premium/crown";
-import { PlansOrAccount, SecureBadge } from "@/components/premium/plan-cards";
+import { PlansOrAccount } from "@/components/premium/plan-cards";
+import { PaymentBadges, TrustPoints } from "@/components/premium/trust";
+import { UnlockPreview } from "@/components/premium/unlock-preview";
 import { inrPricesSafe } from "@/lib/razorpay-config";
+import { formatInr } from "@/lib/premium-plans";
+import { listPremiumResourcesPublic } from "@/lib/premium-catalog";
 
 export const metadata: Metadata = {
   title: "Premium — Instant Downloads, Premium Courses & Resources",
@@ -115,9 +119,17 @@ function Cell({ value }: { value: string | boolean }) {
   return <span>{value}</span>;
 }
 
-export default function PremiumPage() {
+export default async function PremiumPage() {
   const prices = inrPricesSafe();
-  const inr = prices ? { MONTHLY: prices.MONTHLY.label, YEARLY: prices.YEARLY.label } : null;
+  const inr = prices
+    ? {
+        MONTHLY: prices.MONTHLY.label,
+        YEARLY: prices.YEARLY.label,
+        // Whole rupees: "₹83 a month" reads better than "₹83.33".
+        yearlyPerMonth: formatInr(Math.round(prices.YEARLY.paise / 12 / 100) * 100),
+      }
+    : null;
+  const resources = await listPremiumResourcesPublic();
   return (
     <>
       {/* Hero */}
@@ -143,7 +155,8 @@ export default function PremiumPage() {
           style={{ "--d": "120ms" } as React.CSSProperties}
         >
           Instant downloads, premium courses, hand-written resources and private Telegram groups — for $
-          {PLANS.MONTHLY.priceUsd} a month, or ${PLANS.YEARLY.priceUsd} for the whole year.
+          {PLANS.MONTHLY.priceUsd} a month, or ${PLANS.YEARLY.priceUsd} for the whole year
+          {inr ? ` (${inr.MONTHLY} / ${inr.YEARLY})` : ""}.
         </p>
         <div
           className="rise-in mt-8 flex flex-wrap items-center justify-center gap-3"
@@ -156,8 +169,8 @@ export default function PremiumPage() {
             Preview Premium Resources
           </Link>
         </div>
-        <div className="rise-in mt-6 flex justify-center" style={{ "--d": "200ms" } as React.CSSProperties}>
-          <SecureBadge />
+        <div className="rise-in mt-7" style={{ "--d": "200ms" } as React.CSSProperties}>
+          <PaymentBadges inr={Boolean(inr)} />
         </div>
       </Section>
 
@@ -176,6 +189,14 @@ export default function PremiumPage() {
           ))}
         </div>
       </Section>
+
+      {/* Locked preview */}
+      {resources.some((c) => c.resources.length > 0) && (
+        <Section rhythm="tight">
+          <SectionHeading eyebrow="Inside Premium" title="A look at Premium Resources" />
+          <UnlockPreview categories={resources} />
+        </Section>
+      )}
 
       {/* Comparison */}
       <Section rhythm="tight">
@@ -210,8 +231,9 @@ export default function PremiumPage() {
       <Section rhythm="tight" id="plans" className="scroll-mt-24">
         <SectionHeading eyebrow="Plans" title="Pick your plan" align="center" />
         <PlansOrAccount inr={inr} />
+        <TrustPoints className="mx-auto mt-8 lg:max-w-4xl" />
         <div className="mt-8 flex flex-col items-center gap-3 text-center">
-          <SecureBadge />
+          <PaymentBadges inr={Boolean(inr)} />
           <p className="rounded-full border border-warning/30 bg-warning-soft px-4 py-1.5 text-sm font-semibold text-warning">
             Digital product. All sales are final. No refunds.
           </p>

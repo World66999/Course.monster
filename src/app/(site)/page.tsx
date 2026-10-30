@@ -23,6 +23,7 @@ import { Reveal, Stagger, StaggerItem } from "@/components/site/reveal";
 import { Spotlight } from "@/components/motion/interactive";
 import { HomeHero } from "@/components/site/home-hero";
 import { buttonClasses } from "@/components/ui/button";
+import { PremiumCtaBand } from "@/components/premium/cta-band";
 
 export const revalidate = 120;
 
@@ -311,6 +312,11 @@ export default async function HomePage() {
             ))}
           </Stagger>
         </div>
+      </Section>
+
+      {/* ---------- Premium ---------- */}
+      <Section rhythm="tight">
+        <PremiumCtaBand />
       </Section>
 
       {/* ---------- Closing CTA ---------- */}

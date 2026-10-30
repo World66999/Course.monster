@@ -9,7 +9,7 @@ import { PLANS, isPlanKey, type PlanKey } from "@/lib/premium-plans";
 import { safeReturnPath } from "@/lib/return-path";
 import { Section } from "@/components/site/section";
 import { CheckoutForm } from "@/components/premium/checkout-form";
-import { SecureBadge } from "@/components/premium/plan-cards";
+import { PaymentBadges, TrustPoints } from "@/components/premium/trust";
 import { RazorpayCheckout } from "@/components/premium/razorpay-checkout";
 import { PaymentMethodTabs } from "@/components/premium/payment-method-tabs";
 import { inrPricesSafe, supportTelegram } from "@/lib/razorpay-config";
@@ -85,9 +85,8 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Sea
         <Link href="/refund-policy" className="underline underline-offset-2">Refund Policy</Link> and{" "}
         <Link href="/privacy" className="underline underline-offset-2">Privacy Policy</Link>.
       </p>
-      <div className="mt-8 flex justify-center">
-        <SecureBadge />
-      </div>
+      <PaymentBadges inr={Boolean(inr)} className="mt-8" />
+      <TrustPoints compact className="mt-6" />
     </Section>
   );
 }
