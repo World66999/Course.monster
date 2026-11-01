@@ -73,11 +73,13 @@ const CourseCard = React.memo(function CourseCard({ course, priority = false }: 
  </Badge>
  )}
  </div>
+ {course.skillLevel && (
  <div className="absolute top-3 right-3">
  <Badge variant="secondary" className="bg-white/90 font-semibold text-[#0e1022] ring-0 dark:bg-black/70 dark:text-foreground">
- {course.skillLevel ? SKILL_LABELS[course.skillLevel] : "-"}
+ {SKILL_LABELS[course.skillLevel]}
  </Badge>
  </div>
+ )}
  </div>
  <div className="flex flex-1 flex-col px-2.5 pt-4 pb-2">
  <div className="flex items-start gap-3">

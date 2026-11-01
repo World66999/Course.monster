@@ -76,6 +76,7 @@ export default async function DownloadPage({ params, searchParams }: Props) {
           ipHash
         )
       : null;
+  const limitScreen = Boolean(free && (free.limitReached || free.ipCapReached) && !free.unlocked);
 
   return (
     <Section className="max-w-2xl py-12 sm:py-16">
@@ -127,7 +128,7 @@ export default async function DownloadPage({ params, searchParams }: Props) {
                 cta={viewer ? "Unlock with Premium" : "Sign in to continue"}
               />
             </div>
-          ) : free && (free.limitReached || free.ipCapReached) && !free.unlocked ? (
+          ) : limitScreen && free ? (
             <FreeLimitReached
               limit={free.limit}
               resetsAt={free.resetsAt}
@@ -152,11 +153,11 @@ export default async function DownloadPage({ params, searchParams }: Props) {
                 captchaSiteKey={captchaSiteKey}
                 attribution={attribution}
               />
-              <SkipAdsButton slug={course.slug} className="mt-6" />
+              <SkipAdsButton slug={course.slug} variant="compact" className="mt-6" />
             </>
           )}
 
-          {!directHref && (
+          {!directHref && !limitScreen && (
             <div className="mt-8 flex items-start gap-3 rounded-nested bg-muted/60 p-4 text-sm text-muted-foreground">
               <ShieldCheck className="mt-0.5 h-4.5 w-4.5 shrink-0 text-success" aria-hidden />
               <p>

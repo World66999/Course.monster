@@ -16,11 +16,11 @@ function SearchButtonPlaceholder() {
     <button
       type="button"
       aria-label="Search"
-      className="tap-target inline-flex h-9 items-center gap-2 rounded-control border border-border bg-card px-2.5 text-sm text-muted-foreground shadow-soft lg:px-3"
+      className="tap-target inline-flex h-9 items-center gap-2 rounded-control border border-border bg-card px-2.5 text-sm text-muted-foreground shadow-soft lg:px-3 xl:px-2.5 2xl:px-3"
     >
       <Search className="h-4 w-4" aria-hidden />
-      <span className="hidden lg:inline">Search…</span>
-      <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] lg:inline">⌘K</kbd>
+      <span className="hidden lg:inline xl:hidden 2xl:inline">Search…</span>
+      <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] lg:inline xl:hidden 2xl:inline">⌘K</kbd>
     </button>
   );
 }

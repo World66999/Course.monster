@@ -20,7 +20,7 @@ export function SiteLogo({ settings, className }: { settings: SiteSettings; clas
     // though it is very wide.
     <Link
       href="/"
-      className={`group tap-target flex w-fit min-w-0 items-center gap-2.5 rounded-control font-bold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${className ?? ""}`}
+      className={`group tap-target flex w-fit min-w-0 items-center gap-2 rounded-control min-[400px]:gap-2.5 font-bold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${className ?? ""}`}
     >
       {settings.logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -28,7 +28,7 @@ export function SiteLogo({ settings, className }: { settings: SiteSettings; clas
       ) : (
         // Brand-gradient tile with a citrus spark: the one place all the brand
         // hues meet, so the palette reads as deliberate from the first glance.
-        <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-[0.8rem] bg-brand text-white shadow-primary inset-shadow-highlight transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:-rotate-6 group-hover:scale-110">
+        <span className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-[0.75rem] bg-brand min-[400px]:h-9 min-[400px]:w-9 min-[400px]:rounded-[0.8rem] text-white shadow-primary inset-shadow-highlight transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:-rotate-6 group-hover:scale-110">
           <span
             aria-hidden
             className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-accent ring-2 ring-white/40"
@@ -36,7 +36,9 @@ export function SiteLogo({ settings, className }: { settings: SiteSettings; clas
           <GraduationCap className="relative h-5 w-5" aria-hidden />
         </span>
       )}
-      <span className="font-display truncate text-lg font-extrabold tracking-[-0.035em]">{settings.siteName}</span>
+      <span className="font-display truncate whitespace-nowrap text-base font-extrabold tracking-[-0.035em] min-[400px]:text-lg">
+        {settings.siteName}
+      </span>
     </Link>
   );
 }
@@ -76,14 +78,14 @@ export function Header({ settings }: { settings: SiteSettings }) {
       <StickyHeader>
         <div className="flex h-16 items-center justify-between gap-2 px-[max(0.75rem,env(safe-area-inset-left))] sm:gap-4 sm:px-5">
           <div className="flex min-w-0 items-center gap-3 xl:gap-5">
-            <SiteLogo settings={settings} className="min-w-0" />
+            <SiteLogo settings={settings} className="min-w-0 xl:shrink-0" />
             <nav aria-label="Main" className="hidden items-center gap-1 xl:flex">
               <NavLinks links={NAV_LINKS} />
             </nav>
           </div>
 
           <div className="flex items-center gap-0.5 sm:gap-1.5">
-            <PremiumHeaderLink className="mr-0.5 sm:mr-1" />
+            <PremiumHeaderLink className="px-2.5 sm:mr-1 sm:px-3" />
             <LazySearchDialog />
             <ThemeToggle />
             <div className="hidden sm:block">

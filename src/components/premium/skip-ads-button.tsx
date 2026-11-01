@@ -11,11 +11,31 @@ import { cn } from "@/lib/utils";
 export function SkipAdsButton({
   slug,
   className,
+  variant = "card",
 }: {
   slug: string;
   className?: string;
+  /** "compact": a slim pill, for a second offer lower on the same page. */
+  variant?: "card" | "compact";
 }) {
   const next = `/download/${slug}`;
+  if (variant === "compact") {
+    return (
+      <Link
+        href={`/premium?next=${encodeURIComponent(next)}#plans`}
+        data-skip-ads
+        className={cn(
+          "group mx-auto flex w-fit max-w-full items-center gap-2 rounded-full border border-gold/35 bg-gold-soft/70 py-1.5 pr-3.5 pl-1.5 text-sm font-semibold text-gold-ink",
+          "transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold",
+          className,
+        )}
+      >
+        <CrownMark size="sm" />
+        <span className="truncate">Skip the wait with Premium · from $1</span>
+        <ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" aria-hidden />
+      </Link>
+    );
+  }
   return (
     <Link
       href={`/premium?next=${encodeURIComponent(next)}#plans`}
