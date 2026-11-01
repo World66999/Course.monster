@@ -223,7 +223,7 @@ export default async function CoursePage({ params }: Props) {
             backing (no blur) to stay legible on any artwork. Separators live
             inside the <li>s: an <ol> may only contain list items. */}
         <nav aria-label="Breadcrumb" className="mb-4">
-          <ol className="inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full bg-background/90 px-3.5 py-1.5 text-sm text-muted-foreground shadow-soft ring-1 ring-border/60">
+          <ol className="inline-flex max-w-full flex-nowrap items-center gap-1.5 overflow-hidden rounded-full bg-background/90 px-3.5 py-1.5 text-sm whitespace-nowrap text-muted-foreground shadow-soft ring-1 ring-border/60">
             <li>
               <Link href="/" className="hover:text-primary">
                 Home
@@ -236,7 +236,7 @@ export default async function CoursePage({ params }: Props) {
               </Link>
             </li>
             {course.category && (
-              <li className="flex items-center gap-1.5">
+              <li className="hidden items-center gap-1.5 sm:flex">
                 <ChevronRight className="h-3.5 w-3.5" aria-hidden />
                 <Link href={`/courses?category=${course.category.slug}`} className="hover:text-primary">
                   {course.category.name}
@@ -245,7 +245,7 @@ export default async function CoursePage({ params }: Props) {
             )}
             <li aria-current="page" className="flex min-w-0 items-center gap-1.5">
               <ChevronRight className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span className="max-w-40 truncate font-medium text-foreground sm:max-w-72">{course.title}</span>
+              <span className="max-w-[11rem] truncate font-medium text-foreground min-[400px]:max-w-56 sm:max-w-72">{course.title}</span>
             </li>
           </ol>
         </nav>
