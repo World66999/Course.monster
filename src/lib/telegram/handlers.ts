@@ -41,6 +41,8 @@ import { formatInr } from "@/lib/premium-plans";
 import { consumeLinkToken, findLinkedUser, LINK_PREFIX } from "@/lib/telegram-link";
 import { canDownloadDirect, isActiveUntil } from "@/lib/premium";
 import { createHandoffToken } from "@/lib/download-token";
+import { getFreeStatus, telegramSubject } from "@/lib/free-unlocks";
+import { PROVIDER_LABEL } from "@/lib/shortener-core";
 import { kickFromGroup, mayJoinPremiumGroups } from "@/lib/premium-lapse";
 
 
@@ -414,11 +416,29 @@ async function handleCallback(q: CallbackQuery): Promise<void> {
       await show(chatId, messageId, render.downloadHandoff(branding, course, direct, { direct: true }));
       return;
     }
-    const token = createAttributionToken(telegramId, course.id);
     const page = `/download/${encodeURIComponent(course.slug)}`;
-    const url = `${siteUrl()}${page}?src=${encodeURIComponent(token)}`;
     const skipAdsUrl = `${siteUrl()}/premium?next=${encodeURIComponent(page)}#plans`;
-    await show(chatId, messageId, render.downloadHandoff(branding, course, url, { skipAdsUrl }));
+    // Free users: max N unlocks per IST day, counted against the linked
+    // account if there is one, else this Telegram id (same key the website
+    // uses for this hand-off, see free-unlocks.ts).
+    const free = await getFreeStatus(await telegramSubject(telegramId), course.id);
+    if (free.limitReached && !free.unlocked) {
+      const resetsAt = free.resetsAt.toLocaleString("en-IN", {
+        timeZone: "Asia/Kolkata", hour: "numeric", minute: "2-digit", day: "numeric", month: "short",
+      });
+      await show(chatId, messageId, render.freeLimitReached(branding, course, { limit: free.limit, resetsAt, premiumUrl: skipAdsUrl }));
+      return;
+    }
+    const token = createAttributionToken(telegramId, course.id);
+    const url = `${siteUrl()}${page}?src=${encodeURIComponent(token)}`;
+    await show(
+      chatId,
+      messageId,
+      render.downloadHandoff(branding, course, url, {
+        skipAdsUrl,
+        free: { used: free.used, limit: free.limit, unlocked: free.unlocked, providerLabel: PROVIDER_LABEL[free.nextProvider] },
+      })
+    );
     return;
   }
 

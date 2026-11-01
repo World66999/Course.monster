@@ -93,6 +93,18 @@ export const siteSettingsSchema = z.object({
     .prefault({}),
   newsletterEnabled: z.boolean().default(true),
   downloadCountdownSeconds: z.number().int().min(0).max(60).default(3),
+  /**
+   * Free users' daily unlocks. Each unlock goes through one shortener, rotating
+   * VPLink → GPLinks → LinkShortify. A disabled shortener is skipped in favour
+   * of the next one. `dailyLimit` null means FREE_DAILY_COURSE_LIMIT (or 3).
+   */
+  freeUnlocks: z
+    .object({
+      dailyLimit: z.number().int().min(1).max(50).nullable().default(null),
+      gplinksEnabled: z.boolean().default(true),
+      linkshortifyEnabled: z.boolean().default(true),
+    })
+    .prefault({}),
   comments: z
     .object({
       enabled: z.boolean().default(true),

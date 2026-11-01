@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { consumeDownloadToken } from "@/lib/download-token";
-import { getShortLink } from "@/lib/shortener";
+import { getSessionShortUrl, hasUnlocked } from "@/lib/free-unlocks";
 import { getClientIp, hashIp, siteOrigin } from "@/lib/ip";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { isSafeExternalUrl } from "@/lib/safe-url";
@@ -9,8 +9,10 @@ import { canAccessPremiumCourse, canDownloadDirect } from "@/lib/premium";
 
 /**
  * Final step of the download flow: validates the single-use token and
- * answers with a server-side 302 to the short link. The destination only
- * ever appears in the Location header of this response.
+ * answers with a server-side 302. Premium tokens and already-unlocked free
+ * courses go to the destination; a free unlock goes to its shortener link,
+ * which returns the visitor to /unlock/<token> once its steps are done. The
+ * destination only ever appears in the Location header of a response.
  */
 export async function GET(
   request: NextRequest,
@@ -58,15 +60,27 @@ export async function GET(
   }
 
   let target: string;
-  if (result.direct) {
-    // Premium: straight to the destination, no ad-supported short link.
+  let isDownload = true;
+  if (result.direct || course.premium) {
+    // Premium: straight to the destination, no shortener.
     target = course.downloadUrl;
-  } else {
-    try {
-      ({ url: target } = await getShortLink(course));
-    } catch {
-      return NextResponse.redirect(home);
+  } else if (result.reopenSubject) {
+    // Unlocked earlier by this same visitor: re-opening is free.
+    if (!(await hasUnlocked(result.reopenSubject, course.id))) {
+      return NextResponse.redirect(new URL(`/download/${course.slug}`, home), { status: 302, headers: { "Cache-Control": "no-store" } });
     }
+    target = course.downloadUrl;
+  } else if (result.unlockSessionId) {
+    const pending = await getSessionShortUrl(result.unlockSessionId);
+    if (!pending || pending.courseId !== course.id) {
+      return NextResponse.redirect(new URL(`/download/${course.slug}`, home), { status: 302, headers: { "Cache-Control": "no-store" } });
+    }
+    target = pending.shortUrl;
+    // Not a download yet — /unlock records it once the shortener is done.
+    isDownload = false;
+  } else {
+    // A free token minted before daily unlocks existed: start over.
+    return NextResponse.redirect(new URL(`/download/${course.slug}`, home), { status: 302, headers: { "Cache-Control": "no-store" } });
   }
   // Defence in depth: the form layer now rejects non-http(s) download URLs, but
   // this value also comes back from an external shortener, so never emit a
@@ -78,24 +92,26 @@ export async function GET(
 
   // Record the download without delaying the redirect response meaningfully.
   const userAgent = request.headers.get("user-agent")?.slice(0, 255) ?? null;
-  try {
-    await db.$transaction([
-      db.downloadEvent.create({
-        data: {
-          courseId: course.id,
-          ipHash: ipKey,
-          userAgent,
-          source: result.direct ? "premium" : (result.attribution?.source ?? null),
-          telegramUserId: result.attribution?.telegramUserId ?? null,
-        },
-      }),
-      db.course.update({
-        where: { id: course.id },
-        data: { downloads: { increment: 1 } },
-      }),
-    ]);
-  } catch (err) {
-    console.error("[download] failed to record download event:", err);
+  if (isDownload) {
+    try {
+      await db.$transaction([
+        db.downloadEvent.create({
+          data: {
+            courseId: course.id,
+            ipHash: ipKey,
+            userAgent,
+            source: result.direct ? "premium" : (result.attribution?.source ?? null),
+            telegramUserId: result.attribution?.telegramUserId ?? null,
+          },
+        }),
+        db.course.update({
+          where: { id: course.id },
+          data: { downloads: { increment: 1 } },
+        }),
+      ]);
+    } catch (err) {
+      console.error("[download] failed to record download event:", err);
+    }
   }
 
   return NextResponse.redirect(target, {

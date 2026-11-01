@@ -278,16 +278,28 @@ export function downloadHandoff(
   b: Branding,
   course: BotCourse,
   url: string,
-  opts: { direct?: boolean; skipAdsUrl?: string } = {}
+  opts: {
+    direct?: boolean;
+    skipAdsUrl?: string;
+    /** Free users: today's unlock progress and the shortener this unlock uses. */
+    free?: { used: number; limit: number; unlocked: boolean; providerLabel: string };
+  } = {}
 ): Screen {
   // Premium members get a direct link (re-checked by the site when opened);
   // everyone else gets the steps page plus the offer to skip it.
+  const free = opts.free
+    ? `\n\n📊 <b>Free courses today: ${opts.free.used}/${opts.free.limit} used</b>\n` +
+      (opts.free.unlocked
+        ? "✅ You already unlocked this course — opening it again is free."
+        : `🔗 This unlock uses <b>${esc(opts.free.providerLabel)}</b>. Finish all its steps and you'll be taken to the course.`)
+    : "";
   const text = opts.direct
     ? `👑 <b>${esc(clamp(course.title, 100))}</b>\n\n` +
       "You're Premium — no steps, no ads. Tap below to go straight to the download. The link works for 10 minutes."
     : `${iconHtml(b, "download")} <b>${esc(clamp(course.title, 100))}</b>\n\n` +
       "Tap below to open the protected download page on the website. " +
-      "You'll pass the usual quick verification step there, then the download starts.";
+      "You'll pass the usual quick verification step there, then the download starts." +
+      free;
   return {
     text,
     keyboard: [
@@ -297,6 +309,31 @@ export function downloadHandoff(
       ...(opts.skipAdsUrl && !opts.direct
         ? [[{ text: "👑 Skip ads – Get direct link with Premium", url: opts.skipAdsUrl }]]
         : []),
+      [
+        btn(b, {
+          label: "btn_back",
+          icon: "back",
+          callback: encode({ kind: "course", courseId: course.id, from: "browse", page: 1 }),
+        }),
+      ],
+    ],
+  };
+}
+
+/** A free user who has used up today's unlocks. */
+export function freeLimitReached(
+  b: Branding,
+  course: BotCourse,
+  opts: { limit: number; resetsAt: string; premiumUrl: string }
+): Screen {
+  return {
+    text:
+      `🔒 <b>Daily free limit reached</b>\n\n` +
+      `You've used today's <b>${opts.limit} free courses</b> (${opts.limit}/${opts.limit}). ` +
+      `The limit resets at <b>midnight India time (IST)</b> — next free unlock at ${esc(opts.resetsAt)} IST.\n\n` +
+      `👑 Get Premium for unlimited direct downloads with no shorteners or ads.`,
+    keyboard: [
+      [{ text: "👑 Buy Premium", url: opts.premiumUrl }],
       [
         btn(b, {
           label: "btn_back",

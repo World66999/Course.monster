@@ -234,6 +234,8 @@ model Course {
   updatedAt        DateTime        @updatedAt
   shortLinks       ShortLink[]
   downloadEvents   DownloadEvent[]
+  freeUnlocks      FreeUnlock[]
+  unlockSessions   FreeUnlockSession[]
   reviews          Review[]
   comments         Comment[]
   telegramEvents   TelegramEvent[]
@@ -1713,4 +1715,78 @@ model PremiumChatInvite {
 
   @@index([userId, revokedAt, expiresAt])
   @@map("premium_chat_invites")
+}
+
+// ---------------------------------------------------------------------------
+// Free daily unlocks (shortener rotation)
+// ---------------------------------------------------------------------------
+//
+// A "subject" is who an unlock is counted against, as an opaque key:
+//   u:<User.id>          signed-in site account (or a Telegram user linked to one)
+//   tg:<telegram id>     bot user without a linked account
+//   ip:<hashIp(ip)>      anonymous website visitor
+// No foreign keys to users on purpose: two of the three kinds have no row.
+
+/// One counter per subject. `day` is the Asia/Kolkata calendar day (YYYY-MM-DD)
+/// the count belongs to; a row whose day is not today counts as 0, and the next
+/// unlock resets it.
+model FreeUnlockQuota {
+  subjectKey String   @id
+  day        String
+  count      Int      @default(0)
+  updatedAt  DateTime @updatedAt
+
+  @@index([day, count])
+  @@map("free_unlock_quotas")
+}
+
+/// A course a subject has unlocked through a verified shortener completion.
+/// Re-opening it later is free and never counts again.
+model FreeUnlock {
+  id         String   @id @default(cuid())
+  subjectKey String
+  courseId   String
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  /// vplink | gplinks | linkshortify | none (every shortener was down)
+  provider   String
+  day        String
+  sessionId  String?
+  createdAt  DateTime @default(now())
+
+  @@unique([subjectKey, courseId])
+  @@index([day])
+  @@map("free_unlocks")
+}
+
+/// One attempt to unlock a course: the one-time token behind the return URL
+/// that the shortener sends the visitor to once its steps are done. Only the
+/// token's SHA-256 is stored.
+model FreeUnlockSession {
+  id             String    @id @default(cuid())
+  tokenHash      String    @unique
+  subjectKey     String
+  courseId       String
+  course         Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  /// 1-based position in the day's rotation when the attempt was created.
+  slot           Int
+  /// Shortener the rotation asked for, and the one actually used after fallback.
+  wantedProvider String
+  provider       String
+  shortUrl       String
+  /// SHA-256 of the browser-binding cookie: the return must happen in the same browser.
+  browserHash    String
+  ipHash         String
+  telegramUserId String?
+  userId         String?
+  /// Returns earlier than this are treated as a skipped shortener.
+  minCompleteAt  DateTime
+  expiresAt      DateTime
+  completedAt    DateTime?
+  /// unlocked | already | limit
+  outcome        String?
+  createdAt      DateTime  @default(now())
+
+  @@index([subjectKey, courseId, createdAt])
+  @@index([expiresAt])
+  @@map("free_unlock_sessions")
 }

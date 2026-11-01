@@ -32,6 +32,16 @@ interface TokenPayload {
    * database, so a link copied while Premium stops working once it ends.
    */
   uid?: string;
+  /**
+   * Free path: the pending unlock attempt whose short link /go redirects to
+   * (see free-unlocks.ts). Set only by /api/download/init after every gate.
+   */
+  us?: string;
+  /**
+   * Free path, course already unlocked: the subject key that unlocked it. /go
+   * re-checks the unlock record before sending the visitor to the course.
+   */
+  ro?: string;
 }
 
 export interface DownloadAttribution {
@@ -55,7 +65,7 @@ export function createDownloadToken(
   courseId: string,
   ipHash: string,
   attribution?: DownloadAttribution,
-  opts: { direct?: boolean; userId?: string } = {}
+  opts: { direct?: boolean; userId?: string; unlockSessionId?: string; reopenSubject?: string } = {}
 ): string {
   const payload: TokenPayload = {
     courseId,
@@ -65,13 +75,23 @@ export function createDownloadToken(
     ...(attribution ? { src: attribution.source, tgId: attribution.telegramUserId } : {}),
     ...(opts.direct ? { direct: true as const } : {}),
     ...(opts.userId ? { uid: opts.userId } : {}),
+    ...(opts.unlockSessionId ? { us: opts.unlockSessionId } : {}),
+    ...(opts.reopenSubject ? { ro: opts.reopenSubject } : {}),
   };
   const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return `${data}.${sign(data)}`;
 }
 
 export type TokenVerifyResult =
-  | { ok: true; courseId: string; direct: boolean; userId: string | null; attribution?: DownloadAttribution }
+  | {
+      ok: true;
+      courseId: string;
+      direct: boolean;
+      userId: string | null;
+      unlockSessionId: string | null;
+      reopenSubject: string | null;
+      attribution?: DownloadAttribution;
+    }
   | { ok: false; reason: "invalid" | "expired" | "used" | "ip_mismatch" };
 
 export function consumeDownloadToken(token: string, ipHash: string): TokenVerifyResult {
@@ -116,6 +136,8 @@ export function consumeDownloadToken(token: string, ipHash: string): TokenVerify
     courseId: payload.courseId,
     direct: payload.direct === true,
     userId: typeof payload.uid === "string" ? payload.uid : null,
+    unlockSessionId: typeof payload.us === "string" ? payload.us : null,
+    reopenSubject: typeof payload.ro === "string" ? payload.ro : null,
     ...(typeof payload.src === "string" && typeof payload.tgId === "string"
       ? { attribution: { source: payload.src, telegramUserId: payload.tgId } }
       : {}),

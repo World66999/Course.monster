@@ -5,12 +5,18 @@ import { verifyCaptcha } from "@/lib/captcha";
 import { createDownloadToken } from "@/lib/download-token";
 import { consumePageTicket } from "@/lib/page-ticket";
 import { consumeHumanTicket } from "@/lib/verify-challenge";
-import { getShortLink } from "@/lib/shortener";
+import {
+  BROWSER_COOKIE,
+  hasUnlocked,
+  newBrowserId,
+  resolveWebSubject,
+  startUnlock,
+} from "@/lib/free-unlocks";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { getClientIp, hashIp, isTrustedOrigin } from "@/lib/ip";
+import { getClientIp, hashIp, isTrustedOrigin, siteOrigin } from "@/lib/ip";
 import { verifyAttributionToken } from "@/lib/telegram/attribution";
 import { auth } from "@/auth";
-import { canAccessPremiumCourse } from "@/lib/premium";
+import { canAccessPremiumCourse, canDownloadDirect } from "@/lib/premium";
 
 const bodySchema = z.object({
   slug: z.string().min(1).max(120),
@@ -22,9 +28,14 @@ const bodySchema = z.object({
 
 /**
  * Step 2 of the download flow: called from the protected download page after
- * the countdown + captcha. Verifies everything server-side, warms the short
- * link cache, and returns a short-lived single-use /go token. The actual
- * short URL is never returned to the client here.
+ * the countdown + captcha. Verifies everything server-side and returns a
+ * short-lived single-use /go token. The actual short URL is never returned to
+ * the client here.
+ *
+ * Free path: a course this visitor already unlocked goes straight to the
+ * course; otherwise a one-time unlock attempt is created with today's due
+ * shortener (free-unlocks.ts), or the request is refused once the daily limit
+ * is used up. Nothing is counted here — only a verified return is.
  */
 export async function POST(request: NextRequest) {
   // The page-ticket cookie is single-use regardless of outcome below, so
@@ -125,17 +136,6 @@ export async function POST(request: NextRequest) {
     premiumUserId = session.user.id;
   }
 
-  // Warm the short-link cache now so the /go redirect is instant.
-  try {
-    await getShortLink(course);
-  } catch (err) {
-    console.error("[download] failed to prepare link:", err);
-    return respond(
-      { error: "Download link is temporarily unavailable. Please try again later." },
-      { status: 502 }
-    );
-  }
-
   // Attribution is resolved only after every gate above has already passed and
   // the course has been looked up by slug. It cannot select a course, relax a
   // check, or change the outcome — an invalid token just means "unattributed".
@@ -145,6 +145,70 @@ export async function POST(request: NextRequest) {
     if (telegramUserId) attribution = { source: "telegram", telegramUserId };
   }
 
-  const token = createDownloadToken(course.id, ipKey, attribution, { userId: premiumUserId });
-  return respond({ redirectUrl: `/go/${token}` });
+  if (course.premium) {
+    const token = createDownloadToken(course.id, ipKey, attribution, { userId: premiumUserId });
+    return respond({ redirectUrl: `/go/${token}` });
+  }
+
+  // ---- Free path: daily unlock via shortener ------------------------------
+  const session = await auth();
+  // Premium members never see a shortener or a limit (the page normally sends
+  // them straight to the direct link; this covers a stale page).
+  if (session?.user?.id && (await canDownloadDirect(session.user.id, course))) {
+    const token = createDownloadToken(course.id, ipKey, attribution, { direct: true, userId: session.user.id });
+    return respond({ redirectUrl: `/go/${token}` });
+  }
+  const subject = await resolveWebSubject({
+    attribution: parsed.data.attribution,
+    courseId: course.id,
+    viewerId: session?.user?.id ?? null,
+    ipHash: ipKey,
+  });
+
+  if (await hasUnlocked(subject.key, course.id)) {
+    const token = createDownloadToken(course.id, ipKey, attribution, { reopenSubject: subject.key });
+    return respond({ redirectUrl: `/go/${token}` });
+  }
+
+  const existingBrowser = request.cookies.get(BROWSER_COOKIE)?.value;
+  const browserId = existingBrowser && /^[A-Za-z0-9_-]{20,64}$/.test(existingBrowser) ? existingBrowser : newBrowserId();
+
+  let started;
+  try {
+    started = await startUnlock({
+      subject,
+      course,
+      browserId,
+      ipHash: ipKey,
+      origin: siteOrigin(request.nextUrl.origin),
+    });
+  } catch (err) {
+    console.error("[download] failed to prepare unlock link:", err);
+    return respond(
+      { error: "Download link is temporarily unavailable. Please try again later." },
+      { status: 502 }
+    );
+  }
+  if (!started.ok) {
+    return respond(
+      {
+        error: `You've used today's ${started.status.limit} free courses. The limit resets at midnight (IST). Get Premium for unlimited direct downloads.`,
+        code: "limit",
+      },
+      { status: 429 }
+    );
+  }
+
+  const token = createDownloadToken(course.id, ipKey, attribution, { unlockSessionId: started.sessionId });
+  const res = respond({ redirectUrl: `/go/${token}` });
+  if (browserId !== existingBrowser) {
+    res.cookies.set(BROWSER_COOKIE, browserId, {
+      httpOnly: true,
+      secure: request.nextUrl.protocol === "https:",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 30 * 24 * 60 * 60,
+    });
+  }
+  return res;
 }
