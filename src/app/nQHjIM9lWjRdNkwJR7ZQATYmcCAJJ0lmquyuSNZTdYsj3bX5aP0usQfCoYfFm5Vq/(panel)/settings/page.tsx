@@ -4,13 +4,13 @@ import { getSiteSettings } from "@/lib/settings";
 import { SettingsForm } from "@/components/admin/settings-form";
 import { db } from "@/lib/db";
 import { adminPath } from "@/lib/admin-path";
-import { effectiveDailyLimit, istDay, PROVIDER_LABEL } from "@/lib/shortener-core";
+import { effectiveDailyLimit, effectiveIpDailyCap, istDay, PROVIDER_LABEL } from "@/lib/shortener-core";
 
 export const metadata: Metadata = { title: "Settings" };
 export const dynamic = "force-dynamic";
 
 /** Today's (IST) free unlocks per user, busiest first. */
-async function FreeUnlocksToday({ limit }: { limit: number }) {
+async function FreeUnlocksToday({ limit, ipCap }: { limit: number; ipCap: number }) {
   const today = istDay();
   const [quotas, byProvider] = await Promise.all([
     db.freeUnlockQuota.findMany({
@@ -45,7 +45,7 @@ async function FreeUnlocksToday({ limit }: { limit: number }) {
           {total} unlock{total === 1 ? "" : "s"} today
           {byProvider.length > 0 &&
             ` — ${byProvider.map((r) => `${PROVIDER_LABEL[r.provider as keyof typeof PROVIDER_LABEL] ?? r.provider}: ${r._count._all}`).join(", ")}`}
-          . Limit {limit}/day per user.
+          . Limit {limit}/day per user, {ipCap}/day per IP for anonymous visitors.
         </p>
       </div>
       {quotas.length === 0 ? (
@@ -77,16 +77,22 @@ async function FreeUnlocksToday({ limit }: { limit: number }) {
                   const t = tgById.get(id);
                   who = t?.username ? `@${t.username}` : (t?.firstName ?? `Telegram ${id}`);
                   type = "Telegram";
+                } else if (kind === "d") {
+                  who = `Device …${id.slice(-6)}`;
+                  type = "Website (device)";
                 } else if (kind === "ip") {
                   who = `Visitor …${id.slice(-6)}`;
-                  type = "Website (IP)";
+                  type = "Website (IP, old)";
+                } else if (kind === "ipcap") {
+                  who = `Network …${id.slice(-6)}`;
+                  type = "IP backup cap";
                 }
                 return (
                   <tr key={q.subjectKey} className="border-t border-border">
                     <td className="py-2 pr-4">{who}</td>
                     <td className="py-2 pr-4 text-muted-foreground">{type}</td>
                     <td className="py-2 tabular-nums">
-                      {q.count}/{limit}
+                      {q.count}/{kind === "ipcap" ? ipCap : limit}
                     </td>
                   </tr>
                 );
@@ -113,7 +119,7 @@ export default async function AdminSettingsPage() {
         </p>
       </div>
       <SettingsForm defaultValues={settings} freeLimitDefault={envLimit} />
-      <FreeUnlocksToday limit={limit} />
+      <FreeUnlocksToday limit={limit} ipCap={effectiveIpDailyCap(settings.freeUnlocks?.ipDailyCap)} />
     </div>
   );
 }

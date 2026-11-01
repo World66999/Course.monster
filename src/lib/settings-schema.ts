@@ -101,6 +101,8 @@ export const siteSettingsSchema = z.object({
   freeUnlocks: z
     .object({
       dailyLimit: z.number().int().min(1).max(50).nullable().default(null),
+      /** Anti-abuse backup: anonymous free unlocks per IP per IST day. */
+      ipDailyCap: z.number().int().min(1).max(10_000).default(30),
       gplinksEnabled: z.boolean().default(true),
       linkshortifyEnabled: z.boolean().default(true),
     })

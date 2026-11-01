@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getPublishedCourse } from "@/lib/courses";
 import { createChallenge, verifyChallengeSubmission } from "@/lib/verify-challenge";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkVisitorRateLimit } from "@/lib/visitor-rate-limit";
+import { DEVICE_COOKIE } from "@/lib/free-unlocks";
 import { getClientIp, hashIp, isTrustedOrigin } from "@/lib/ip";
 
 /**
@@ -17,7 +18,10 @@ const slugSchema = z.string().min(1).max(120);
 
 export async function GET(request: NextRequest) {
   const ip = await getClientIp();
-  const rl = checkRateLimit(`verify-challenge-issue:${hashIp(ip)}`, { limit: 30, windowMs: 5 * 60_000 });
+  const rl = checkVisitorRateLimit("verify-challenge-issue", hashIp(ip), request.cookies.get(DEVICE_COOKIE)?.value, {
+    limit: 30,
+    windowMs: 5 * 60_000,
+  });
   if (!rl.ok) {
     return NextResponse.json(
       { error: "Too many attempts. Please wait a moment and try again." },
@@ -55,7 +59,10 @@ const bodySchema = z.object({
 
 export async function POST(request: NextRequest) {
   const ip = await getClientIp();
-  const rl = checkRateLimit(`verify-challenge-submit:${hashIp(ip)}`, { limit: 20, windowMs: 5 * 60_000 });
+  const rl = checkVisitorRateLimit("verify-challenge-submit", hashIp(ip), request.cookies.get(DEVICE_COOKIE)?.value, {
+    limit: 20,
+    windowMs: 5 * 60_000,
+  });
   if (!rl.ok) {
     return NextResponse.json(
       { error: "Too many attempts. Please wait a moment and try again." },

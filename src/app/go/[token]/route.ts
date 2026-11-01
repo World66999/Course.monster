@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { consumeDownloadToken } from "@/lib/download-token";
-import { getSessionShortUrl, hasUnlocked } from "@/lib/free-unlocks";
+import { DEVICE_COOKIE, getSessionShortUrl, hasUnlocked } from "@/lib/free-unlocks";
 import { getClientIp, hashIp, siteOrigin } from "@/lib/ip";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkVisitorRateLimit } from "@/lib/visitor-rate-limit";
 import { isSafeExternalUrl } from "@/lib/safe-url";
 import { canAccessPremiumCourse, canDownloadDirect } from "@/lib/premium";
 
@@ -26,7 +26,7 @@ export async function GET(
   const ip = await getClientIp();
   const ipKey = hashIp(ip);
 
-  const rl = checkRateLimit(`go:${ipKey}`, { limit: 20, windowMs: 5 * 60_000 });
+  const rl = checkVisitorRateLimit("go", ipKey, request.cookies.get(DEVICE_COOKIE)?.value, { limit: 20, windowMs: 5 * 60_000 });
   if (!rl.ok) return NextResponse.redirect(home);
 
   const { token } = await params;

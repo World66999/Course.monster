@@ -6,6 +6,18 @@ import { createPageTicket } from "@/lib/page-ticket";
 const { auth } = NextAuth(authConfig);
 
 const DOWNLOAD_PAGE_RE = /^\/download\/([^/]+)$/;
+/** Must match DEVICE_COOKIE in src/lib/free-unlocks.ts (that module is server-only). */
+const DEVICE_COOKIE = "cv_ub";
+const DEVICE_COOKIE_MAX_AGE_S = 365 * 24 * 60 * 60;
+const DEVICE_ID_RE = /^[A-Za-z0-9_-]{20,64}$/;
+
+/** 24 random bytes as base64url: an anonymous device ID with no personal data. */
+function newDeviceId(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
 
 /**
  * Wraps auth() with a custom handler so the download page can get a
@@ -37,30 +49,46 @@ export default auth(async (req) => {
     return NextResponse.redirect(signInUrl);
   }
 
-  const res = NextResponse.next();
+  const match = req.method === "GET" ? DOWNLOAD_PAGE_RE.exec(req.nextUrl.pathname) : null;
 
-  if (req.method === "GET") {
-    const match = DOWNLOAD_PAGE_RE.exec(req.nextUrl.pathname);
-    if (match) {
-      try {
-        const ticket = await createPageTicket(decodeURIComponent(match[1]));
-        res.cookies.set("dl_ticket", ticket, {
-          httpOnly: true,
-          // Match Auth.js's own rule (see @auth/core/lib/utils/cookie.js):
-          // secure cookies are gated on the request actually being HTTPS,
-          // not NODE_ENV — `next start` always sets NODE_ENV=production
-          // regardless of environment, which would otherwise make this
-          // cookie unusable when testing over plain HTTP.
-          secure: req.nextUrl.protocol === "https:",
-          sameSite: "lax",
-          path: "/",
-          maxAge: 900,
-        });
-      } catch (err) {
-        // Never let ticket-minting failure break the page render — the API
-        // route fails closed on a missing ticket, which is the safe default.
-        console.error("[middleware] failed to mint page ticket:", err);
-      }
+  // Anonymous free unlocks are counted per device: make sure this browser has
+  // a device ID before the page reads it. A new one is also handed to this
+  // same request so the page and the later /api/download/init agree.
+  let newDevice: string | null = null;
+  if (match && !DEVICE_ID_RE.test(req.cookies.get(DEVICE_COOKIE)?.value ?? "")) {
+    newDevice = newDeviceId();
+    req.cookies.set(DEVICE_COOKIE, newDevice);
+  }
+  const res = newDevice ? NextResponse.next({ request: { headers: req.headers } }) : NextResponse.next();
+  if (newDevice) {
+    res.cookies.set(DEVICE_COOKIE, newDevice, {
+      httpOnly: true,
+      secure: req.nextUrl.protocol === "https:",
+      sameSite: "lax",
+      path: "/",
+      maxAge: DEVICE_COOKIE_MAX_AGE_S,
+    });
+  }
+
+  if (match) {
+    try {
+      const ticket = await createPageTicket(decodeURIComponent(match[1]));
+      res.cookies.set("dl_ticket", ticket, {
+        httpOnly: true,
+        // Match Auth.js's own rule (see @auth/core/lib/utils/cookie.js):
+        // secure cookies are gated on the request actually being HTTPS,
+        // not NODE_ENV — `next start` always sets NODE_ENV=production
+        // regardless of environment, which would otherwise make this
+        // cookie unusable when testing over plain HTTP.
+        secure: req.nextUrl.protocol === "https:",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 900,
+      });
+    } catch (err) {
+      // Never let ticket-minting failure break the page render — the API
+      // route fails closed on a missing ticket, which is the safe default.
+      console.error("[middleware] failed to mint page ticket:", err);
     }
   }
 

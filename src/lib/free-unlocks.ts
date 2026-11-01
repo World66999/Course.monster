@@ -7,6 +7,7 @@ import { findLinkedUser } from "@/lib/telegram-link";
 import { shortenWith } from "@/lib/shortener";
 import {
   effectiveDailyLimit,
+  effectiveIpDailyCap,
   fallbackChain,
   istDay,
   nextIstMidnight,
@@ -35,14 +36,24 @@ import {
 
 export const UNLOCK_TTL_MS = 60 * 60 * 1000;
 /** Real shorteners take well over this; an instant return means a bypass. */
-export const MIN_COMPLETION_MS = 10_000;
+export const MIN_COMPLETION_MS = 20_000;
 /** A pending attempt is reused (same short link) instead of minting a new one. */
 const REUSE_WINDOW_MS = 30 * 60 * 1000;
-export const BROWSER_COOKIE = "cv_ub";
+/**
+ * Anonymous device ID: a random value in a secure httpOnly cookie, no personal
+ * data. Anonymous visitors are counted per device; it also binds an unlock to
+ * the browser that started it. (Name kept from the original browser-binding
+ * cookie so existing visitors keep their ID.)
+ */
+export const DEVICE_COOKIE = "cv_ub";
+export const BROWSER_COOKIE = DEVICE_COOKIE;
+export const DEVICE_COOKIE_MAX_AGE_S = 365 * 24 * 60 * 60;
+/** Quota-row prefix for the per-IP backup cap (separate from any subject). */
+const IP_CAP_PREFIX = "ipcap:";
 
 export type FreeSubject = {
   key: string;
-  kind: "user" | "telegram" | "ip";
+  kind: "user" | "telegram" | "device" | "ip";
   userId: string | null;
   telegramUserId: string | null;
 };
@@ -55,8 +66,19 @@ export function newBrowserId(): string {
   return randomBytes(24).toString("base64url");
 }
 
+/** Legacy (before device IDs): anonymous visitors were counted per IP. */
 export function ipSubject(ipHash: string): FreeSubject {
   return { key: `ip:${ipHash}`, kind: "ip", userId: null, telegramUserId: null };
+}
+
+/** An anonymous browser. Only a hash of the cookie value is ever stored. */
+export function deviceSubject(deviceId: string): FreeSubject {
+  return { key: `d:${sha256(deviceId).slice(0, 40)}`, kind: "device", userId: null, telegramUserId: null };
+}
+
+/** Anonymous unlocks are also capped per IP per day as an anti-abuse backup. */
+function ipCapped(subjectKey: string): boolean {
+  return subjectKey.startsWith("d:") || subjectKey.startsWith("ip:");
 }
 
 export function userSubject(userId: string, telegramUserId: string | null = null): FreeSubject {
@@ -73,22 +95,24 @@ export async function telegramSubject(telegramUserId: string): Promise<FreeSubje
 /**
  * Who a website request counts against: the Telegram user who was handed this
  * page by the bot (signed, course-bound attribution), else the signed-in
- * account, else the visitor's IP.
+ * account, else this browser's device ID (the caller always has one: an
+ * existing valid cookie or a freshly generated ID it is about to set).
  */
 export async function resolveWebSubject(args: {
   attribution: string;
   courseId: string;
   viewerId: string | null;
-  ipHash: string;
+  deviceId: string;
 }): Promise<FreeSubject> {
   const tg = args.attribution ? verifyAttributionToken(args.attribution, args.courseId) : null;
   if (tg) return telegramSubject(tg);
   if (args.viewerId) return userSubject(args.viewerId);
-  return ipSubject(args.ipHash);
+  return deviceSubject(args.deviceId);
 }
 
 export interface FreeConfig {
   limit: number;
+  ipCap: number;
   gplinks: boolean;
   linkshortify: boolean;
 }
@@ -97,9 +121,18 @@ export async function getFreeConfig(): Promise<FreeConfig> {
   const s = (await getSiteSettings()).freeUnlocks;
   return {
     limit: effectiveDailyLimit(s?.dailyLimit ?? null, process.env.FREE_DAILY_COURSE_LIMIT),
+    ipCap: effectiveIpDailyCap(s?.ipDailyCap ?? null),
     gplinks: s?.gplinksEnabled ?? true,
     linkshortify: s?.linkshortifyEnabled ?? true,
   };
+}
+
+async function ipCapUsed(ipHash: string, today: string): Promise<number> {
+  const row = await db.freeUnlockQuota.findUnique({
+    where: { subjectKey: IP_CAP_PREFIX + ipHash },
+    select: { day: true, count: true },
+  });
+  return usedToday(row, today);
 }
 
 export interface FreeStatus {
@@ -108,14 +141,22 @@ export interface FreeStatus {
   /** This course was already unlocked by this subject (re-opening is free). */
   unlocked: boolean;
   limitReached: boolean;
+  /** Anonymous visitor whose network (IP) used today's anti-abuse cap. */
+  ipCapReached: boolean;
   /** Shortener the next unlock will use (before fallback). */
   nextProvider: ShortenerProvider;
   resetsAt: Date;
 }
 
-export async function getFreeStatus(subject: FreeSubject, courseId: string | null, now = new Date()): Promise<FreeStatus> {
+/** `ipHash` is only consulted for anonymous (device) subjects. */
+export async function getFreeStatus(
+  subject: FreeSubject,
+  courseId: string | null,
+  now = new Date(),
+  ipHash: string | null = null
+): Promise<FreeStatus> {
   const today = istDay(now);
-  const [config, quota, unlock] = await Promise.all([
+  const [config, quota, unlock, ipUsed] = await Promise.all([
     getFreeConfig(),
     db.freeUnlockQuota.findUnique({ where: { subjectKey: subject.key }, select: { day: true, count: true } }),
     courseId
@@ -124,6 +165,7 @@ export async function getFreeStatus(subject: FreeSubject, courseId: string | nul
           select: { id: true },
         })
       : null,
+    ipHash && ipCapped(subject.key) ? ipCapUsed(ipHash, today) : 0,
   ]);
   const used = usedToday(quota, today);
   return {
@@ -131,6 +173,7 @@ export async function getFreeStatus(subject: FreeSubject, courseId: string | nul
     limit: config.limit,
     unlocked: Boolean(unlock),
     limitReached: used >= config.limit,
+    ipCapReached: ipUsed >= config.ipCap,
     nextProvider: providerForSlot(used + 1),
     resetsAt: nextIstMidnight(now),
   };
@@ -146,7 +189,7 @@ export async function hasUnlocked(subjectKey: string, courseId: string): Promise
 
 export type StartResult =
   | { ok: true; sessionId: string }
-  | { ok: false; reason: "limit"; status: FreeStatus };
+  | { ok: false; reason: "limit" | "ipcap"; status: FreeStatus };
 
 /**
  * Creates (or reuses) a pending unlock attempt and its short link. Does not
@@ -161,8 +204,9 @@ export async function startUnlock(args: {
   now?: Date;
 }): Promise<StartResult> {
   const now = args.now ?? new Date();
-  const status = await getFreeStatus(args.subject, args.course.id, now);
+  const status = await getFreeStatus(args.subject, args.course.id, now, args.ipHash);
   if (status.limitReached) return { ok: false, reason: "limit", status };
+  if (status.ipCapReached) return { ok: false, reason: "ipcap", status };
 
   const slot = status.used + 1;
   const wanted = providerForSlot(slot);
@@ -248,7 +292,7 @@ export type CompleteResult =
     }
   | {
       ok: false;
-      reason: "invalid" | "used" | "expired" | "browser" | "early" | "limit";
+      reason: "invalid" | "used" | "expired" | "browser" | "early" | "limit" | "ipcap";
       courseId?: string;
     };
 
@@ -305,6 +349,25 @@ export async function completeUnlock(args: {
     if (used >= config.limit) {
       await finish("limit");
       return { ok: false, reason: "limit", courseId } as const;
+    }
+
+    // Anonymous visitors: also the per-IP backup cap (IP recorded when the
+    // unlock started). Locked after the subject row, always in this order.
+    if (ipCapped(s.subjectKey)) {
+      const capKey = IP_CAP_PREFIX + s.ipHash;
+      await tx.$executeRaw`
+        INSERT INTO "free_unlock_quotas" ("subjectKey", "day", "count", "updatedAt")
+        VALUES (${capKey}, ${today}, 0, NOW())
+        ON CONFLICT ("subjectKey") DO NOTHING`;
+      const c = await tx.$queryRaw<{ day: string; count: number }[]>`
+        SELECT "day", "count" FROM "free_unlock_quotas" WHERE "subjectKey" = ${capKey} FOR UPDATE`;
+      const ipUsed = usedToday(c[0] ?? null, today);
+      if (ipUsed >= config.ipCap) {
+        await finish("ipcap");
+        console.warn(`[free-unlock] IP backup cap (${config.ipCap}/day) reached; unlock refused`);
+        return { ok: false, reason: "ipcap", courseId } as const;
+      }
+      await tx.freeUnlockQuota.update({ where: { subjectKey: capKey }, data: { day: today, count: ipUsed + 1 } });
     }
 
     await tx.freeUnlockQuota.update({

@@ -81,3 +81,20 @@ test("/go tokens carry the unlock attempt and the reopen subject, signed", () =>
   ).toString("base64url");
   assert.equal(consumeDownloadToken(`${forged}.${sig}`, "ip1").ok, false);
 });
+
+test("IP backup cap: admin value, else 30", async () => {
+  const { effectiveIpDailyCap, DEFAULT_IP_DAILY_CAP } = await import("../src/lib/shortener-core.ts");
+  assert.equal(DEFAULT_IP_DAILY_CAP, 30);
+  assert.equal(effectiveIpDailyCap(50), 50);
+  assert.equal(effectiveIpDailyCap(null), 30);
+  assert.equal(effectiveIpDailyCap(0), 30);
+});
+
+test("only a random base64url value is accepted as a device ID", async () => {
+  const { isValidDeviceId } = await import("../src/lib/shortener-core.ts");
+  assert.ok(isValidDeviceId("Ab3_-xY9Ab3_-xY9Ab3_-xY9Ab3_-xY9"));
+  assert.ok(!isValidDeviceId(undefined));
+  assert.ok(!isValidDeviceId("short"));
+  assert.ok(!isValidDeviceId("has spaces and ; semicolons here ok"));
+  assert.ok(!isValidDeviceId("x".repeat(65)));
+});

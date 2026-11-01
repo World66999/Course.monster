@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { BROWSER_COOKIE, completeUnlock } from "@/lib/free-unlocks";
 import { getClientIp, hashIp, siteOrigin } from "@/lib/ip";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkVisitorRateLimit } from "@/lib/visitor-rate-limit";
 import { isSafeExternalUrl } from "@/lib/safe-url";
 
 /**
@@ -17,14 +17,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const ipKey = hashIp(await getClientIp());
   const noStore = { "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow" };
 
-  if (!checkRateLimit(`unlock:${ipKey}`, { limit: 20, windowMs: 5 * 60_000 }).ok) {
+  const deviceCookie = request.cookies.get(BROWSER_COOKIE)?.value;
+  if (!checkVisitorRateLimit("unlock", ipKey, deviceCookie, { limit: 20, windowMs: 5 * 60_000 }).ok) {
     return NextResponse.redirect(home, { headers: noStore });
   }
 
   const { token } = await params;
   let result;
   try {
-    result = await completeUnlock({ token: token ?? "", browserId: request.cookies.get(BROWSER_COOKIE)?.value ?? null });
+    result = await completeUnlock({ token: token ?? "", browserId: deviceCookie ?? null });
   } catch (err) {
     console.error("[unlock] verification failed:", err);
     return NextResponse.redirect(home, { headers: noStore });
