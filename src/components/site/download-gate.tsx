@@ -80,7 +80,14 @@ export function DownloadGate({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ slug, captchaToken, humanTicket, attribution }),
       });
-      const data = (await res.json()) as { redirectUrl?: string; error?: string };
+      const data = (await res.json()) as { redirectUrl?: string; error?: string; code?: string };
+      if (data.code === "limit") {
+        // Today's free unlocks ran out since the page loaded: the page itself
+        // shows the limit screen and the Premium offer.
+        toast.error(data.error ?? "Daily free limit reached.");
+        window.location.reload();
+        return;
+      }
       if (!res.ok || !data.redirectUrl) {
         throw new Error(data.error ?? "Something went wrong. Please try again.");
       }

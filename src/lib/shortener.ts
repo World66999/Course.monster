@@ -1,127 +1,115 @@
 import "server-only";
-import { createHash } from "node:crypto";
 import { db } from "@/lib/db";
+import {
+  extractShortUrl,
+  isValidHttpUrl,
+  type ShortenerProvider,
+} from "@/lib/shortener-core";
+
+export { fallbackChain, providerForSlot, type ShortenerProvider } from "@/lib/shortener-core";
 
 /**
- * vplink.in shortener client.
+ * URL shortener clients for the free unlock flow (see free-unlocks.ts).
  *
- * - The API key lives only in server env (VPLINK_API_KEY); this module is
- *   marked `server-only` so it can never be bundled for the client.
- * - Generated links are cached in the `short_links` table keyed by
- *   (courseId, sha256(destination)), so each destination is shortened once.
- * - Requests are retried with backoff and time out; on total failure we fall
- *   back to the raw destination so downloads keep working.
+ * Every free unlock shortens a one-time *return URL* on this site — never the
+ * course's download URL — so the visitor only reaches the course after the
+ * shortener's steps send them back to /unlock/<token>, where the unlock is
+ * verified and counted.
+ *
+ * API tokens live only in server env and this module is `server-only`. A
+ * failed or slow shortener is logged and the caller moves on to the next one.
  */
 
-const REQUEST_TIMEOUT_MS = 8_000;
-const RETRY_DELAYS_MS = [300, 900];
+const GPLINKS_TIMEOUT_MS = 10_000;
+const LINKSHORTIFY_TIMEOUT_MS = 10_000;
+const VPLINK_TIMEOUT_MS = 8_000;
+const VPLINK_RETRY_DELAYS_MS = [500];
 
-function hashDestination(url: string): string {
-  return createHash("sha256").update(url).digest("hex");
+/** The API token a provider needs, or null when it is not configured. */
+function tokenFor(provider: ShortenerProvider): string | null {
+  const v =
+    provider === "vplink"
+      ? process.env.VPLINK_API_KEY
+      : provider === "gplinks"
+        ? process.env.GPLINKS_API_TOKEN
+        : process.env.LINKSHORTIFY_API_TOKEN;
+  return v && v.trim() ? v.trim() : null;
 }
 
-function isValidHttpUrl(value: string): boolean {
-  try {
-    const u = new URL(value);
-    return u.protocol === "https:" || u.protocol === "http:";
-  } catch {
-    return false;
-  }
+export function isProviderConfigured(provider: ShortenerProvider): boolean {
+  return tokenFor(provider) !== null;
 }
 
-/** Parse the shortener response, tolerating JSON and plain-text bodies. */
-function extractShortUrl(body: string): string | null {
-  const trimmed = body.trim();
+/** One GET to a "standard" shortener API (`?api=&url=`); null on any failure. */
+async function callStandardApi(
+  label: ShortenerProvider,
+  endpoint: string,
+  timeoutMs: number
+): Promise<string | null> {
+  const started = Date.now();
   try {
-    const json = JSON.parse(trimmed) as Record<string, unknown>;
-    if (typeof json.status === "string" && json.status.toLowerCase() === "error") {
+    const res = await fetch(endpoint, { signal: AbortSignal.timeout(timeoutMs), cache: "no-store" });
+    const body = await res.text();
+    if (!res.ok) {
+      console.error(`[shortener:${label}] HTTP ${res.status} after ${Date.now() - started}ms`);
       return null;
     }
-    for (const key of ["shortenedUrl", "shortened_url", "short", "url", "shorturl"]) {
-      const v = json[key];
-      if (typeof v === "string" && isValidHttpUrl(v)) return v;
-    }
+    const url = extractShortUrl(body);
+    if (!url) console.error(`[shortener:${label}] unexpected response:`, body.slice(0, 200));
+    return url;
+  } catch (err) {
+    const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+    console.error(`[shortener:${label}] request failed after ${Date.now() - started}ms:`, msg);
     return null;
-  } catch {
-    return isValidHttpUrl(trimmed) ? trimmed : null;
   }
 }
 
-async function callShortenerApi(destination: string, alias?: string): Promise<string | null> {
-  const apiKey = process.env.VPLINK_API_KEY;
+async function shortenVplink(destination: string, token: string): Promise<string | null> {
   const apiBase = process.env.VPLINK_API_BASE ?? "https://vplink.in/api";
-  if (!apiKey) return null;
-
-  const params = new URLSearchParams({ api: apiKey, url: destination });
-  if (alias) params.set("alias", alias);
-  const endpoint = `${apiBase}?${params.toString()}`;
-
-  for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
-    try {
-      const res = await fetch(endpoint, {
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-        cache: "no-store",
-      });
-      const body = await res.text();
-      if (res.ok) {
-        const shortUrl = extractShortUrl(body);
-        if (shortUrl) return shortUrl;
-        console.error(`[shortener] unexpected response (attempt ${attempt + 1}):`, body.slice(0, 300));
-        // An alias conflict is not transient — retry once without the alias.
-        if (alias) return callShortenerApi(destination);
-      } else {
-        console.error(`[shortener] HTTP ${res.status} (attempt ${attempt + 1})`);
-      }
-    } catch (err) {
-      console.error(`[shortener] request failed (attempt ${attempt + 1}):`, err instanceof Error ? err.message : err);
-    }
-    if (attempt < RETRY_DELAYS_MS.length) {
-      await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt]));
+  const endpoint = `${apiBase}?${new URLSearchParams({ api: token, url: destination })}`;
+  for (let attempt = 0; attempt <= VPLINK_RETRY_DELAYS_MS.length; attempt++) {
+    const url = await callStandardApi("vplink", endpoint, VPLINK_TIMEOUT_MS);
+    if (url) return url;
+    if (attempt < VPLINK_RETRY_DELAYS_MS.length) {
+      await new Promise((r) => setTimeout(r, VPLINK_RETRY_DELAYS_MS[attempt]));
     }
   }
   return null;
 }
 
+async function shortenGplinks(destination: string, token: string): Promise<string | null> {
+  const apiBase = process.env.GPLINKS_API_BASE ?? "https://api.gplinks.com/api";
+  const endpoint = `${apiBase}?${new URLSearchParams({ api: token, url: destination })}`;
+  return callStandardApi("gplinks", endpoint, GPLINKS_TIMEOUT_MS);
+}
+
 /**
- * Return the short link for a course's destination, creating and caching it
- * on first use. Falls back to the destination itself when the shortener is
- * unconfigured or unavailable.
+ * LinkShortify: the standard API first. If that does not answer with a short
+ * URL, its documented Quick Link format is used as the visitor's link directly
+ * — it needs no API call and shows the same steps.
  */
-export async function getShortLink(course: {
-  id: string;
-  slug: string;
-  downloadUrl: string;
-}): Promise<{ url: string; shortened: boolean }> {
-  const destination = course.downloadUrl;
-  if (!isValidHttpUrl(destination)) {
-    throw new Error(`Course ${course.id} has an invalid download URL`);
+async function shortenLinkshortify(destination: string, token: string): Promise<string | null> {
+  const query = new URLSearchParams({ api: token, url: destination });
+  const apiBase = process.env.LINKSHORTIFY_API_BASE ?? "https://linkshortify.com/api";
+  const viaApi = await callStandardApi("linkshortify", `${apiBase}?${query}`, LINKSHORTIFY_TIMEOUT_MS);
+  if (viaApi) return viaApi;
+  console.warn("[shortener:linkshortify] API failed — using the Quick Link format");
+  return `https://linkshortify.com/st?${query}`;
+}
+
+/** Shortens `destination` with one provider. Null when unconfigured or failed. */
+export async function shortenWith(provider: ShortenerProvider, destination: string): Promise<string | null> {
+  if (!isValidHttpUrl(destination)) throw new Error("refusing to shorten a non-http(s) URL");
+  const token = tokenFor(provider);
+  if (!token) return null;
+  switch (provider) {
+    case "vplink":
+      return shortenVplink(destination, token);
+    case "gplinks":
+      return shortenGplinks(destination, token);
+    case "linkshortify":
+      return shortenLinkshortify(destination, token);
   }
-
-  const destinationHash = hashDestination(destination);
-  const cached = await db.shortLink.findUnique({
-    where: { courseId_destinationHash: { courseId: course.id, destinationHash } },
-  });
-  if (cached) return { url: cached.shortUrl, shortened: true };
-
-  if (!process.env.VPLINK_API_KEY) {
-    console.warn("[shortener] VPLINK_API_KEY not set — redirecting directly to destination");
-    return { url: destination, shortened: false };
-  }
-
-  const alias = course.slug.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 30) || undefined;
-  const shortUrl = await callShortenerApi(destination, alias);
-  if (!shortUrl) {
-    console.error(`[shortener] all attempts failed for course ${course.id}; falling back to destination`);
-    return { url: destination, shortened: false };
-  }
-
-  await db.shortLink.upsert({
-    where: { courseId_destinationHash: { courseId: course.id, destinationHash } },
-    create: { courseId: course.id, destinationHash, shortUrl },
-    update: { shortUrl },
-  });
-  console.info(`[shortener] created short link for course ${course.slug}`);
-  return { url: shortUrl, shortened: true };
 }
 
 /** Drop cached short links for a course (used when its download URL changes). */

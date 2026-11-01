@@ -5,6 +5,7 @@ import { notifyUser } from "@/lib/telegram/notify";
 import { onPremiumLost } from "@/lib/premium-lapse";
 import { PLANS } from "@/lib/premium-plans";
 import { sweepExpiredRazorpay } from "@/lib/razorpay-payments";
+import { pruneUnlockSessions } from "@/lib/free-unlocks";
 
 /**
  * Scheduled Premium housekeeping: mark lapsed periods EXPIRED, clean up what
@@ -110,6 +111,12 @@ export async function runPremiumJobs(
     console.error("[premium-jobs] razorpay sweep failed:", err instanceof Error ? err.message : err);
     return 0;
   });
+
+  // 4. Free-unlock attempts that ended over a week ago (counts and unlocks
+  // themselves are kept). Isolated like the sweep above.
+  await pruneUnlockSessions(now).catch((err) =>
+    console.error("[premium-jobs] unlock-session prune failed:", err instanceof Error ? err.message : err)
+  );
 
   return { expired, reminded3d: remind3.length, reminded1d: remind1.length, razorpayExpired };
 }

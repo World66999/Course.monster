@@ -37,7 +37,14 @@ const TABS = [
   { value: "advanced", label: "Advanced" },
 ] as const;
 
-export function SettingsForm({ defaultValues }: { defaultValues: SiteSettings }) {
+export function SettingsForm({
+  defaultValues,
+  freeLimitDefault = 3,
+}: {
+  defaultValues: SiteSettings;
+  /** FREE_DAILY_COURSE_LIMIT as the server sees it, shown as the placeholder. */
+  freeLimitDefault?: number;
+}) {
   const router = useRouter();
   const {
     register,
@@ -174,6 +181,45 @@ export function SettingsForm({ defaultValues }: { defaultValues: SiteSettings })
               <FieldHint>Wait time on the protected download page (0–60, default 3).</FieldHint>
               <FieldError message={errors.downloadCountdownSeconds?.message} />
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="freeDailyLimit">Free courses per day</Label>
+              <Input
+                id="freeDailyLimit"
+                type="number"
+                min="1"
+                max="50"
+                placeholder={`${freeLimitDefault} (from .env)`}
+                {...register("freeUnlocks.dailyLimit", {
+                  setValueAs: (v: unknown) => (v === "" || v === null || v === undefined ? null : Number(v)),
+                })}
+              />
+              <FieldHint>
+                Free users unlock this many courses per day (resets at midnight IST). Unlocks rotate VPLink →
+                GPLinks → LinkShortify. Leave empty to use FREE_DAILY_COURSE_LIMIT ({freeLimitDefault}).
+              </FieldHint>
+              <FieldError message={errors.freeUnlocks?.dailyLimit?.message} />
+            </div>
+            <label className="flex cursor-pointer items-center justify-between gap-2 text-sm font-medium">
+              GPLinks (2nd unlock of the day)
+              <Controller
+                control={control}
+                name="freeUnlocks.gplinksEnabled"
+                render={({ field }) => (
+                  <Switch checked={field.value} onCheckedChange={field.onChange} aria-label="GPLinks enabled" />
+                )}
+              />
+            </label>
+            <label className="flex cursor-pointer items-center justify-between gap-2 text-sm font-medium">
+              LinkShortify (3rd unlock of the day)
+              <Controller
+                control={control}
+                name="freeUnlocks.linkshortifyEnabled"
+                render={({ field }) => (
+                  <Switch checked={field.value} onCheckedChange={field.onChange} aria-label="LinkShortify enabled" />
+                )}
+              />
+            </label>
+            <FieldHint>A switched-off shortener is skipped; that unlock uses the next one, with VPLink last.</FieldHint>
             <div className="space-y-1.5">
               <Label>Default theme</Label>
               <Controller

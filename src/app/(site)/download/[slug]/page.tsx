@@ -15,10 +15,12 @@ import { getViewer } from "@/server/premium-guard";
 import { canDownloadDirect } from "@/lib/premium";
 import { createDownloadToken } from "@/lib/download-token";
 import { getClientIp, hashIp } from "@/lib/ip";
+import { getFreeStatus, resolveWebSubject } from "@/lib/free-unlocks";
+import { FreeLimitReached, FreeUnlockProgress, UnlockNotice } from "@/components/site/free-unlock-status";
 
 interface Props {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ src?: string | string[] }>;
+  searchParams: Promise<{ src?: string | string[]; unlock?: string | string[] }>;
 }
 
 export async function generateMetadata({ params }: Pick<Props, "params">): Promise<Metadata> {
@@ -37,8 +39,9 @@ export default async function DownloadPage({ params, searchParams }: Props) {
   const { slug } = await params;
   // Opaque attribution blob from a Telegram hand-off. Passed through untouched
   // and verified server-side in /api/download/init; it grants nothing.
-  const { src } = await searchParams;
+  const { src, unlock } = await searchParams;
   const attribution = typeof src === "string" ? src.slice(0, 512) : "";
+  const unlockReason = typeof unlock === "string" ? unlock.slice(0, 20) : "";
   const [course, settings] = await Promise.all([getPublishedCourse(slug), getSiteSettings()]);
   if (!course) notFound();
 
@@ -48,12 +51,23 @@ export default async function DownloadPage({ params, searchParams }: Props) {
   // right now and, if it holds, a single-use direct token bound to this user
   // is minted here. /go checks that user's access again when it is followed.
   const viewer = await getViewer();
+  const ipHash = hashIp(await getClientIp());
   const direct = viewer ? await canDownloadDirect(viewer.id, course) : false;
   const directHref =
     direct && viewer
-      ? `/go/${createDownloadToken(course.id, hashIp(await getClientIp()), undefined, { direct: true, userId: viewer.id })}`
+      ? `/go/${createDownloadToken(course.id, ipHash, undefined, { direct: true, userId: viewer.id })}`
       : null;
   const locked = course.premium && !direct;
+
+  // Free path: today's unlocks for whoever this visit counts against (the bot
+  // user it was handed to, else the signed-in account, else the IP).
+  const free =
+    !directHref && !locked
+      ? await getFreeStatus(
+          await resolveWebSubject({ attribution, courseId: course.id, viewerId: viewer?.id ?? null, ipHash }),
+          course.id
+        )
+      : null;
 
   return (
     <Section className="max-w-2xl py-12 sm:py-16">
@@ -105,8 +119,19 @@ export default async function DownloadPage({ params, searchParams }: Props) {
                 cta={viewer ? "Unlock with Premium" : "Sign in to continue"}
               />
             </div>
+          ) : free && free.limitReached && !free.unlocked ? (
+            <FreeLimitReached limit={free.limit} resetsAt={free.resetsAt} slug={course.slug} />
           ) : (
             <>
+              {unlockReason && <UnlockNotice reason={unlockReason} />}
+              {free && (
+                <FreeUnlockProgress
+                  used={free.used}
+                  limit={free.limit}
+                  unlocked={free.unlocked}
+                  nextProvider={free.nextProvider}
+                />
+              )}
               <SkipAdsButton slug={course.slug} className="mb-6" />
               <DownloadGate
                 slug={course.slug}
