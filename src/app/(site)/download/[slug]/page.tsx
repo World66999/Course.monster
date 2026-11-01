@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import { ArrowLeft, Film, HardDrive, ShieldCheck } from "lucide-react";
 import { getPublishedCourse } from "@/lib/courses";
 import { getSiteSettings } from "@/lib/settings";
@@ -15,7 +16,8 @@ import { getViewer } from "@/server/premium-guard";
 import { canDownloadDirect } from "@/lib/premium";
 import { createDownloadToken } from "@/lib/download-token";
 import { getClientIp, hashIp } from "@/lib/ip";
-import { getFreeStatus, resolveWebSubject } from "@/lib/free-unlocks";
+import { DEVICE_COOKIE, getFreeStatus, newBrowserId, resolveWebSubject } from "@/lib/free-unlocks";
+import { isValidDeviceId } from "@/lib/shortener-core";
 import { FreeLimitReached, FreeUnlockProgress, UnlockNotice } from "@/components/site/free-unlock-status";
 
 interface Props {
@@ -60,12 +62,18 @@ export default async function DownloadPage({ params, searchParams }: Props) {
   const locked = course.premium && !direct;
 
   // Free path: today's unlocks for whoever this visit counts against (the bot
-  // user it was handed to, else the signed-in account, else the IP).
+  // user it was handed to, else the signed-in account, else this browser's
+  // device ID, which middleware sets before the page renders; a browser that
+  // blocks cookies reads as a fresh device and is held by the IP backup cap).
+  const deviceCookie = (await cookies()).get(DEVICE_COOKIE)?.value;
+  const deviceId = isValidDeviceId(deviceCookie) ? deviceCookie : newBrowserId();
   const free =
     !directHref && !locked
       ? await getFreeStatus(
-          await resolveWebSubject({ attribution, courseId: course.id, viewerId: viewer?.id ?? null, ipHash }),
-          course.id
+          await resolveWebSubject({ attribution, courseId: course.id, viewerId: viewer?.id ?? null, deviceId }),
+          course.id,
+          new Date(),
+          ipHash
         )
       : null;
 
@@ -119,8 +127,13 @@ export default async function DownloadPage({ params, searchParams }: Props) {
                 cta={viewer ? "Unlock with Premium" : "Sign in to continue"}
               />
             </div>
-          ) : free && free.limitReached && !free.unlocked ? (
-            <FreeLimitReached limit={free.limit} resetsAt={free.resetsAt} slug={course.slug} />
+          ) : free && (free.limitReached || free.ipCapReached) && !free.unlocked ? (
+            <FreeLimitReached
+              limit={free.limit}
+              resetsAt={free.resetsAt}
+              slug={course.slug}
+              network={!free.limitReached}
+            />
           ) : (
             <>
               {unlockReason && <UnlockNotice reason={unlockReason} />}

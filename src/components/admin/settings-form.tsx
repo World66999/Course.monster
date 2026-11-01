@@ -199,6 +199,22 @@ export function SettingsForm({
               </FieldHint>
               <FieldError message={errors.freeUnlocks?.dailyLimit?.message} />
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="freeIpDailyCap">Free unlocks per IP per day (anti-abuse)</Label>
+              <Input
+                id="freeIpDailyCap"
+                type="number"
+                min="1"
+                max="10000"
+                {...register("freeUnlocks.ipDailyCap", { valueAsNumber: true })}
+              />
+              <FieldHint>
+                Anonymous visitors are counted per browser (device cookie). This backup cap limits all anonymous
+                unlocks from one IP per day, so shared mobile networks are not blocked but cookie-clearing is
+                (default 30). Signed-in and Telegram users are not affected.
+              </FieldHint>
+              <FieldError message={errors.freeUnlocks?.ipDailyCap?.message} />
+            </div>
             <label className="flex cursor-pointer items-center justify-between gap-2 text-sm font-medium">
               GPLinks (2nd unlock of the day)
               <Controller

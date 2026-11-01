@@ -6,13 +6,15 @@ import { createDownloadToken } from "@/lib/download-token";
 import { consumePageTicket } from "@/lib/page-ticket";
 import { consumeHumanTicket } from "@/lib/verify-challenge";
 import {
-  BROWSER_COOKIE,
+  DEVICE_COOKIE,
+  DEVICE_COOKIE_MAX_AGE_S,
   hasUnlocked,
   newBrowserId,
   resolveWebSubject,
   startUnlock,
 } from "@/lib/free-unlocks";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { isValidDeviceId } from "@/lib/shortener-core";
+import { checkVisitorRateLimit } from "@/lib/visitor-rate-limit";
 import { getClientIp, hashIp, isTrustedOrigin, siteOrigin } from "@/lib/ip";
 import { verifyAttributionToken } from "@/lib/telegram/attribution";
 import { auth } from "@/auth";
@@ -49,7 +51,10 @@ export async function POST(request: NextRequest) {
   const ip = await getClientIp();
   const ipKey = hashIp(ip);
 
-  const rl = checkRateLimit(`download-init:${ipKey}`, { limit: 10, windowMs: 5 * 60_000 });
+  const rl = checkVisitorRateLimit("download-init", ipKey, request.cookies.get(DEVICE_COOKIE)?.value, {
+    limit: 10,
+    windowMs: 5 * 60_000,
+  });
   if (!rl.ok) {
     return respond(
       { error: "Too many download attempts. Please wait a moment and try again." },
@@ -158,11 +163,16 @@ export async function POST(request: NextRequest) {
     const token = createDownloadToken(course.id, ipKey, attribution, { direct: true, userId: session.user.id });
     return respond({ redirectUrl: `/go/${token}` });
   }
+  // Anonymous visitors are counted per device. A missing or blocked cookie
+  // gets a fresh ID (set on the response below); the per-IP backup cap in
+  // startUnlock/completeUnlock still applies to it.
+  const existingDevice = request.cookies.get(DEVICE_COOKIE)?.value;
+  const deviceId = isValidDeviceId(existingDevice) ? existingDevice : newBrowserId();
   const subject = await resolveWebSubject({
     attribution: parsed.data.attribution,
     courseId: course.id,
     viewerId: session?.user?.id ?? null,
-    ipHash: ipKey,
+    deviceId,
   });
 
   if (await hasUnlocked(subject.key, course.id)) {
@@ -170,15 +180,12 @@ export async function POST(request: NextRequest) {
     return respond({ redirectUrl: `/go/${token}` });
   }
 
-  const existingBrowser = request.cookies.get(BROWSER_COOKIE)?.value;
-  const browserId = existingBrowser && /^[A-Za-z0-9_-]{20,64}$/.test(existingBrowser) ? existingBrowser : newBrowserId();
-
   let started;
   try {
     started = await startUnlock({
       subject,
       course,
-      browserId,
+      browserId: deviceId,
       ipHash: ipKey,
       origin: siteOrigin(request.nextUrl.origin),
     });
@@ -192,7 +199,10 @@ export async function POST(request: NextRequest) {
   if (!started.ok) {
     return respond(
       {
-        error: `You've used today's ${started.status.limit} free courses. The limit resets at midnight (IST). Get Premium for unlimited direct downloads.`,
+        error:
+          started.reason === "ipcap"
+            ? "Too many free unlocks from your network today. The limit resets at midnight (IST). Get Premium for unlimited direct downloads."
+            : `You've used today's ${started.status.limit} free courses. The limit resets at midnight (IST). Get Premium for unlimited direct downloads.`,
         code: "limit",
       },
       { status: 429 }
@@ -201,13 +211,13 @@ export async function POST(request: NextRequest) {
 
   const token = createDownloadToken(course.id, ipKey, attribution, { unlockSessionId: started.sessionId });
   const res = respond({ redirectUrl: `/go/${token}` });
-  if (browserId !== existingBrowser) {
-    res.cookies.set(BROWSER_COOKIE, browserId, {
+  if (deviceId !== existingDevice) {
+    res.cookies.set(DEVICE_COOKIE, deviceId, {
       httpOnly: true,
       secure: request.nextUrl.protocol === "https:",
       sameSite: "lax",
       path: "/",
-      maxAge: 30 * 24 * 60 * 60,
+      maxAge: DEVICE_COOKIE_MAX_AGE_S,
     });
   }
   return res;

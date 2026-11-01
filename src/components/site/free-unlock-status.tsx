@@ -9,6 +9,7 @@ const NOTICES: Record<string, string> = {
   browser: "Please finish the shortener in the same browser you started it in. Start again below.",
   expired: "That unlock link expired. Start again below — it won't use an extra free course.",
   used: "That unlock link was already used.",
+  ipcap: "Too many free unlocks from your network today. Try again after midnight (IST), or get Premium.",
   invalid: "That unlock link isn't valid. Start again below.",
 };
 
@@ -71,7 +72,18 @@ export function FreeUnlockProgress({
   );
 }
 
-export function FreeLimitReached({ limit, resetsAt, slug }: { limit: number; resetsAt: Date; slug: string }) {
+export function FreeLimitReached({
+  limit,
+  resetsAt,
+  slug,
+  network = false,
+}: {
+  limit: number;
+  resetsAt: Date;
+  slug: string;
+  /** Blocked by the per-IP anti-abuse cap rather than this visitor's own limit. */
+  network?: boolean;
+}) {
   const next = `/download/${slug}`;
   return (
     <div className="space-y-5 text-center" data-free-limit>
@@ -81,8 +93,17 @@ export function FreeLimitReached({ limit, resetsAt, slug }: { limit: number; res
       <div className="space-y-2">
         <p className="text-lg font-bold">Daily free limit reached</p>
         <p className="text-sm text-muted-foreground">
-          You&apos;ve used today&apos;s {limit} free courses ({limit}/{limit}). The limit resets at midnight India time
-          (IST).
+          {network ? (
+            <>
+              Too many free unlocks have come from your network today. The limit resets at midnight India time
+              (IST).
+            </>
+          ) : (
+            <>
+              You&apos;ve used today&apos;s {limit} free courses ({limit}/{limit}). The limit resets at midnight
+              India time (IST).
+            </>
+          )}
         </p>
         <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
           <Clock className="h-3.5 w-3.5" aria-hidden />

@@ -90,3 +90,15 @@ export function effectiveDailyLimit(setting: number | null | undefined, env: str
 export function usedToday(row: { day: string; count: number } | null, today: string): number {
   return row && row.day === today ? row.count : 0;
 }
+
+/** Anti-abuse backup for anonymous visitors: free unlocks per IP per IST day. */
+export const DEFAULT_IP_DAILY_CAP = 30;
+
+export function effectiveIpDailyCap(setting: number | null | undefined): number {
+  return typeof setting === "number" && Number.isInteger(setting) && setting >= 1 ? setting : DEFAULT_IP_DAILY_CAP;
+}
+
+/** The anonymous device cookie: random base64url, nothing else accepted. */
+export function isValidDeviceId(value: string | null | undefined): value is string {
+  return typeof value === "string" && /^[A-Za-z0-9_-]{20,64}$/.test(value);
+}
