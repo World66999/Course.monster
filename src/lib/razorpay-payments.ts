@@ -191,6 +191,8 @@ async function openPayment(args: {
         description: planDescription(plan),
         expireBy: expiresAt,
         notes,
+        // Same brand the website checkout already shows (createWebOrder's `name`).
+        checkoutName: BRAND_NAME,
       });
       row = await db.razorpayPayment.update({
         where: { id: row.id },
