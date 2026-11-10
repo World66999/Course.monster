@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { EyeOff, Loader2, RotateCcw, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { moderateContentAction, resolveReportAction, dismissReportAction } from "@/server/actions/moderation";
 import { Button } from "@/components/ui/button";
 import { safeAction } from "@/lib/safe-action";

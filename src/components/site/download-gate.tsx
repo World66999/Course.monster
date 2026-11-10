@@ -5,8 +5,8 @@ import dynamic from "next/dynamic";
 import { Turnstile } from "@marsidev/react-turnstile";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Download, ExternalLink, Loader2, TimerReset } from "lucide-react";
-import { useTheme } from "next-themes";
-import { toast } from "sonner";
+import { useTheme } from "@/lib/theme";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 
 // Code-split: the verification gateway (challenge mini-games, animations)

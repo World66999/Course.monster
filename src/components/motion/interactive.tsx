@@ -1,37 +1,17 @@
-"use client";
-
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-/** True only for a hoverable, precise pointer with no reduced-motion preference. */
-function useSpotlightEnabled() {
-  const [enabled, setEnabled] = React.useState(false);
-  React.useEffect(() => {
-    const fine = window.matchMedia("(hover: hover) and (pointer: fine)");
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const update = () => setEnabled(fine.matches && !reduce.matches);
-    update();
-    fine.addEventListener("change", update);
-    reduce.addEventListener("change", update);
-    return () => {
-      fine.removeEventListener("change", update);
-      reduce.removeEventListener("change", update);
-    };
-  }, []);
-  return enabled;
-}
-
 /**
- * Pointer-tracking spotlight for premium cards.
+ * Pointer-tracking glow for cards.
  *
- * Deliberately does NOT use React state: pointermove would re-render on every
- * frame. Instead it writes two CSS custom properties straight to the node and
- * lets a CSS radial-gradient do the painting, so the whole effect costs one
- * style write per move and zero reconciliation.
+ * A server component: it renders a marker (`data-spotlight`) and the glow
+ * layer, and nothing else. The one listener that moves the glow lives in
+ * `RevealController`, which writes `--spot-x/y/o` on whichever card is under
+ * the cursor. It used to be a client component per card, each with its own
+ * pointer handlers and media-query listeners, twelve of them on the home page.
  *
- * Disabled entirely on touch devices (there is no pointer to follow) and under
- * reduced motion. No animation library: this used to import framer-motion only
- * for `useReducedMotion`, which put the whole runtime on the homepage.
+ * Touch devices never see it (the controller only runs for fine pointers and
+ * the layer stays at opacity 0), so nothing depends on hover.
  */
 export function Spotlight({
   children,
@@ -42,33 +22,13 @@ export function Spotlight({
   className?: string;
   radius?: number;
 }) {
-  const ref = React.useRef<HTMLDivElement>(null);
-  const active = useSpotlightEnabled();
-
-  const onMove = React.useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    const node = ref.current;
-    if (!node) return;
-    const r = node.getBoundingClientRect();
-    node.style.setProperty("--spot-x", `${e.clientX - r.left}px`);
-    node.style.setProperty("--spot-y", `${e.clientY - r.top}px`);
-  }, []);
-  const onLeave = React.useCallback(() => {
-    ref.current?.style.setProperty("--spot-o", "0");
-  }, []);
-  const onEnter = React.useCallback(() => {
-    ref.current?.style.setProperty("--spot-o", "1");
-  }, []);
-
   return (
     <div
-      ref={ref}
+      data-spotlight=""
       className={cn("group/spot relative", className)}
-      onPointerMove={active ? onMove : undefined}
-      onPointerEnter={active ? onEnter : undefined}
-      onPointerLeave={active ? onLeave : undefined}
-      style={active ? ({ "--spot-r": `${radius}px` } as React.CSSProperties) : undefined}
+      style={{ "--spot-r": `${radius}px` } as React.CSSProperties}
     >
-      {active && <span aria-hidden className="spotlight" />}
+      <span aria-hidden className="spotlight" />
       {children}
     </div>
   );

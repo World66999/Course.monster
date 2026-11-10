@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Ban, Loader2, MicOff, Pencil, Plus, RotateCcw, Trash2, Volume2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   deletePremiumChatAction,
   deletePremiumChatMessageAction,

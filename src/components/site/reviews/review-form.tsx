@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Loader2, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { StarInput } from "@/components/site/reviews/stars";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";

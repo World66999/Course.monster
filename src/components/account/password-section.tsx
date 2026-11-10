@@ -3,7 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { KeyRound, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { z } from "zod";
 import { changePasswordFormSchema } from "@/lib/validation";
 import { changePasswordAction } from "@/server/actions/profile";

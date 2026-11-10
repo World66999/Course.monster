@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Loader2, Plus, Save, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { z } from "zod";
 import { appListingFormSchema, type AppListingFormValues } from "@/lib/validation";
 import { saveAppAction } from "@/server/actions/admin-apps";

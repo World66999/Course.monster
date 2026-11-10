@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Ban, Crown, Loader2, Plus, RotateCcw, Search, Trash2, X } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { grantCourseAction, grantPremiumAction, revokeCourseGrantAction, revokePremiumAction } from "@/server/actions/admin-premium";
 import { setUserDisabledAction } from "@/server/actions/admin-users";
 import { safeAction } from "@/lib/safe-action";

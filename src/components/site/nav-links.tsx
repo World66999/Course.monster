@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown } from "lucide-react";
-import { Dropdown, DropdownContent, DropdownItem, DropdownTrigger } from "@/components/ui/dropdown";
+import { Menu, menuItemClasses } from "@/components/ui/menu";
 import type { NavEntry } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
@@ -41,10 +41,12 @@ export function NavLinks({ links }: { links: ReadonlyArray<NavEntry> }) {
         if ("children" in link) {
           const groupActive = link.children.some((c) => isActive(pathname, c.href));
           return (
-            <Dropdown key={link.label}>
-              <DropdownTrigger asChild>
+            <Menu
+              key={link.label}
+              trigger={(props, open) => (
                 <button
-                  type="button"
+                  {...props}
+                  data-state={open ? "open" : "closed"}
                   className={cn(
                     itemBase,
                     "group",
@@ -58,17 +60,21 @@ export function NavLinks({ links }: { links: ReadonlyArray<NavEntry> }) {
                     aria-hidden
                   />
                 </button>
-              </DropdownTrigger>
-              <DropdownContent align="start">
-                {link.children.map((child) => (
-                  <DropdownItem key={child.href} asChild>
-                    <Link href={child.href} aria-current={isActive(pathname, child.href) ? "page" : undefined} prefetch={false}>
-                      {child.label}
-                    </Link>
-                  </DropdownItem>
-                ))}
-              </DropdownContent>
-            </Dropdown>
+              )}
+            >
+              {link.children.map((child) => (
+                <Link
+                  key={child.href}
+                  href={child.href}
+                  role="menuitem"
+                  aria-current={isActive(pathname, child.href) ? "page" : undefined}
+                  prefetch={false}
+                  className={menuItemClasses}
+                >
+                  {child.label}
+                </Link>
+              ))}
+            </Menu>
           );
         }
 

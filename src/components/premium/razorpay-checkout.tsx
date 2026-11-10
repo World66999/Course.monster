@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowRight, Check, Loader2, ShieldCheck } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { NO_REFUND_NOTICE, PLANS, PLAN_KEYS, type PlanKey } from "@/lib/premium-plans";
 import { confirmRazorpayPaymentAction, createRazorpayOrderAction } from "@/server/actions/premium";
 import { safeAction } from "@/lib/safe-action";

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { z } from "zod";
 import { freeResourceFormSchema, type FreeResourceFormValues } from "@/lib/validation";
 import { saveFreeResourceAction } from "@/server/actions/admin-free-resources";

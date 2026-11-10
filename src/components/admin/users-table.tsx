@@ -6,7 +6,7 @@ import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { Search, ChevronLeft, ChevronRight, Crown, Loader2, EyeOff, RotateCcw, Settings2 } from "lucide-react";
 import { adminPath } from "@/lib/admin-path";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button, buttonClasses } from "@/components/ui/button";

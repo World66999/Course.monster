@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Brush, CircleDot, Eye, Loader2, Palette, RotateCcw, Save, ShieldCheck, Sparkles } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { Input, Label, FieldError, FieldHint } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";

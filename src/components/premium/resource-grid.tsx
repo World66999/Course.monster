@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { ExternalLink, Loader2, Lock, Unlock } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { PublicPremiumCategory } from "@/lib/premium-catalog";
 import { usePremium } from "@/hooks/use-premium";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";

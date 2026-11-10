@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, UserPlus } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { signupFormSchema, type SignupFormValues } from "@/lib/validation";
 import { requestSignupAction } from "@/server/actions/signup";
 import { safeAction } from "@/lib/safe-action";

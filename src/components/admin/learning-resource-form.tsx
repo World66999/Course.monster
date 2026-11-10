@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Loader2, Save, Sparkles } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { z } from "zod";
 import { learningResourceFormSchema, type LearningResourceFormValues } from "@/lib/validation";
 import { saveLearningResourceAction } from "@/server/actions/admin-learning-resources";

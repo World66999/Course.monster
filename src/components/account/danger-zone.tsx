@@ -3,7 +3,7 @@
 import * as React from "react";
 import { signOut } from "next-auth/react";
 import { Loader2, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { deleteAccountAction } from "@/server/actions/profile";
 import { safeAction } from "@/lib/safe-action";
 import { Button } from "@/components/ui/button";

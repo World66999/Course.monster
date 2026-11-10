@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { BadgeCheck, ChevronLeft, ChevronRight, ExternalLink, Pencil, Search, Sparkles, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   deleteChannelsAction,
   toggleChannelPublishedAction,

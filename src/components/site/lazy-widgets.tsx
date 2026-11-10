@@ -47,4 +47,4 @@ export const LazyMobileNav = dynamic(() => import("@/components/site/mobile-nav"
   loading: MenuButtonPlaceholder,
 });
 
-export const LazyToaster = dynamic(() => import("sonner").then((m) => m.Toaster), { ssr: false });
+export const LazyToaster = dynamic(() => import("@/components/site/toaster").then((m) => m.Toaster), { ssr: false });

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { ImagePlus, Link2, Loader2, RotateCcw, Trash2, Upload } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { UploadKind } from "@/lib/uploads";
 import { Button } from "@/components/ui/button";
 import { Input, Label, FieldHint } from "@/components/ui/input";

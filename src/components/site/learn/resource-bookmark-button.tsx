@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useSession } from "next-auth/react";
 import { Bookmark } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { toggleResourceBookmarkAction } from "@/server/actions/learning-resources";
 import { safeAction } from "@/lib/safe-action";
 import { cn } from "@/lib/utils";

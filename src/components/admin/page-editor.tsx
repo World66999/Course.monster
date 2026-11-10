@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ExternalLink, Loader2, Save } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { savePageAction } from "@/server/actions/pages";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";

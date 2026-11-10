@@ -18,7 +18,7 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button, buttonClasses } from "@/components/ui/button";

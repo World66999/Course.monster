@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Megaphone, Send } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { Textarea, Label, FieldHint } from "@/components/ui/input";
 import { safeAction } from "@/lib/safe-action";
