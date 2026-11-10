@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Copy,
   ExternalLink,
+  GripVertical,
   MoreHorizontal,
   Pencil,
   Trash2,
@@ -19,6 +20,8 @@ import {
   deleteCoursesAction,
   duplicateCourseAction,
   moveCourseAction,
+  reorderCoursesAction,
+  setCourseFlagsAction,
   setPublishedAction,
 } from "@/server/actions/courses";
 import { Button, buttonClasses } from "@/components/ui/button";
@@ -38,7 +41,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { formatDate, formatNumber } from "@/lib/utils";
+import { cn, formatDate, formatNumber } from "@/lib/utils";
 
 export interface AdminCourseRow {
   id: string;
@@ -49,13 +52,14 @@ export interface AdminCourseRow {
   published: boolean;
   featured: boolean;
   trending: boolean;
+  premium?: boolean;
   downloads: number;
   views: number;
   updatedAt: string;
 }
 
 export function CoursesTable({
-  courses,
+  courses: serverCourses,
   page,
   pageCount,
   reorderEnabled,
@@ -72,7 +76,63 @@ export function CoursesTable({
   const [busy, setBusy] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState<string[] | null>(null);
 
-  React.useEffect(() => setSelected(new Set()), [courses]);
+  // Local copy so a drop shows at once; the server's order replaces it on refresh.
+  const [courses, setCourses] = React.useState(serverCourses);
+  React.useEffect(() => {
+    setCourses(serverCourses);
+    setSelected(new Set());
+  }, [serverCourses]);
+
+  // ----- drag to reorder (pointer events: mouse, touch and pen alike) -----
+  const rowRefs = React.useRef(new Map<string, HTMLTableRowElement>());
+  const [drag, setDrag] = React.useState<{ id: string; from: number; over: number } | null>(null);
+
+  function indexAt(clientY: number): number {
+    let index = courses.length - 1;
+    for (let i = 0; i < courses.length; i++) {
+      const rect = rowRefs.current.get(courses[i]!.id)?.getBoundingClientRect();
+      if (rect && clientY < rect.top + rect.height / 2) {
+        index = i;
+        break;
+      }
+    }
+    return index;
+  }
+
+  function commitOrder(next: AdminCourseRow[]) {
+    setCourses(next);
+    void run(() => reorderCoursesAction(next.map((c) => c.id)), "Order updated");
+  }
+
+  function moveBy(index: number, delta: -1 | 1) {
+    const to = index + delta;
+    if (to < 0 || to >= courses.length) return;
+    const next = [...courses];
+    const [row] = next.splice(index, 1);
+    next.splice(to, 0, row!);
+    commitOrder(next);
+  }
+
+  function onHandlePointerDown(e: React.PointerEvent<HTMLButtonElement>, index: number) {
+    if (busy || (e.pointerType === "mouse" && e.button !== 0)) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setDrag({ id: courses[index]!.id, from: index, over: index });
+  }
+  function onHandlePointerMove(e: React.PointerEvent<HTMLButtonElement>) {
+    if (!drag) return;
+    const over = indexAt(e.clientY);
+    setDrag((d) => (d && d.over !== over ? { ...d, over } : d));
+  }
+  function onHandlePointerUp() {
+    if (!drag) return;
+    const { from, over } = drag;
+    setDrag(null);
+    if (from === over) return;
+    const next = [...courses];
+    const [row] = next.splice(from, 1);
+    next.splice(over, 0, row!);
+    commitOrder(next);
+  }
 
   const allSelected = courses.length > 0 && selected.size === courses.length;
 
@@ -138,6 +198,38 @@ export function CoursesTable({
             Unpublish
           </Button>
           <Button
+            variant="outline"
+            size="sm"
+            disabled={busy}
+            onClick={() => run(() => setCourseFlagsAction(ids, { featured: true }), "Marked as featured")}
+          >
+            Feature
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy}
+            onClick={() => run(() => setCourseFlagsAction(ids, { featured: false }), "Removed from featured")}
+          >
+            Unfeature
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy}
+            onClick={() => run(() => setCourseFlagsAction(ids, { trending: true }), "Marked as trending")}
+          >
+            Trending
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy}
+            onClick={() => run(() => setCourseFlagsAction(ids, { trending: false }), "Removed from trending")}
+          >
+            Not trending
+          </Button>
+          <Button
             variant="destructive"
             size="sm"
             disabled={busy}
@@ -153,6 +245,11 @@ export function CoursesTable({
         <table className="w-full min-w-[820px] text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/50 text-left text-xs tracking-wider text-muted-foreground uppercase">
+              {reorderEnabled && (
+                <th className="w-10 p-3">
+                  <span className="sr-only">Drag to reorder</span>
+                </th>
+              )}
               <th className="w-10 p-3">
                 <input
                   type="checkbox"
@@ -176,13 +273,51 @@ export function CoursesTable({
           <tbody>
             {courses.length === 0 && (
               <tr>
-                <td colSpan={8} className="p-10 text-center text-muted-foreground">
+                <td colSpan={9} className="p-10 text-center text-muted-foreground">
                   No courses match your filters.
                 </td>
               </tr>
             )}
             {courses.map((course, index) => (
-              <tr key={course.id} className="border-b border-border transition-colors duration-150 last:border-0 hover:bg-primary-soft/45">
+              <tr
+                key={course.id}
+                ref={(el) => {
+                  if (el) rowRefs.current.set(course.id, el);
+                  else rowRefs.current.delete(course.id);
+                }}
+                className={cn(
+                  "border-b border-border transition-colors duration-150 last:border-0 hover:bg-primary-soft/45",
+                  drag?.id === course.id && "bg-primary-soft opacity-70",
+                  // Where the dragged row will land.
+                  drag && drag.over === index && drag.from > index && "shadow-[inset_0_2px_0_0_var(--primary)]",
+                  drag && drag.over === index && drag.from < index && "shadow-[inset_0_-2px_0_0_var(--primary)]"
+                )}
+              >
+                {reorderEnabled && (
+                  <td className="p-1 pl-2">
+                    <button
+                      type="button"
+                      aria-label={`Reorder ${course.title}: drag, or press the up and down arrow keys`}
+                      disabled={busy}
+                      onPointerDown={(e) => onHandlePointerDown(e, index)}
+                      onPointerMove={onHandlePointerMove}
+                      onPointerUp={onHandlePointerUp}
+                      onPointerCancel={() => setDrag(null)}
+                      onKeyDown={(e) => {
+                        if (e.key === "ArrowUp") {
+                          e.preventDefault();
+                          moveBy(index, -1);
+                        } else if (e.key === "ArrowDown") {
+                          e.preventDefault();
+                          moveBy(index, 1);
+                        }
+                      }}
+                      className="flex h-11 w-9 cursor-grab touch-none items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing disabled:opacity-40"
+                    >
+                      <GripVertical className="h-4 w-4" aria-hidden />
+                    </button>
+                  </td>
+                )}
                 <td className="p-3">
                   <input
                     type="checkbox"
@@ -214,6 +349,7 @@ export function CoursesTable({
                     <Badge variant={course.published ? "success" : "secondary"}>
                       {course.published ? "Published" : "Draft"}
                     </Badge>
+                    {course.premium && <Badge variant="premium">Premium</Badge>}
                     {course.featured && <Badge>Featured</Badge>}
                     {course.trending && <Badge variant="warning">Trending</Badge>}
                   </div>
@@ -357,7 +493,7 @@ export function CoursesTable({
 
       <p className="text-xs text-muted-foreground">
         {reorderEnabled ? (
-          <>Use the arrows to change the order shown in featured sections.</>
+          <>Drag the handle (or use the arrows) to change the order shown in featured sections.</>
         ) : (
           <>Reordering is available when no search or filter is active.</>
         )}{" "}

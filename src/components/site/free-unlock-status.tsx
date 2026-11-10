@@ -77,7 +77,7 @@ export function FreeUnlockProgress({
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-20 -right-16 h-44 w-44 rounded-full bg-primary/10 blur-3xl"
+        className="pointer-events-none absolute -top-24 -right-20 h-56 w-56 bg-[radial-gradient(closest-side,var(--wash-1),transparent)]"
       />
       <div className="relative flex items-center gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-nested bg-primary-soft text-primary ring-1 ring-primary/15 ring-inset">
@@ -166,7 +166,7 @@ export function FreeLimitReached({
   return (
     <div className="animate-rise space-y-6 text-center" data-free-limit>
       <div className="relative mx-auto w-fit">
-        <div aria-hidden className="absolute inset-0 scale-125 rounded-full bg-primary/25 blur-xl" />
+        <div aria-hidden className="absolute -inset-6 bg-[radial-gradient(closest-side,var(--wash-1),transparent)]" />
         <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-brand text-white shadow-primary inset-shadow-highlight">
           <Lock className="h-7 w-7" aria-hidden />
         </div>

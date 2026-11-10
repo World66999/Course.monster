@@ -8,6 +8,7 @@ import { StickyHeader } from "@/components/site/sticky-header";
 import { UserMenu } from "@/components/site/user-menu";
 import { buttonClasses } from "@/components/ui/button";
 import { PremiumHeaderLink } from "@/components/premium/header-link";
+import { SavedLink } from "@/components/site/library-views";
 
 import { NAV_LINKS } from "@/lib/nav";
 
@@ -80,13 +81,16 @@ export function Header({ settings }: { settings: SiteSettings }) {
           <div className="flex min-w-0 items-center gap-3 xl:gap-5">
             <SiteLogo settings={settings} className="min-w-0 xl:shrink-0" />
             <nav aria-label="Main" className="hidden items-center gap-1 xl:flex">
-              <NavLinks links={NAV_LINKS} />
+              {/* The logo is the home link on wide screens; dropping the
+                  duplicate "Home" item keeps the row clear of the actions. */}
+              <NavLinks links={NAV_LINKS.filter((l) => !("href" in l && l.href === "/"))} />
             </nav>
           </div>
 
           <div className="flex items-center gap-0.5 sm:gap-1.5">
             <PremiumHeaderLink className="px-2.5 sm:mr-1 sm:px-3" />
             <LazySearchDialog />
+            <SavedLink className="hidden min-[400px]:inline-flex" />
             <ThemeToggle />
             <div className="hidden sm:block">
               <UserMenu />

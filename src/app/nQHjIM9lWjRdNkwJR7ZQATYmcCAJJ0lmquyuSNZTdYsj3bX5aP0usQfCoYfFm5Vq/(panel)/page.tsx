@@ -1,195 +1,207 @@
 import Link from "next/link";
-import {
-  ArrowUpRight,
-  BookOpen,
-  Download,
-  Eye,
-  Mail,
-  TrendingUp,
-} from "lucide-react";
-import { db } from "@/lib/db";
-import { AnimatedCounter } from "@/components/site/animated-counter";
-import { formatNumber, formatDate } from "@/lib/utils";
+import { ArrowUpRight, BookOpen, Crown, Download, Eye, Gift, IndianRupee, Users, Wallet } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { Badge } from "@/components/ui/badge";
+import { db } from "@/lib/db";
+import { requireAdmin } from "@/server/auth-helpers";
 import { adminPath } from "@/lib/admin-path";
+import { RANGE_OPTIONS, getRevenueSeries, getTrafficSeries, parseRange, total } from "@/lib/admin-stats";
+import { formatInr } from "@/lib/premium-plans";
+import { cn, formatDate, formatNumber } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { TimeChart } from "@/components/admin/time-chart";
 
 export const dynamic = "force-dynamic";
 
-async function getDashboardData() {
-  const since14d = new Date(Date.now() - 14 * 86_400_000);
-  const since7d = new Date(Date.now() - 7 * 86_400_000);
+const usd = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: n % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 })}`;
 
-  const [
-    courseCount,
-    publishedCount,
-    downloadsAgg,
-    viewsAgg,
-    subscriberCount,
-    downloads7d,
-    recentEvents,
-    popularCourses,
-    recentAudit,
-    chartRows,
-  ] = await Promise.all([
-    db.course.count(),
-    db.course.count({ where: { published: true } }),
-    db.course.aggregate({ _sum: { downloads: true } }),
-    db.course.aggregate({ _sum: { views: true } }),
-    db.newsletterSubscriber.count(),
-    db.downloadEvent.count({ where: { createdAt: { gte: since7d } } }),
-    db.downloadEvent.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 8,
-      include: { course: { select: { title: true, slug: true } } },
-    }),
-    db.course.findMany({
-      orderBy: { downloads: "desc" },
-      take: 5,
-      select: { id: true, title: true, slug: true, downloads: true, views: true, published: true },
-    }),
-    db.auditLog.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 8,
-      include: { user: { select: { name: true } } },
-    }),
-    // Counted per day in the database, at most 14 rows back.
-    //
-    // This was `findMany({ where: { createdAt: { gte: since14d } }, select:
-    // { createdAt: true } })` followed by fourteen `Array.filter` passes — so a
-    // dashboard load transferred every download event of the last fortnight,
-    // walked the whole array once per day of the chart, and allocated a fresh
-    // `toISOString()` string on every one of those 14n visits. At a thousand
-    // downloads a day that is 14k rows and ~200k throwaway strings, and it grows
-    // with traffic; the page is `force-dynamic`, so nothing amortises it.
-    //
-    // Prisma cannot group by a truncated date, so this is raw SQL. Nothing is
-    // interpolated but the bound parameter. `createdAt` is a timestamp without
-    // time zone holding UTC, so `date_trunc('day', …)` buckets by UTC day —
-    // exactly what `toISOString().slice(0, 10)` did, so the chart is unchanged.
-    // Served by the existing @@index([createdAt]).
-    db.$queryRaw<{ day: Date; count: bigint }[]>`
-      SELECT date_trunc('day', "createdAt") AS day, COUNT(*)::bigint AS count
-      FROM download_events
-      WHERE "createdAt" >= ${since14d}
-      GROUP BY 1
-    `,
-  ]);
-
-  // Bucket the last 14 days of download events by day. The database returns only
-  // the days that actually had downloads, so this fills the gaps with zeroes and
-  // keeps the axis a fixed 14 columns wide.
-  const counts = new Map(
-    chartRows.map((r) => [r.day.toISOString().slice(0, 10), Number(r.count)])
+function Panel({
+  title,
+  hint,
+  action,
+  className,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  action?: React.ReactNode;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className={cn("min-w-0 rounded-card border border-border bg-card p-4 shadow-soft sm:p-5", className)}>
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="font-semibold">{title}</h2>
+          {hint && <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>}
+        </div>
+        {action}
+      </div>
+      {children}
+    </section>
   );
-  const days: { label: string; count: number }[] = [];
-  for (let i = 13; i >= 0; i--) {
-    const key = new Date(Date.now() - i * 86_400_000).toISOString().slice(0, 10);
-    days.push({ label: key.slice(5), count: counts.get(key) ?? 0 });
-  }
-
-  return {
-    stats: {
-      courses: courseCount,
-      published: publishedCount,
-      downloads: downloadsAgg._sum.downloads ?? 0,
-      views: viewsAgg._sum.views ?? 0,
-      subscribers: subscriberCount,
-      downloads7d,
-    },
-    recentEvents,
-    popularCourses,
-    recentAudit,
-    chart: days,
-  };
 }
 
-export default async function AdminDashboard() {
-  const { stats, recentEvents, popularCourses, recentAudit, chart } = await getDashboardData();
-  const maxChart = Math.max(1, ...chart.map((d) => d.count));
+export default async function AdminDashboard({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const viewer = await requireAdmin();
+  // Revenue and payments are for administrators only (same rule as the payment pages).
+  const isAdmin = viewer.role === "ADMIN";
+  const raw = await searchParams;
+  const range = parseRange(typeof raw.range === "string" ? raw.range : undefined);
+  const now = new Date();
 
-  const cards = [
-    { label: "Total courses", value: stats.courses, sub: `${stats.published} published`, icon: BookOpen },
-    { label: "Total downloads", value: stats.downloads, sub: `${stats.downloads7d} in last 7 days`, icon: Download },
-    { label: "Total views", value: stats.views, sub: "across all courses", icon: Eye },
-    { label: "Subscribers", value: stats.subscribers, sub: "newsletter", icon: Mail },
+  const [traffic, revenue, courseCount, publishedCount, activeMembers, popularCourses, recentEvents, recentAudit] =
+    await Promise.all([
+      getTrafficSeries(range),
+      isAdmin ? getRevenueSeries(range) : null,
+      db.course.count(),
+      db.course.count({ where: { published: true } }),
+      db.user.count({ where: { premiumUntil: { gt: now } } }),
+      db.course.findMany({
+        orderBy: { downloads: "desc" },
+        take: 5,
+        select: { id: true, title: true, downloads: true, views: true, published: true },
+      }),
+      db.downloadEvent.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 8,
+        include: { course: { select: { title: true } } },
+      }),
+      db.auditLog.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 8,
+        include: { user: { select: { name: true } } },
+      }),
+    ]);
+
+  const last = traffic.days.length - 1;
+  const unlocksPerDay = traffic.days.map(
+    (_, i) => traffic.unlocks.vplink[i]! + traffic.unlocks.gplinks[i]! + traffic.unlocks.linkshortify[i]!
+  );
+
+  const tiles = [
+    {
+      label: "Visitors today",
+      value: formatNumber(traffic.visitors[last] ?? 0),
+      sub: `${formatNumber(traffic.visitors[last - 1] ?? 0)} yesterday · ${formatNumber(total(traffic.visitors))} in ${range} days`,
+      icon: Users,
+    },
+    {
+      label: "Downloads today",
+      value: formatNumber(traffic.downloads[last] ?? 0),
+      sub: `${formatNumber(total(traffic.downloads))} in ${range} days`,
+      icon: Download,
+    },
+    {
+      label: "Free unlocks today",
+      value: formatNumber(unlocksPerDay[last] ?? 0),
+      sub: `${formatNumber(total(unlocksPerDay))} in ${range} days`,
+      icon: Gift,
+    },
+    ...(revenue
+      ? [
+          {
+            label: `Premium sales · ${range} days`,
+            value: formatNumber(revenue.totals.sales),
+            sub: `${formatNumber(activeMembers)} active members now`,
+            icon: Crown,
+          },
+          {
+            label: `Revenue · ${range} days`,
+            value: usd(revenue.totals.usd),
+            sub: `Razorpay ${formatInr(revenue.totals.razorpayPaise)} · crypto ${usd(revenue.totals.nowpaymentsUsd)}`,
+            icon: Wallet,
+          },
+        ]
+      : [
+          {
+            label: "Active members",
+            value: formatNumber(activeMembers),
+            sub: "Premium right now",
+            icon: Crown,
+          },
+        ]),
+    {
+      label: "Courses",
+      value: formatNumber(courseCount),
+      sub: `${publishedCount} published`,
+      icon: BookOpen,
+    },
   ];
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-heading">Dashboard</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          What&apos;s happening on your platform right now.
-        </p>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-heading">Dashboard</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Days are India time (IST), the same day the free-unlock limit uses.</p>
+        </div>
+        {/* One row of filters above the charts; plain links, so it works without JS. */}
+        <nav aria-label="Time range" className="inline-flex rounded-full border border-border bg-card p-1 shadow-soft">
+          {RANGE_OPTIONS.map((r) => (
+            <Link
+              key={r}
+              href={r === 30 ? adminPath("") : `${adminPath("")}?range=${r}`}
+              aria-current={r === range ? "true" : undefined}
+              className={cn(
+                "inline-flex h-9 min-w-14 items-center justify-center rounded-full px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                r === range ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {r} days
+            </Link>
+          ))}
+        </nav>
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {cards.map(({ label, value, sub, icon: Icon }) => (
-          <div
-            key={label}
-            className="group relative overflow-hidden rounded-card border border-border bg-card p-5 shadow-soft transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-elevated"
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">{label}</p>
-              <span className="lit flex h-9 w-9 items-center justify-center rounded-nested bg-primary text-primary-foreground shadow-primary inset-shadow-highlight transition-transform duration-300 group-hover:scale-105">
-                <Icon className="h-4.5 w-4.5" aria-hidden />
-              </span>
+      {/* Headline numbers */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-6">
+        {tiles.map(({ label, value, sub, icon: Icon }) => (
+          <div key={label} className="min-w-0 rounded-card border border-border bg-card p-4 shadow-soft">
+            <div className="flex items-center justify-between gap-2">
+              <p className="truncate text-xs font-medium text-muted-foreground sm:text-sm">{label}</p>
+              <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
             </div>
-            <p className="numeric mt-2 text-3xl font-bold tracking-tight">
-              <AnimatedCounter value={value} />
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">{sub}</p>
+            <p className="numeric mt-1.5 truncate text-2xl font-bold tracking-tight sm:text-3xl">{value}</p>
+            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{sub}</p>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        {/* Downloads chart */}
-        <div className="rounded-card border border-border bg-card p-5 shadow-soft xl:col-span-2">
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h2 className="font-semibold">Downloads — last 14 days</h2>
-              <p className="text-xs text-muted-foreground">Individual download events</p>
-            </div>
-            <TrendingUp className="h-5 w-5 text-primary" aria-hidden />
-          </div>
-          <div className="flex h-44 items-end gap-1 overflow-x-auto sm:gap-1.5" role="img" aria-label="Bar chart of downloads per day for the last 14 days">
-            {chart.map((d) => (
-              <div key={d.label} className="group flex min-w-0 flex-1 flex-col items-center gap-1.5">
-                <span className="text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-                  {d.count}
-                </span>
-                <div
-                  className="w-full rounded-t-md bg-gradient-to-t from-primary to-accent transition-opacity group-hover:opacity-80"
-                  style={{ height: `${Math.max(3, (d.count / maxChart) * 130)}px` }}
-                  title={`${d.label}: ${d.count} downloads`}
-                />
-                <span className="truncate text-[10px] text-muted-foreground">{d.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-3">
+        <Panel
+          title="Visitors"
+          hint="Unique visitors and page views on the public site. Counting started when this dashboard was released."
+          className="xl:col-span-2"
+        >
+          <TimeChart
+            title={`Visitors and page views per day, last ${range} days`}
+            labels={traffic.days}
+            type="lines"
+            series={[
+              { key: "visitors", label: "Visitors", slot: 1, values: traffic.visitors },
+              { key: "views", label: "Page views", slot: 2, values: traffic.pageViews },
+            ]}
+          />
+        </Panel>
 
-        {/* Popular courses */}
-        <div className="rounded-card border border-border bg-card p-5 shadow-soft">
-          <h2 className="mb-4 font-semibold">Popular courses</h2>
-          <ol className="space-y-3">
+        <Panel title="Popular courses" hint="All time, by downloads">
+          <ol className="space-y-1">
             {popularCourses.map((course, i) => (
               <li key={course.id}>
                 <Link
                   href={adminPath(`courses/${course.id}/edit`)}
-                  className="group flex items-center gap-3 rounded-nested p-2 transition-colors hover:bg-muted"
+                  className="group flex min-h-11 items-center gap-3 rounded-nested p-2 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-control bg-primary/10 text-xs font-bold text-primary">
+                  <span className="numeric flex h-7 w-7 shrink-0 items-center justify-center rounded-control bg-primary/10 text-xs font-bold text-primary">
                     {i + 1}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium group-hover:text-primary">
-                      {course.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="truncate text-sm font-medium group-hover:text-primary">{course.title}</p>
+                    <p className="numeric text-xs text-muted-foreground">
                       {formatNumber(course.downloads)} downloads · {formatNumber(course.views)} views
                     </p>
                   </div>
@@ -198,24 +210,104 @@ export default async function AdminDashboard() {
               </li>
             ))}
           </ol>
-        </div>
+        </Panel>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        {/* Recent downloads */}
-        <div className="rounded-card border border-border bg-card p-5 shadow-soft">
-          <h2 className="mb-4 font-semibold">Recent downloads</h2>
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-2">
+        <Panel title="Free unlocks by shortener" hint="Completed free unlocks per day">
+          <TimeChart
+            title={`Free unlocks per day by shortener, last ${range} days`}
+            labels={traffic.days}
+            type="bars"
+            series={[
+              { key: "vplink", label: "VPLink", slot: 1, values: traffic.unlocks.vplink },
+              { key: "gplinks", label: "GPLinks", slot: 2, values: traffic.unlocks.gplinks },
+              { key: "linkshortify", label: "LinkShortify", slot: 3, values: traffic.unlocks.linkshortify },
+            ]}
+          />
+        </Panel>
+        <Panel title="Downloads" hint="Every completed download, free and Premium">
+          <TimeChart
+            title={`Downloads per day, last ${range} days`}
+            labels={traffic.days}
+            type="bars"
+            series={[{ key: "downloads", label: "Downloads", slot: 1, values: traffic.downloads }]}
+          />
+        </Panel>
+      </div>
+
+      {revenue ? (
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-2">
+          <Panel
+            title="Premium sales"
+            hint="Paid plans per day, by payment gateway"
+            action={
+              <Link href={adminPath("payments")} className="inline-flex min-h-9 shrink-0 items-center gap-0.5 text-xs font-medium text-primary hover:underline">
+                All payments
+                <ArrowUpRight className="h-3 w-3" aria-hidden />
+              </Link>
+            }
+          >
+            <TimeChart
+              title={`Premium sales per day by gateway, last ${range} days`}
+              labels={revenue.days}
+              type="bars"
+              series={[
+                { key: "razorpay", label: "Razorpay (UPI/card)", slot: 1, values: revenue.sales.razorpay },
+                { key: "nowpayments", label: "NOWPayments (crypto)", slot: 2, values: revenue.sales.nowpayments },
+              ]}
+            />
+          </Panel>
+          <Panel title="Revenue by gateway" hint="US dollars at each plan's price. Settled payments only.">
+            <dl className="mb-4 grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-nested bg-muted/60 p-3">
+                <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <IndianRupee className="h-3.5 w-3.5" aria-hidden /> Razorpay
+                </dt>
+                <dd className="numeric mt-0.5 font-bold">
+                  {usd(revenue.totals.razorpayUsd)}{" "}
+                  <span className="font-normal text-muted-foreground">({formatInr(revenue.totals.razorpayPaise)})</span>
+                </dd>
+              </div>
+              <div className="rounded-nested bg-muted/60 p-3">
+                <dt className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Wallet className="h-3.5 w-3.5" aria-hidden /> NOWPayments
+                </dt>
+                <dd className="numeric mt-0.5 font-bold">{usd(revenue.totals.nowpaymentsUsd)}</dd>
+              </div>
+            </dl>
+            <TimeChart
+              title={`Revenue per day by gateway in US dollars, last ${range} days`}
+              labels={revenue.days}
+              type="bars"
+              format="usd"
+              series={[
+                { key: "razorpay", label: "Razorpay (UPI/card)", slot: 1, values: revenue.usd.razorpay },
+                { key: "nowpayments", label: "NOWPayments (crypto)", slot: 2, values: revenue.usd.nowpayments },
+              ]}
+            />
+          </Panel>
+        </div>
+      ) : (
+        <p className="rounded-card border border-dashed border-border p-4 text-sm text-muted-foreground">
+          Sales and revenue charts are visible to administrators only.
+        </p>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-2">
+        <Panel title="Recent downloads">
           {recentEvents.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">No downloads yet.</p>
           ) : (
-            <ul className="space-y-2">
+            <ul className="space-y-1">
               {recentEvents.map((event) => (
-                <li
-                  key={event.id}
-                  className="flex items-center justify-between gap-3 rounded-nested px-2 py-1.5 text-sm"
-                >
+                <li key={event.id} className="flex items-center justify-between gap-3 rounded-nested px-2 py-1.5 text-sm">
                   <span className="inline-flex min-w-0 items-center gap-2">
-                    <Download className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+                    {event.source === "telegram" ? (
+                      <Badge variant="info" className="shrink-0">Bot</Badge>
+                    ) : (
+                      <Eye className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+                    )}
                     <span className="truncate">{event.course.title}</span>
                   </span>
                   <span className="shrink-0 text-xs text-muted-foreground" suppressHydrationWarning>
@@ -225,24 +317,21 @@ export default async function AdminDashboard() {
               ))}
             </ul>
           )}
-        </div>
+        </Panel>
 
-        {/* Recent activity */}
-        <div className="rounded-card border border-border bg-card p-5 shadow-soft">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-semibold">Recent activity</h2>
-            <Link
-              href={adminPath("activity")}
-              className="inline-flex items-center gap-0.5 text-xs font-medium text-primary hover:underline"
-            >
+        <Panel
+          title="Recent activity"
+          action={
+            <Link href={adminPath("activity")} className="inline-flex min-h-9 shrink-0 items-center gap-0.5 text-xs font-medium text-primary hover:underline">
               View all
               <ArrowUpRight className="h-3 w-3" aria-hidden />
             </Link>
-          </div>
+          }
+        >
           {recentAudit.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">No activity yet.</p>
           ) : (
-            <ul className="space-y-2">
+            <ul className="space-y-1">
               {recentAudit.map((log) => (
                 <li key={log.id} className="flex items-center justify-between gap-3 rounded-nested px-2 py-1.5 text-sm">
                   <span className="min-w-0 truncate">
@@ -256,7 +345,7 @@ export default async function AdminDashboard() {
               ))}
             </ul>
           )}
-        </div>
+        </Panel>
       </div>
     </div>
   );

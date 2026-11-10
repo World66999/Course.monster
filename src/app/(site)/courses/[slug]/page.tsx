@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { getPublishedCourse, getRelatedCourses } from "@/lib/courses";
 import { getSiteSettings } from "@/lib/settings";
-import { absoluteUrl, formatDate, formatNumber, safeJsonLd } from "@/lib/utils";
+import { absoluteUrl, formatDate, formatNumber, safeJsonLd, textLang } from "@/lib/utils";
 import { buttonClasses } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CourseImage } from "@/components/site/course-image";
@@ -31,6 +31,10 @@ import { Section, SectionHeading } from "@/components/site/section";
 import { PremiumCtaBand } from "@/components/premium/cta-band";
 import { ReviewsSection } from "@/components/site/reviews/reviews-section";
 import { CourseViewBeacon } from "@/components/site/view-beacon";
+import { SaveButton } from "@/components/site/save-button";
+import { ShareButton } from "@/components/site/share-button";
+import { TrackRecent } from "@/components/site/library-views";
+import { FreeUnlocksChip } from "@/components/site/free-unlocks-chip";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -137,13 +141,22 @@ export default async function CoursePage({ params }: Props) {
     { label: "Last updated", value: formatDate(course.contentUpdatedAt) },
   ];
 
+  /** Snapshot stored by Save / Recently viewed (this browser only). */
+  const libraryItem = {
+    slug: course.slug,
+    title: course.title,
+    thumbnail: course.thumbnail,
+    category: course.category?.name ?? null,
+    premium: course.premium,
+  };
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Course",
     name: course.title,
     description: course.shortDescription || course.seoDescription || course.title,
     url: absoluteUrl(`/courses/${course.slug}`),
-    isAccessibleForFree: true,
+    isAccessibleForFree: !course.premium,
     dateModified: course.contentUpdatedAt.toISOString(),
     ...(course.thumbnail ? { image: absoluteUrl(course.thumbnail) } : {}),
     ...(course.tags.length ? { keywords: course.tags.join(", ") } : {}),
@@ -160,12 +173,17 @@ export default async function CoursePage({ params }: Props) {
       name: settings.siteName,
       url: absoluteUrl(),
     },
-    offers: {
-      "@type": "Offer",
-      price: "0",
-      priceCurrency: "USD",
-      availability: "https://schema.org/InStock",
-    },
+    // Premium courses are part of the membership, not a free offer.
+    ...(course.premium
+      ? {}
+      : {
+          offers: {
+            "@type": "Offer",
+            price: "0",
+            priceCurrency: "USD",
+            availability: "https://schema.org/InStock",
+          },
+        }),
     ...(course.lecturesCount || course.instructor
       ? {
           hasCourseInstance: {
@@ -211,6 +229,7 @@ export default async function CoursePage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: safeJsonLd([jsonLd, breadcrumbLd]) }}
       />
       <CourseViewBeacon slug={course.slug} />
+      <TrackRecent course={libraryItem} />
 
       {/* Banner */}
       <div className="relative h-56 w-full overflow-hidden sm:h-72 lg:h-80">
@@ -254,19 +273,32 @@ export default async function CoursePage({ params }: Props) {
           {/* Main column */}
           <article>
             <div className="mb-3 flex flex-wrap items-center gap-2">
+              {course.premium ? (
+                <Badge variant="premium">
+                  <Crown aria-hidden />
+                  Premium
+                </Badge>
+              ) : (
+                <Badge variant="success">Free</Badge>
+              )}
               {course.category && <Badge>{course.category.name}</Badge>}
               {course.skillLevel && (
                 <Badge variant="outline">{SKILL_LABELS[course.skillLevel]}</Badge>
               )}
-              {course.featured && <Badge variant="success">Featured</Badge>}
+              {course.featured && <Badge variant="accent">Featured</Badge>}
               {course.trending && <Badge variant="warning">Trending</Badge>}
               {course.popular && <Badge>Popular</Badge>}
             </div>
-            <h1 className="text-title text-balance">
+            <h1 lang={textLang(course.title)} className="text-title text-balance">
               {course.title}
             </h1>
             {course.shortDescription && (
-              <p className="mt-4 max-w-2xl text-lead text-pretty text-muted-foreground">{course.shortDescription}</p>
+              <p
+                lang={textLang(course.shortDescription)}
+                className="mt-4 max-w-2xl text-lead text-pretty text-muted-foreground"
+              >
+                {course.shortDescription}
+              </p>
             )}
 
             <dl className="numeric mt-7 flex flex-wrap gap-x-6 gap-y-2.5 text-sm text-muted-foreground">
@@ -322,6 +354,11 @@ export default async function CoursePage({ params }: Props) {
               </div>
             </dl>
 
+            <div className="mt-6 flex flex-wrap items-center gap-2.5">
+              <SaveButton course={libraryItem} variant="inline" />
+              <ShareButton title={course.title} path={`/courses/${course.slug}`} />
+            </div>
+
             {course.tags.length > 0 && (
               <div className="mt-5 flex flex-wrap gap-2">
                 {course.tags.map((tag) => (
@@ -371,7 +408,7 @@ export default async function CoursePage({ params }: Props) {
               </section>
             )}
 
-            <div className="mt-10">
+            <div className="mt-10" lang={textLang(course.description)}>
               <Markdown content={course.description} />
             </div>
           </article>
@@ -379,7 +416,10 @@ export default async function CoursePage({ params }: Props) {
           {/* Sidebar */}
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <div className="glass-panel edge-gradient overflow-hidden rounded-panel">
-              <div className="aspect-video overflow-hidden">
+              {/* Wide screens only: on a phone the banner directly above already
+                  shows this artwork, and repeating it pushed the download
+                  button a full screen further down. */}
+              <div className="hidden aspect-video overflow-hidden lg:block">
                 <CourseImage src={course.thumbnail} title={course.title} />
               </div>
               <div className="space-y-3 p-5">
@@ -388,15 +428,16 @@ export default async function CoursePage({ params }: Props) {
                     <Crown className="h-6 w-6" aria-hidden /> Premium course
                   </p>
                 ) : (
-                  <p className="text-center text-2xl font-extrabold text-success">100% Free</p>
+                  <p className="text-center text-2xl font-extrabold text-success">Free course</p>
                 )}
                 <Link
                   href={`/download/${course.slug}`}
                   className={buttonClasses("primary", "lg", "w-full")}
                 >
                   <Download className="h-5 w-5" aria-hidden />
-                  Download course
+                  {course.premium ? "Get this course" : "Download course"}
                 </Link>
+                {!course.premium && <FreeUnlocksChip variant="panel" />}
                 {telegramUrl && (
                   <a
                     href={telegramUrl}
@@ -480,13 +521,13 @@ export default async function CoursePage({ params }: Props) {
           set in the root layout, a notched iPhone held in landscape puts the notch
           over this bar's leading edge, and a flat 12px gutter let the button slide
           under it. */}
-      <div className="surface fixed inset-x-0 bottom-0 z-30 border-x-0 border-b-0 py-3 pr-[max(0.75rem,env(safe-area-inset-right))] pl-[max(0.75rem,env(safe-area-inset-left))] pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
+      <div className="glass-bar fixed inset-x-0 bottom-0 z-30 flex items-center gap-2.5 py-3 pr-[max(0.75rem,env(safe-area-inset-right))] pl-[max(0.75rem,env(safe-area-inset-left))] pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
         <Link
           href={`/download/${course.slug}`}
-          className={buttonClasses("primary", "lg", "w-full")}
+          className={buttonClasses("primary", "lg", "min-w-0 flex-1 px-4")}
         >
-          <Download className="h-5 w-5" aria-hidden />
-          Download course — 100% free
+          {course.premium ? <Crown className="h-5 w-5" aria-hidden /> : <Download className="h-5 w-5" aria-hidden />}
+          <span className="truncate">{course.premium ? "Get this Premium course" : "Download free"}</span>
         </Link>
       </div>
     </>

@@ -340,3 +340,76 @@ export async function moveCourseAction(id: unknown, direction: "up" | "down"): P
   revalidateSite();
   return { ok: true };
 }
+
+/**
+ * Drag-to-reorder: `orderedIds` is the visible page of courses in its new
+ * order. Those courses keep the same set of positions in the full list they
+ * had before, only swapped among themselves, so a drag on page 2 can never
+ * jump a course past page 1. The whole list is then renumbered 0..n-1, which
+ * also repairs any duplicate `order` values left from before (most courses
+ * were created with the default 0, and swapping equal values did nothing).
+ */
+export async function reorderCoursesAction(orderedIds: unknown): Promise<ActionResult> {
+  const user = await requireAdmin();
+  const parsed = idsSchema.safeParse(orderedIds);
+  if (!parsed.success || new Set(parsed.data).size !== parsed.data.length) {
+    return { ok: false, error: "Invalid selection" };
+  }
+  const ids = parsed.data;
+
+  // Same ordering the admin list uses.
+  const all = await db.course.findMany({
+    select: { id: true, order: true },
+    orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+  });
+  const position = new Map(all.map((c, i) => [c.id, i]));
+  if (!ids.every((id) => position.has(id))) return { ok: false, error: "Course not found" };
+
+  // The slots the moved courses occupy, refilled in the new order.
+  const slots = ids.map((id) => position.get(id)!).sort((a, b) => a - b);
+  const next = all.map((c) => c.id);
+  slots.forEach((slot, i) => {
+    next[slot] = ids[i]!;
+  });
+
+  const current = new Map(all.map((c) => [c.id, c.order]));
+  const updates = next
+    .map((id, index) => ({ id, index }))
+    .filter(({ id, index }) => current.get(id) !== index)
+    .map(({ id, index }) => db.course.update({ where: { id }, data: { order: index } }));
+  if (updates.length > 0) await db.$transaction(updates);
+
+  await logAudit({
+    userId: user.id,
+    action: "course.reorder",
+    entity: "course",
+    meta: { moved: ids.length, renumbered: updates.length },
+  });
+  revalidateSite();
+  return { ok: true };
+}
+
+const flagsSchema = z
+  .object({ featured: z.boolean().optional(), trending: z.boolean().optional() })
+  .refine((v) => v.featured !== undefined || v.trending !== undefined);
+
+/** Bulk "Featured" / "Trending" switches. Access flags (premium) are not bulk-editable. */
+export async function setCourseFlagsAction(ids: unknown, flags: unknown): Promise<ActionResult> {
+  const user = await requireAdmin();
+  const parsedIds = idsSchema.safeParse(ids);
+  const parsedFlags = flagsSchema.safeParse(flags);
+  if (!parsedIds.success || !parsedFlags.success) return { ok: false, error: "Invalid selection" };
+
+  const { count } = await db.course.updateMany({
+    where: { id: { in: parsedIds.data } },
+    data: parsedFlags.data,
+  });
+  await logAudit({
+    userId: user.id,
+    action: "course.flags",
+    entity: "course",
+    meta: { count, ...parsedFlags.data, ids: parsedIds.data },
+  });
+  revalidateSite();
+  return { ok: true };
+}

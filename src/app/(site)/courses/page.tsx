@@ -9,6 +9,7 @@ import { FiltersBar } from "@/components/site/filters-bar";
 import { InfiniteCourseList } from "@/components/site/course-list";
 import { CourseGridSkeleton } from "@/components/ui/skeleton";
 import { CommunityLinks } from "@/components/site/community-links";
+import { FreeUnlocksChip } from "@/components/site/free-unlocks-chip";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -81,11 +82,8 @@ export default async function CoursesPage({ searchParams }: { searchParams: Sear
       <PageHeader
         eyebrow="Library"
         title="All courses"
-        description={
-          <>
-            Every course is free to download. Filter, search and sort to find yours.
-          </>
-        }
+        description="Search, filter and sort the whole library. Free courses use your daily unlocks; Premium has no limit."
+        actions={<FreeUnlocksChip />}
       />
 
       <div className="mb-8 flex flex-col gap-3 rounded-card border border-border bg-card p-4 shadow-soft sm:flex-row sm:items-center sm:justify-between sm:p-5">

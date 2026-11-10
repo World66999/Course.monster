@@ -108,6 +108,12 @@
   --sh-glow: 0 0 0 1px rgb(109 61 245 / 0.18), 0 14px 40px -12px rgb(109 61 245 / 0.35);
   --sh-gold: 0 0 0 1px rgb(217 154 11 / 0.35), 0 14px 40px -14px rgb(217 154 11 / 0.45);
 
+  /* Chart series (admin dashboard). A fixed order, validated together for
+     colour-blind separation on the card surface; never reused for status. */
+  --chart-1: #6250d6;
+  --chart-2: #eda100;
+  --chart-3: #1baf7a;
+
   /* Layers. One ladder for everything that floats, so nothing guesses. */
   --z-sticky: 30;
   --z-header: 40;
@@ -174,6 +180,10 @@
   --wash-3: rgb(240 171 252 / 0.07);
   --wash-4: rgb(245 196 81 / 0.09);
   --wash-5: rgb(56 189 248 / 0.1);
+
+  --chart-1: #9085e9;
+  --chart-2: #c98500;
+  --chart-3: #199e70;
 
   --glass: rgba(19, 17, 29, 0.74);
   --glass-border: rgba(196, 181, 253, 0.13);
@@ -1300,4 +1310,14 @@ html[data-perf="low"] {
   fill: var(--muted-foreground);
   font-size: 10px;
   font-variant-numeric: tabular-nums;
+}
+
+/* Admin drawer slides in from the left (transform only). */
+@keyframes drawer-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }

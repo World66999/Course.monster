@@ -109,5 +109,5 @@ export default auth(async (req) => {
  * `authorized()` returns true immediately for non-admin paths.
  */
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|uploads|favicon.ico|robots.txt|sitemap.xml).*)"],
+  matcher: ["/((?!api|_next/static|_next/image|uploads|icons|favicon.ico|robots.txt|sitemap.xml|manifest.webmanifest).*)"],
 };

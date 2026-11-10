@@ -4,6 +4,7 @@ import { Footer } from "@/components/site/footer";
 import { ScrollProgress } from "@/components/motion/scroll-progress";
 import { TelegramWebAppAuth } from "@/components/premium/telegram-webapp-auth";
 import { RevealController } from "@/components/site/reveal-controller";
+import { VisitBeacon } from "@/components/site/visit-beacon";
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const settings = await getSiteSettings();
@@ -14,6 +15,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <ScrollProgress />
       <TelegramWebAppAuth />
       <RevealController />
+      <VisitBeacon />
       <Header settings={settings} />
       <main id="main-content" className="flex-1">
         {children}

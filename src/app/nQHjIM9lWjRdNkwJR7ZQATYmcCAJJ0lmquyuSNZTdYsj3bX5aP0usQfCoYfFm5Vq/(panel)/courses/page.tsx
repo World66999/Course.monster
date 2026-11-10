@@ -21,6 +21,8 @@ export default async function AdminCoursesPage({
   const raw = await searchParams;
   const q = typeof raw.q === "string" ? raw.q.slice(0, 120) : "";
   const status = typeof raw.status === "string" ? raw.status : "";
+  const categorySlug = typeof raw.category === "string" ? raw.category.slice(0, 120) : "";
+  const type = typeof raw.type === "string" ? raw.type : "";
   const page = Math.max(1, Number(typeof raw.page === "string" ? raw.page : 1) || 1);
 
   const where: Prisma.CourseWhereInput = {
@@ -34,9 +36,15 @@ export default async function AdminCoursesPage({
       : {}),
     ...(status === "published" ? { published: true } : {}),
     ...(status === "draft" ? { published: false } : {}),
+    ...(categorySlug === "none" ? { categoryId: null } : categorySlug ? { category: { slug: categorySlug } } : {}),
+    ...(type === "premium" ? { premium: true } : {}),
+    ...(type === "free" ? { premium: false } : {}),
+    ...(type === "featured" ? { featured: true } : {}),
+    ...(type === "trending" ? { trending: true } : {}),
   };
 
-  const [total, courses] = await Promise.all([
+  const [categories, total, courses] = await Promise.all([
+    db.category.findMany({ select: { slug: true, name: true }, orderBy: [{ order: "asc" }, { name: "asc" }] }),
     db.course.count({ where }),
     db.course.findMany({
       where,
@@ -70,6 +78,28 @@ export default async function AdminCoursesPage({
           { value: "published", label: "Published" },
           { value: "draft", label: "Draft" },
         ]}
+        filters={[
+          {
+            key: "category",
+            label: "Filter by category",
+            options: [
+              { value: "", label: "All categories" },
+              { value: "none", label: "No category" },
+              ...categories.map((c) => ({ value: c.slug, label: c.name })),
+            ],
+          },
+          {
+            key: "type",
+            label: "Filter by type",
+            options: [
+              { value: "", label: "All types" },
+              { value: "free", label: "Free" },
+              { value: "premium", label: "Premium" },
+              { value: "featured", label: "Featured" },
+              { value: "trending", label: "Trending" },
+            ],
+          },
+        ]}
       />
 
       <CoursesTable
@@ -82,13 +112,14 @@ export default async function AdminCoursesPage({
           published: c.published,
           featured: c.featured,
           trending: c.trending,
+          premium: c.premium,
           downloads: c.downloads,
           views: c.views,
           updatedAt: c.updatedAt.toISOString(),
         }))}
         page={page}
         pageCount={pageCount}
-        reorderEnabled={!q && !status}
+        reorderEnabled={!q && !status && !categorySlug && !type}
       />
     </div>
   );
