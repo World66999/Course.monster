@@ -20,7 +20,9 @@ export function NativeSelect({
     <div className="relative">
       <select
         className={cn(
-          "h-10 w-full cursor-pointer appearance-none truncate rounded-control border border-input bg-card py-2 pr-9 pl-3 text-sm text-foreground shadow-soft transition-[border-color,box-shadow] duration-200 pointer-coarse:h-11",
+          "h-10 w-full cursor-pointer appearance-none truncate rounded-control border border-input bg-card py-2 pr-9 pl-3 text-base text-foreground sm:text-sm shadow-soft transition-[border-color,box-shadow] duration-200 pointer-coarse:h-11",
+          // 16px on phones: iOS zooms the page when a focused control has
+          // smaller text, and does not zoom back out.
           "hover:border-border-strong focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/20 focus-visible:outline-none",
           className
         )}

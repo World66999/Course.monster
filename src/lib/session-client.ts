@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { Session } from "next-auth";
-import { __NEXTAUTH, getCsrfToken, getSession } from "next-auth/react";
+import { __NEXTAUTH, getCsrfToken } from "next-auth/react";
 
 /**
  * The signed-in session for client components: a drop-in for next-auth's
@@ -17,7 +17,8 @@ import { __NEXTAUTH, getCsrfToken, getSession } from "next-auth/react";
  * interactive in small steps.
  *
  * Behaviour matches the provider with its default options:
- *   - one request for the session, when the first component asks for it;
+ *   - one request for the session, when the first component asks for it
+ *     (other tabs are not pinged on every page load, unlike the provider);
  *   - `signIn()` / `signOut()` from next-auth/react refresh it (they call
  *     `__NEXTAUTH._getSession`, which is pointed at this store);
  *   - other tabs signing in or out refresh it (next-auth's BroadcastChannel);
@@ -51,11 +52,26 @@ function publish(data: Session | null) {
   for (const listener of listeners) listener();
 }
 
+/**
+ * One read of the session endpoint. A plain fetch rather than next-auth's
+ * `getSession()`: that one prints a console error when the request is cut off
+ * by the visitor leaving the page, which is not an error.
+ */
+async function readSession(): Promise<Session | null> {
+  const res = await fetch("/api/auth/session", {
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+  });
+  if (!res.ok) throw new Error(`session ${res.status}`);
+  const body = (await res.json()) as Session | null;
+  return body && Object.keys(body).length > 0 ? body : null;
+}
+
 /** Re-reads the session from the server. Concurrent calls share one request. */
 export function refreshSession(): Promise<void> {
-  inFlight ??= getSession({ broadcast: false })
+  inFlight ??= readSession()
     .then(
-      (data) => publish(data ?? null),
+      (data) => publish(data),
       // A failed read is "not signed in" for display purposes; the server
       // still decides everything that matters on each request.
       () => publish(snapshot.status === "loading" ? null : snapshot.data)

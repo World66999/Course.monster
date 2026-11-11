@@ -7,7 +7,6 @@ import { CourseCard } from "@/components/site/course-card";
 import { CourseCardSkeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/site/section";
 import { buttonClasses } from "@/components/ui/button";
-import Link from "next/link";
 
 interface Props {
   initialItems: CourseCardData[];
@@ -76,9 +75,13 @@ export function InfiniteCourseList({ initialItems, initialCursor, total, querySt
         title="No courses found"
         description="Try adjusting your search or filters — or browse everything instead."
         action={
-          <Link href="/courses" className={buttonClasses("outline", "sm")}>
+          // A plain link, on purpose: this only changes the query string of
+          // the page it is on, and the client router occasionally drops such
+          // a navigation while the search box is still writing its own.
+          // eslint-disable-next-line @next/next/no-html-link-for-pages
+          <a href="/courses" className={buttonClasses("outline", "sm")}>
             Clear filters
-          </Link>
+          </a>
         }
       />
     );
