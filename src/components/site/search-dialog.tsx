@@ -157,7 +157,7 @@ export function SearchDialog() {
     return (
       <>
         <div className="h-10 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
-          <CourseImage src={hit.thumbnail} title={hit.title} className="[&>span]:text-xs" />
+          <CourseImage src={hit.thumbnail} title={hit.title} sizes="64px" className="[&>span]:text-xs" />
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">{hit.title}</p>

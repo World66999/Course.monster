@@ -92,7 +92,7 @@ export default async function DownloadPage({ params, searchParams }: Props) {
         {/* Course summary */}
         <div className="flex gap-4 border-b border-border p-5 sm:gap-5 sm:p-6">
           <div className="h-20 w-32 shrink-0 overflow-hidden rounded-nested bg-muted sm:h-24 sm:w-40">
-            <CourseImage src={course.thumbnail} title={course.title} priority />
+            <CourseImage src={course.thumbnail} title={course.title} loading="eager" sizes="160px" />
           </div>
           <div className="min-w-0">
             {course.category && (

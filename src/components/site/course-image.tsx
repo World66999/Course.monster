@@ -1,49 +1,48 @@
 import { cn, gradientFromString } from "@/lib/utils";
+import { UploadPicture } from "@/components/site/upload-picture";
+
+/** `sizes` for a card in the standard 1/2/3/4-column course grid. */
+export const CARD_SIZES = "(min-width: 1280px) 300px, (min-width: 1024px) 31vw, (min-width: 640px) 46vw, 92vw";
 
 /**
- * Course artwork. Uploaded images are pre-optimized WebP served from
- * /uploads (see src/lib/uploads.ts), so a plain img tag with lazy loading
- * is the right tool; when no image is set we render a branded gradient
- * with the course initials so cards never look broken.
+ * Course artwork.
  *
- * There is deliberately no `sizes`/`srcset`: the upload pipeline stores exactly
- * one variant per kind (thumbnails are 800px WebP), so there is no candidate set
- * for the browser to choose from and a `sizes` attribute is inert — it used to be
- * passed in and threaded through here, implying responsive images that were never
- * generated. 800px is a deliberate single-size compromise: it is about right for
- * a full-width card on a 2-3x DPR phone and still comfortably covers the ~350px
- * slot a 4-up desktop grid gives it.
+ * Uploaded images go through UploadPicture (AVIF, then WebP, then JPEG, in
+ * several widths). `sizes` says how wide the image is shown; pass it wherever
+ * the slot is not a grid card.
+ *
+ * `priority` is for the one image that is the page's largest above-the-fold
+ * element: it loads eagerly at high priority and is preloaded from `<head>`.
+ * Everything else is lazy. When no image is set we render a branded gradient
+ * with the course initials so cards never look broken.
  */
 export function CourseImage({
- src,
- title,
- className,
- priority = false,
- loading: loadingProp,
+  src,
+  title,
+  className,
+  priority = false,
+  loading: loadingProp,
+  sizes = CARD_SIZES,
 }: {
- src?: string | null;
- title: string;
- className?: string;
- priority?: boolean;
- loading?: "lazy" | "eager";
+  src?: string | null;
+  title: string;
+  className?: string;
+  priority?: boolean;
+  loading?: "lazy" | "eager";
+  sizes?: string;
 }) {
- const loading = loadingProp ?? (priority ? "eager" : "lazy");
-
- if (src) {
- return (
- // eslint-disable-next-line @next/next/no-img-element
- <img
- src={src}
- alt={title}
- loading={loading}
- // Promotes the above-the-fold thumbnails out of the low-priority bucket
- // that images default to, which is what `priority` is for here.
- fetchPriority={priority ? "high" : undefined}
- decoding="async"
- className={cn("h-full w-full object-cover", className)}
- />
- );
- }
+  if (src) {
+    return (
+      <UploadPicture
+        src={src}
+        alt={title}
+        sizes={sizes}
+        loading={loadingProp}
+        priority={priority}
+        className={cn("h-full w-full object-cover", className)}
+      />
+    );
+  }
 
  const { from, to, light } = gradientFromString(title);
  const initials = title

@@ -56,8 +56,10 @@ const CourseCard = React.memo(function CourseCard({
         <CourseImage
           src={course.thumbnail}
           title={course.title}
+          // Above-the-fold cards load eagerly at the browser's own priority.
+          // Not `priority`: a card is never the page's largest element, and a
+          // high-priority image would compete with the text that is.
           loading={priority ? "eager" : "lazy"}
-          priority={priority}
           className="transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.05]"
         />
         <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5">

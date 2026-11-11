@@ -4,6 +4,7 @@ import path from "node:path";
 import { randomBytes } from "node:crypto";
 import sharp from "sharp";
 import { uploadDir, resolveUploadPath } from "@/lib/upload-path";
+import { deleteVariants, generateVariants } from "@/lib/image-variant-writer";
 
 export { resolveUploadPath, uploadDir } from "@/lib/upload-path";
 
@@ -85,6 +86,10 @@ export async function saveImageUpload(file: File, kind: UploadKind): Promise<str
   const dir = uploadDir();
   await mkdir(dir, { recursive: true });
   await writeFile(path.join(dir, name), output);
+  // AVIF and smaller sizes (image-variants.ts). In the background: the upload
+  // itself is done, and the /uploads route makes any copy that is requested
+  // before this finishes.
+  void generateVariants(name).catch((err) => console.error("[uploads] variant generation failed:", err));
   return `/uploads/${name}`;
 }
 
@@ -107,6 +112,8 @@ export async function deleteUpload(urlPath: string): Promise<void> {
       console.error("[uploads] failed to delete orphaned file:", err);
     }
   }
+  // The generated copies go with their original.
+  await deleteVariants(urlPath.slice(prefix.length));
 }
 
 /**

@@ -233,7 +233,7 @@ export default async function CoursePage({ params }: Props) {
 
       {/* Banner */}
       <div className="relative h-56 w-full overflow-hidden sm:h-72 lg:h-80">
-        <CourseImage src={course.banner || course.thumbnail} title={course.title} priority />
+        <CourseImage src={course.banner || course.thumbnail} title={course.title} priority sizes="100vw" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
       </div>
 
@@ -420,7 +420,7 @@ export default async function CoursePage({ params }: Props) {
                   shows this artwork, and repeating it pushed the download
                   button a full screen further down. */}
               <div className="hidden aspect-video overflow-hidden lg:block">
-                <CourseImage src={course.thumbnail} title={course.title} />
+                <CourseImage src={course.thumbnail} title={course.title} sizes="360px" />
               </div>
               <div className="space-y-3 p-5">
                 {course.premium ? (

@@ -91,7 +91,7 @@ export function InfiniteCourseList({ initialItems, initialCursor, total, querySt
       </p>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {items.map((course, i) => (
-          <CourseCard key={course.id} course={course} priority={i < 4} />
+          <CourseCard key={course.id} course={course} priority={i < 2} />
         ))}
         {loading &&
           Array.from({ length: 4 }, (_, i) => <CourseCardSkeleton key={`skeleton-${i}`} />)}
