@@ -15,7 +15,7 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   deleteFreeResourcesAction,
   setFreeResourceOrderAction,
@@ -97,7 +97,7 @@ export function FreeResourcesTable({
           <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search resources…" className="pl-9" />
         </div>
-        <Link href={adminPath("free-resources/new")} className={buttonClasses("primary", "sm")}>
+        <Link prefetch={false} href={adminPath("free-resources/new")} className={buttonClasses("primary", "sm")}>
           New resource
         </Link>
       </div>
@@ -192,7 +192,7 @@ export function FreeResourcesTable({
                     >
                       <Sparkles className="h-4 w-4" />
                     </Button>
-                    <Link
+                    <Link prefetch={false}
                       href={adminPath(`free-resources/${row.id}/edit`)}
                       className={buttonClasses("ghost", "icon")}
                       aria-label="Edit"

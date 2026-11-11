@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Loader2, Plus, Save, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { z } from "zod";
 import { appListingFormSchema, type AppListingFormValues } from "@/lib/validation";
 import { saveAppAction } from "@/server/actions/admin-apps";
@@ -78,7 +78,7 @@ export function AppListingForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <Link href={adminPath("apps")} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary">
+        <Link prefetch={false} href={adminPath("apps")} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary">
           <ArrowLeft className="h-4 w-4" aria-hidden />
           Back to Apps Hub
         </Link>

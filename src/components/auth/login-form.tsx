@@ -7,7 +7,7 @@ import { signIn, getSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, LogIn } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { loginFormSchema, type LoginFormValues } from "@/lib/validation";
 import { precheckLoginAction } from "@/server/actions/public-auth";
 import { safeAction } from "@/lib/safe-action";

@@ -111,7 +111,7 @@ export function ModerationCommentsTable({
                 </td>
                 <td className="p-3">
                   {row.course ? (
-                    <Link href={`/courses/${row.course.slug}`} target="_blank" className="hover:text-primary hover:underline">
+                    <Link prefetch={false} href={`/courses/${row.course.slug}`} target="_blank" className="hover:text-primary hover:underline">
                       {row.course.title}
                     </Link>
                   ) : (

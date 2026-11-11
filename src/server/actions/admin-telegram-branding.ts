@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { revalidateTag } from "next/cache";
-import { z } from "zod";
+import { z } from "@/lib/zod";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/server/auth-helpers";

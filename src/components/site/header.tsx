@@ -8,6 +8,7 @@ import { StickyHeader } from "@/components/site/sticky-header";
 import { UserMenu } from "@/components/site/user-menu";
 import { buttonClasses } from "@/components/ui/button";
 import { PremiumHeaderLink } from "@/components/premium/header-link";
+import { SavedLink } from "@/components/site/library-views";
 
 import { NAV_LINKS } from "@/lib/nav";
 
@@ -80,13 +81,18 @@ export function Header({ settings }: { settings: SiteSettings }) {
           <div className="flex min-w-0 items-center gap-3 xl:gap-5">
             <SiteLogo settings={settings} className="min-w-0 xl:shrink-0" />
             <nav aria-label="Main" className="hidden items-center gap-1 xl:flex">
-              <NavLinks links={NAV_LINKS} />
+              {/* The logo is the home link on wide screens; dropping the
+                  duplicate "Home" item keeps the row clear of the actions. */}
+              <NavLinks links={NAV_LINKS.filter((l) => !("href" in l && l.href === "/"))} />
             </nav>
           </div>
 
           <div className="flex items-center gap-0.5 sm:gap-1.5">
             <PremiumHeaderLink className="px-2.5 sm:mr-1 sm:px-3" />
             <LazySearchDialog />
+            {/* From 480px: below that it would squeeze the site name; the phone
+                menu carries the same link. */}
+            <SavedLink className="hidden min-[480px]:inline-flex" />
             <ThemeToggle />
             <div className="hidden sm:block">
               <UserMenu />
@@ -100,7 +106,10 @@ export function Header({ settings }: { settings: SiteSettings }) {
                 className={buttonClasses("primary", "sm", "ml-1 hidden sm:inline-flex")}
               >
                 <Send className="h-3.5 w-3.5" aria-hidden />
-                <span className="hidden 2xl:inline">Telegram</span>
+                {/* Labelled only while the nav is collapsed (lg). The bar is
+                    capped at max-w-7xl, so wider screens have no more room
+                    than xl does and a label there ran under the nav. */}
+                <span className="hidden lg:inline xl:hidden">Telegram</span>
               </a>
             )}
             <LazyMobileNav settings={settings} />

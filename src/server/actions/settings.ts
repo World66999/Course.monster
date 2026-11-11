@@ -1,6 +1,6 @@
 "use server";
 
-import { z } from "zod";
+import { z } from "@/lib/zod";
 import { requireAdmin } from "@/server/auth-helpers";
 import { saveSiteSettings } from "@/lib/settings";
 import { logAudit } from "@/lib/audit";

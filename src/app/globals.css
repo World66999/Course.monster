@@ -9,17 +9,27 @@
 @custom-variant pointer-coarse (@media (pointer: coarse));
 
 /* ============================================================================
-   DESIGN TOKENS — "Midnight Gold"
+   DESIGN SYSTEM — "Midnight Gold" (2026-11 revision)
+
+   THE WHOLE PRODUCT IS THEMED FROM THIS FILE. Public site and admin panel use
+   the same tokens; change a value here and every page follows.
+
+     Colour      :root (light) and .dark (default) blocks below
+     Type        --text-* scale and font stacks in `@theme inline`
+     Radius      --radius-control / nested / card / panel / feature
+     Elevation   --sh-soft / elevated / floating / primary / glow / gold
+     Motion      --ease-* curves, --animate-* presets, [data-reveal] rules
+     Layers      --z-* (sticky chrome < overlay < modal < toast)
+     Spacing     Tailwind's 4px scale; `.page-gutter` is the one page margin
 
    Dark-first premium palette: deep violet-black surfaces, Royal Purple
    (primary, action) and Gold (accent, and the one colour reserved for
    Premium — membership badges, locks, the crown). A purple → orchid → gold
-   gradient carries washes and decoration. Gold is a *fill* in light mode: it
-   carries ink (`accent-foreground`), and accent-coloured text or strokes use
-   `accent-ink` / `gold-ink`, the contrast-checked versions of the same hue.
+   gradient carries washes and decoration, with one cool sky stop for depth.
+   Gold is a *fill* in light mode: it carries ink (`accent-foreground`), and
+   accent-coloured text or strokes use `accent-ink` / `gold-ink`, the
+   contrast-checked versions of the same hue.
 
-   Token names are shared with every component in the app, so the whole
-   product (admin included) re-skins from this block. New tokens are additive.
    Text pairs below are AA against `--background` and `--card`
    (scripts/check-contrast.mjs).
    ========================================================================= */
@@ -28,17 +38,17 @@
   color-scheme: light;
 
   /* Surfaces */
-  --background: #fbfaf7;
-  --surface-sunken: #f3f1ec;
+  --background: #f7f6fb;
+  --surface-sunken: #efedf6;
   --card: #ffffff;
   --surface-raised: #ffffff;
   --foreground: #15112a;
   --card-foreground: #15112a;
-  --muted: #f3f1ec;
-  --muted-foreground: #5b5670;
-  --border: #e9e5dc;
-  --border-strong: #8c879e;
-  --input: #8c879e;
+  --muted: #f0eef7;
+  --muted-foreground: #5a556f;
+  --border: #e4e1ee;
+  --border-strong: #8a85a0;
+  --input: #8a85a0;
 
   /* Brand */
   --primary: #6d3df5;
@@ -52,6 +62,7 @@
   --accent-ink: #7a5600;
   --violet: #8b5cf6;
   --pink: #d946ef;
+  --sky: #0b7fc4;
   --ring: #6d3df5;
 
   /* Premium gold */
@@ -77,9 +88,10 @@
   --wash-2: rgb(168 85 247 / 0.12);
   --wash-3: rgb(217 70 239 / 0.08);
   --wash-4: rgb(242 185 41 / 0.18);
+  --wash-5: rgb(14 165 233 / 0.1);
 
   /* Effects */
-  --glass: rgba(255, 255, 255, 0.72);
+  --glass: rgba(255, 255, 255, 0.78);
   --glass-border: rgba(21, 17, 42, 0.08);
   --edge-light: rgba(255, 255, 255, 0.75);
 
@@ -95,15 +107,35 @@
   --sh-primary: 0 1px 2px rgb(109 61 245 / 0.25), 0 10px 24px -8px rgb(109 61 245 / 0.45);
   --sh-glow: 0 0 0 1px rgb(109 61 245 / 0.18), 0 14px 40px -12px rgb(109 61 245 / 0.35);
   --sh-gold: 0 0 0 1px rgb(217 154 11 / 0.35), 0 14px 40px -14px rgb(217 154 11 / 0.45);
+
+  /* Chart series (admin dashboard). A fixed order, validated together for
+     colour-blind separation on the card surface; never reused for status. */
+  --chart-1: #6250d6;
+  --chart-2: #eda100;
+  --chart-3: #1baf7a;
+
+  /* Layers. One ladder for everything that floats, so nothing guesses. */
+  --z-sticky: 30;
+  --z-header: 40;
+  --z-overlay: 50;
+  --z-toast: 60;
+
+  /* Fallbacks behind the web fonts. System UI faces first, then the
+     Devanagari faces each platform ships, so Hindi text renders in a proper
+     face (Android: Noto, iOS/macOS: Kohinoor, Windows: Nirmala) instead of
+     whatever the browser picks last. */
+  --font-fallback:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Noto Sans Devanagari",
+    "Kohinoor Devanagari", "Nirmala UI", Mangal, Arial, sans-serif;
 }
 
 .dark {
   color-scheme: dark;
 
-  --background: #0b0a12;
-  --surface-sunken: #07060c;
-  --card: #14121f;
-  --surface-raised: #1b1829;
+  --background: #0a0912;
+  --surface-sunken: #06050b;
+  --card: #13111d;
+  --surface-raised: #1a1727;
   --foreground: #f2effa;
   --card-foreground: #f2effa;
   --muted: #1c1a2a;
@@ -125,6 +157,7 @@
   --accent-ink: #f5c451;
   --violet: #c4b5fd;
   --pink: #f0abfc;
+  --sky: #7dd3fc;
   --ring: #a78bfa;
 
   --gold: #f5c451;
@@ -146,8 +179,13 @@
   --wash-2: rgb(192 132 252 / 0.12);
   --wash-3: rgb(240 171 252 / 0.07);
   --wash-4: rgb(245 196 81 / 0.09);
+  --wash-5: rgb(56 189 248 / 0.1);
 
-  --glass: rgba(20, 18, 31, 0.66);
+  --chart-1: #9085e9;
+  --chart-2: #c98500;
+  --chart-3: #199e70;
+
+  --glass: rgba(19, 17, 29, 0.74);
   --glass-border: rgba(196, 181, 253, 0.13);
   --edge-light: rgba(255, 255, 255, 0.07);
 
@@ -187,6 +225,7 @@
   --color-accent-ink: var(--accent-ink);
   --color-violet: var(--violet);
   --color-pink: var(--pink);
+  --color-sky: var(--sky);
   --color-ring: var(--ring);
 
   --color-success: var(--success);
@@ -201,8 +240,8 @@
   --color-gold-soft: var(--gold-soft);
   --color-gold-ink: var(--gold-ink);
 
-  --font-sans: var(--font-inter);
-  --font-display: var(--font-sora);
+  --font-sans: "Rupee Local", var(--font-inter);
+  --font-display: "Rupee Local", var(--font-sora);
   --font-mono: var(--font-geist-mono);
 
   /* Type scale — a real 1.2/1.25 ramp with tracking and leading baked in, so
@@ -440,6 +479,28 @@ html {
   scroll-padding-top: 5rem;
 }
 
+/* The rupee sign from a font the device already has.
+   Inter and Sora keep "₹" in their latin-ext files, so that one character made
+   every page with a price download about 100 KB of extra fonts and lay the
+   page out a second time. These faces cover only U+20B9 and point at system
+   fonts; where none of them exists the browser simply moves on to the web
+   font, exactly as before. */
+@font-face {
+  font-family: "Rupee Local";
+  font-weight: 100 599;
+  src: local("Roboto"), local("Segoe UI"), local("Helvetica Neue"), local("Noto Sans"), local("Arial"),
+    local("DejaVu Sans"), local("Liberation Sans");
+  unicode-range: U+20B9;
+}
+@font-face {
+  font-family: "Rupee Local";
+  font-weight: 600 900;
+  src: local("Roboto Bold"), local("Segoe UI Bold"), local("Helvetica Neue Bold"), local("Noto Sans Bold"),
+    local("Arial Bold"), local("DejaVu Sans Bold"), local("Liberation Sans Bold"), local("Roboto"),
+    local("Segoe UI"), local("Helvetica Neue"), local("Arial");
+  unicode-range: U+20B9;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -448,9 +509,11 @@ body {
      value var(--font-inter), but next/font only defines
      --font-inter on <body>, so at :root it resolves to the
      guaranteed-invalid value and the whole declaration is dropped. */
-  font-family: var(--font-inter), system-ui, sans-serif;
+  font-family: "Rupee Local", var(--font-inter), var(--font-fallback);
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+  /* No `text-rendering: optimizeLegibility`: browsers already kern and apply
+     ligatures by default, and that mode made the first layout of every page
+     measurably slower on phones for no visible difference. */
   /* A hair of negative tracking keeps Inter body copy from looking loose
      next to the tight display face. */
   letter-spacing: -0.005em;
@@ -464,7 +527,22 @@ h2,
 h3,
 h4,
 .font-display {
-  font-family: var(--font-sora), var(--font-inter), system-ui, sans-serif;
+  font-family: "Rupee Local", var(--font-sora), var(--font-inter), var(--font-fallback);
+}
+
+/* Hindi (Devanagari) needs more line height than the tight display leading:
+   its vowel signs sit above and below the line and were clipped inside
+   clamped titles. Elements carrying Hindi text are tagged `lang="hi"` by the
+   components that render course titles and descriptions (lib/utils textLang). */
+:lang(hi) {
+  line-height: 1.55;
+  letter-spacing: 0;
+}
+h1:lang(hi),
+h2:lang(hi),
+h3:lang(hi) {
+  line-height: 1.4;
+  font-weight: 700;
 }
 
 ::selection {
@@ -542,6 +620,26 @@ h4,
    height, not width). */
 @utility tap-target {
   position: relative;
+  @media (pointer: coarse) {
+    &::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      translate: -50% -50%;
+      min-width: 44px;
+      min-height: 44px;
+      width: 100%;
+      height: 100%;
+    }
+  }
+}
+
+/* The same invisible 44px hit area as `tap-target`, for elements that are
+   already positioned (relative OR absolute). Used by every button: it must not
+   set `position` itself, or it would fight an `absolute` utility on, say, a
+   button pinned inside a search field. */
+@utility tap-area {
   @media (pointer: coarse) {
     &::before {
       content: "";
@@ -713,6 +811,14 @@ h4,
   box-shadow: inset 0 1px 0 0 var(--edge-light);
 }
 
+/* Bars pinned to a screen edge (the phone download bar). Opaque by default;
+   see "Light glass" below for the enhancement. */
+@utility glass-bar {
+  background-color: var(--card);
+  border-top: 1px solid var(--glass-border);
+  box-shadow: 0 -8px 24px -12px rgb(0 0 0 / 0.25), inset 0 1px 0 0 var(--edge-light);
+}
+
 /* Overlay surfaces: dialogs, popovers, drawers. Opaque — real text sits on
    them, and the backdrop-filter blur was removed app-wide. */
 @utility glass-panel {
@@ -725,6 +831,26 @@ h4,
 @utility glass-veil {
   background-color: var(--card);
   border: 1px solid var(--glass-border);
+}
+
+/* ---------- Light glass (progressive enhancement) ----------
+
+   The default for every glass surface above is an OPAQUE fill, so a browser
+   that cannot blur, or should not, loses nothing. Blur is then added back for
+   exactly two small, always-floating strips: the header pill and the phone
+   download bar. Two narrow elements cost a fraction of what the old full-card
+   blur did, and three groups never get it at all:
+
+     - browsers without backdrop-filter (the @supports test fails),
+     - devices the boot script marked low-end (`data-perf="low"`),
+     - visitors who asked for reduced transparency (rule further down). */
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  html:not([data-perf="low"]) .glass-chrome,
+  html:not([data-perf="low"]) .glass-bar {
+    background-color: var(--glass);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    backdrop-filter: blur(14px) saturate(140%);
+  }
 }
 
 /* ---------- Glass fallbacks (performance & accessibility) ----------
@@ -750,6 +876,7 @@ h4,
 @media (prefers-reduced-transparency: reduce) {
   .glass,
   .glass-chrome,
+  .glass-bar,
   .glass-panel,
   .glass-veil {
     backdrop-filter: none;
@@ -936,8 +1063,19 @@ h4,
     transition:
       opacity 0.7s var(--ease-emphasis),
       transform 0.8s var(--ease-emphasis);
-    transition-delay: calc(var(--reveal-delay, 0ms) + var(--i, 0) * var(--stagger-step, 70ms));
+    transition-delay: var(--reveal-delay, 0ms);
   }
+  /* Stagger order from the child's position, not from a custom property
+     written per child by script (that write restyled every child's subtree). */
+  [data-stagger="in"] > :nth-child(2) { transition-delay: calc(var(--reveal-delay, 0ms) + 1 * var(--stagger-step, 70ms)); }
+  [data-stagger="in"] > :nth-child(3) { transition-delay: calc(var(--reveal-delay, 0ms) + 2 * var(--stagger-step, 70ms)); }
+  [data-stagger="in"] > :nth-child(4) { transition-delay: calc(var(--reveal-delay, 0ms) + 3 * var(--stagger-step, 70ms)); }
+  [data-stagger="in"] > :nth-child(5) { transition-delay: calc(var(--reveal-delay, 0ms) + 4 * var(--stagger-step, 70ms)); }
+  [data-stagger="in"] > :nth-child(6) { transition-delay: calc(var(--reveal-delay, 0ms) + 5 * var(--stagger-step, 70ms)); }
+  [data-stagger="in"] > :nth-child(7) { transition-delay: calc(var(--reveal-delay, 0ms) + 6 * var(--stagger-step, 70ms)); }
+  [data-stagger="in"] > :nth-child(8) { transition-delay: calc(var(--reveal-delay, 0ms) + 7 * var(--stagger-step, 70ms)); }
+  [data-stagger="in"] > :nth-child(9) { transition-delay: calc(var(--reveal-delay, 0ms) + 8 * var(--stagger-step, 70ms)); }
+  [data-stagger="in"] > :nth-child(n + 10) { transition-delay: calc(var(--reveal-delay, 0ms) + 9 * var(--stagger-step, 70ms)); }
 }
 
 /* Above-the-fold entrance helper: children rise in sequence with no JS.
@@ -1153,5 +1291,86 @@ h4,
 @media (prefers-reduced-motion: reduce) {
   .gold-sheen {
     animation: none;
+  }
+}
+
+/* ---------- Low-end devices and data-saver ----------
+
+   `data-perf="low"` is set before first paint by the boot script
+   (lib/boot-script.ts) on phones with ≤2 GB memory or ≤2 cores, and on
+   data-saver / 2G connections. Decorative loops and entrances are switched
+   off; spinners, skeletons and state transitions keep working, and no content
+   or flow depends on any of it. */
+html[data-perf="low"] .animate-drift,
+html[data-perf="low"] .animate-float,
+html[data-perf="low"] .animate-float-slow,
+html[data-perf="low"] .animate-ping,
+html[data-perf="low"] .gold-sheen,
+html[data-perf="low"] .parallax-slow,
+html[data-perf="low"] .parallax-fast,
+html[data-perf="low"] .rise-in,
+html[data-perf="low"] .animate-rise,
+html[data-perf="low"] .animate-page-in {
+  animation: none !important;
+}
+html[data-perf="low"] .scroll-progress,
+html[data-perf="low"] .hero-mesh {
+  display: none !important;
+}
+html[data-perf="low"] {
+  scroll-behavior: auto;
+}
+
+/* ---------- Older-browser fallbacks ----------
+
+   `dvh` (the viewport height that follows mobile browser chrome) arrived in
+   iOS 15.4 / Chrome 108. Before that the declaration is dropped, so a plain
+   `vh` value has to exist first. */
+@supports not (height: 100dvh) {
+  .min-h-dvh {
+    min-height: 100vh;
+  }
+  .h-dvh {
+    height: 100vh;
+  }
+  .max-h-dvh {
+    max-height: 100vh;
+  }
+}
+
+/* Scrollable regions keep momentum scrolling on old iOS WebViews and never
+   chain a sideways swipe into the page behind them. */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+/* Below-the-fold blocks: let the browser skip their layout and paint until
+   they are about to scroll into view. The remembered size (`auto`) keeps the
+   scrollbar steady once a block has been shown. Browsers without support
+   ignore both lines and render everything up front, as before. */
+@utility defer-offscreen {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 40rem;
+}
+
+/* ---------- Charts (admin dashboard) ---------- */
+.chart-grid line {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.chart-axis text {
+  fill: var(--muted-foreground);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Admin drawer slides in from the left (transform only). */
+@keyframes drawer-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
   }
 }

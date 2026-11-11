@@ -176,7 +176,14 @@ export async function createPaymentLink(req: {
   description: string;
   expireBy: Date;
   notes: Record<string, string>;
+  /**
+   * Name shown on Razorpay's hosted payment-link page and checkout instead of
+   * the account's registered business name (options.checkout.name). Display only:
+   * amount, reference and settlement are unaffected.
+   */
+  checkoutName?: string;
 }): Promise<RzpPaymentLink> {
+  const checkoutName = req.checkoutName?.trim().slice(0, 60);
   const link = await call<RzpPaymentLink>("POST", "/payment_links", {
     amount: req.amount,
     currency: "INR",
@@ -189,6 +196,7 @@ export async function createPaymentLink(req: {
     notify: { sms: false, email: false },
     reminder_enable: false,
     notes: req.notes,
+    ...(checkoutName ? { options: { checkout: { name: checkoutName } } } : {}),
   });
   if (!link || !isPaymentLinkId(link.id) || link.amount !== req.amount || link.reference_id !== req.referenceId) {
     throw new RazorpayApiError("Razorpay returned an unexpected payment link", null, false);

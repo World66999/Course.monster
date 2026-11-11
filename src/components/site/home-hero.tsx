@@ -1,108 +1,81 @@
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, BookOpen, Download, FolderOpen, Search, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpen, Download, FolderOpen, Gift, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { buttonClasses } from "@/components/ui/button";
 import { AnimatedCounter } from "@/components/site/animated-counter";
+import { FreeUnlocksChip } from "@/components/site/free-unlocks-chip";
 import { formatNumber } from "@/lib/utils";
 
 interface HomeHeroProps {
   siteName: string;
   description: string;
   stats: { courses: number; downloads: number; categories: number };
-  /** A few real categories, shown as floating shortcut chips on wide screens. */
+  /** Free unlocks per day (admin setting), for the headline chip. */
+  freeLimit: number;
+  /** The busiest categories, shown as quick filters under the search box. */
   categories?: { name: string; slug: string }[];
 }
 
 type CSSVars = React.CSSProperties & Record<`--${string}`, string>;
 
-const STAT_TONES = [
-  "bg-primary/12 text-primary",
-  "bg-violet/12 text-violet",
-  "bg-pink/12 text-pink",
-] as const;
-
-/** Positions for the floating category chips around the stats card (lg+). */
-const CHIP_SPOTS = [
-  { className: "-top-6 left-2", rot: "-4deg", delay: "0s" },
-  { className: "top-[38%] -right-12", rot: "3deg", delay: "-3s" },
-  { className: "-bottom-5 left-10", rot: "2deg", delay: "-6s" },
-] as const;
+const STAT_TONES = ["bg-primary/12 text-primary", "bg-sky/12 text-sky", "bg-accent/25 text-accent-ink"] as const;
 
 /**
  * Homepage hero. A server component: the entrance is CSS (`rise-in`, which
- * also plays with JavaScript disabled), the background drifts on transform
- * keyframes and moves with a scroll-timeline parallax, and the only client
- * code is the stat count-up. The search box is a plain GET form, so it works
- * before hydration.
+ * also plays with JavaScript disabled), the background is one static gradient
+ * mesh that only drifts on large screens, and the only client code is the
+ * stat count-up and the unlock counter. The search box is a plain GET form,
+ * so it works before hydration and in every in-app browser.
  */
-export function HomeHero({ siteName, description, stats, categories = [] }: HomeHeroProps) {
+export function HomeHero({ siteName, description, stats, freeLimit, categories = [] }: HomeHeroProps) {
   const statItems = [
     { icon: BookOpen, value: stats.courses, label: "Courses" },
     { icon: Download, value: stats.downloads, label: "Downloads" },
     { icon: FolderOpen, value: stats.categories, label: "Categories" },
   ];
   const words = siteName.split(/\s+/).filter(Boolean);
-  const chips = categories.slice(0, CHIP_SPOTS.length);
 
   return (
     <section className="relative isolate -mt-[4.5rem] overflow-hidden pt-[4.5rem]">
-      {/* ---------- Animated gradient mesh ----------
-          The drift and float loops run from `lg` up only. On phones they kept
-          three viewport-sized layers animating for the life of the page,
-          which cost measurable main-thread time in Lighthouse's mobile run;
-          the static mesh still gives the same look there. */}
-      <div aria-hidden className="parallax-slow pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute lg:animate-drift -top-40 -left-32 h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(closest-side,var(--wash-1),transparent)]" />
-        <div
-          className="absolute lg:animate-drift -top-24 right-[-10rem] h-[30rem] w-[30rem] rounded-full bg-[radial-gradient(closest-side,var(--wash-3),transparent)]"
-          style={{ animationDelay: "-8s" }}
-        />
-        <div
-          className="absolute lg:animate-drift top-1/2 left-1/3 h-[26rem] w-[26rem] rounded-full bg-[radial-gradient(closest-side,var(--wash-2),transparent)]"
-          style={{ animationDelay: "-15s" }}
-        />
-      </div>
-      <div aria-hidden className="bg-dots pointer-events-none absolute inset-0 -z-10 opacity-60" />
+      {/* One layer, painted once. `hero-mesh` is hidden on low-end devices. */}
+      <div
+        aria-hidden
+        className="hero-mesh parallax-slow pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(34rem_26rem_at_8%_0%,var(--wash-1),transparent_70%),radial-gradient(30rem_24rem_at_96%_8%,var(--wash-5),transparent_70%),radial-gradient(28rem_22rem_at_55%_70%,var(--wash-2),transparent_70%)] lg:animate-drift"
+      />
+      <div aria-hidden className="bg-dots pointer-events-none absolute inset-0 -z-10 opacity-50" />
 
-      <div className="page-gutter mx-auto grid max-w-7xl items-center gap-12 pt-10 pb-16 sm:pt-16 sm:pb-20 lg:grid-cols-[1.15fr_0.85fr] lg:gap-16 lg:pt-20 lg:pb-28">
+      <div className="page-gutter mx-auto grid max-w-7xl items-center gap-10 pt-8 pb-10 sm:pt-14 sm:pb-16 lg:grid-cols-[1.15fr_0.85fr] lg:gap-16 lg:pt-20 lg:pb-24">
         {/* ---------- Copy + search ---------- */}
-        <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
-          <p className="rise-in inline-flex items-center gap-2 rounded-full border border-border bg-card/90 py-1.5 pr-4 pl-1.5 text-sm font-medium text-muted-foreground shadow-soft">
-            <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-accent-foreground">
-              <Sparkles className="h-3 w-3" aria-hidden />
+        <div className="flex min-w-0 flex-col items-center text-center lg:items-start lg:text-left">
+          <p className="rise-in inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-card/90 py-1.5 pr-4 pl-1.5 text-sm font-medium text-muted-foreground shadow-soft">
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-accent-foreground">
+              <Gift className="h-3 w-3" aria-hidden />
               Free
             </span>
-            <span>
-              <span className="numeric font-semibold text-foreground">{formatNumber(stats.courses)}+</span>{" "}
-              premium courses, always free
+            <span className="truncate">
+              <span className="numeric font-semibold text-foreground">{freeLimit}</span> course unlocks every day
             </span>
           </p>
 
-          <h1 className="text-display mt-6 text-balance">
+          <h1 className="text-display mt-5 text-balance">
             {words.map((word, i) => (
               <span
                 key={`${word}-${i}`}
-                className={`rise-in inline-block ${i === words.length - 1 && words.length > 1 ? "text-gradient pb-[0.08em]" : ""}`}
-                style={{ "--d": `${90 + i * 80}ms` } as CSSVars}
+                className={`inline-block ${i === words.length - 1 && words.length > 1 ? "text-gradient pb-[0.08em]" : ""}`}
               >
                 {word}
-                {i < words.length - 1 ? " " : ""}
+                {i < words.length - 1 ? " " : ""}
               </span>
             ))}
           </h1>
-          <p
-            className="rise-in text-lead mt-5 max-w-xl text-pretty text-muted-foreground"
-            style={{ "--d": "220ms" } as CSSVars}
-          >
-            {description}
-          </p>
+          <p className="text-lead mt-4 max-w-xl text-pretty text-muted-foreground">{description}</p>
 
           <form
             action="/courses"
             method="get"
             role="search"
-            className="rise-in mt-8 w-full max-w-xl"
-            style={{ "--d": "300ms" } as CSSVars}
+            className="rise-in mt-7 w-full max-w-xl"
+            style={{ "--d": "80ms" } as CSSVars}
           >
             <label htmlFor="hero-search" className="sr-only">
               Search courses
@@ -120,7 +93,7 @@ export function HomeHero({ siteName, description, stats, categories = [] }: Home
                 autoComplete="off"
                 enterKeyHint="search"
                 maxLength={100}
-                className="h-14 rounded-full border-border bg-card pr-[7.5rem] pl-13 text-base shadow-none sm:text-base"
+                className="h-14 rounded-full border-border bg-card pr-[7.25rem] pl-13 text-base shadow-none sm:text-base"
               />
               <button
                 type="submit"
@@ -131,41 +104,50 @@ export function HomeHero({ siteName, description, stats, categories = [] }: Home
             </div>
           </form>
 
-          <div
-            className="rise-in mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm lg:justify-start"
-            style={{ "--d": "360ms" } as CSSVars}
-          >
-            <Link
-              href="/courses"
-              prefetch={false}
-              className="group inline-flex items-center gap-1.5 rounded-sm font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          {/* Quick category filters: one swipeable row on phones. */}
+          {categories.length > 0 && (
+            <nav
+              aria-label="Popular categories"
+              className="rise-in mt-4 flex w-full max-w-xl items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] lg:flex-wrap lg:overflow-visible [&::-webkit-scrollbar]:hidden"
+              style={{ "--d": "140ms" } as CSSVars}
             >
-              <span className="link-underline">Browse all courses</span>
-              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" aria-hidden />
-            </Link>
-            <Link
-              href="/how-to-download"
-              prefetch={false}
-              className="link-underline rounded-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              How downloading works
-            </Link>
+              {categories.map((c) => (
+                <Link
+                  key={c.slug}
+                  href={`/courses?category=${c.slug}`}
+                  prefetch={false}
+                  className="inline-flex h-11 shrink-0 items-center rounded-full border border-border bg-card/80 px-4 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {c.name}
+                </Link>
+              ))}
+              <Link
+                href="/courses"
+                prefetch={false}
+                className="group inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                All courses
+                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" aria-hidden />
+              </Link>
+            </nav>
+          )}
+
+          <div className="rise-in mt-5 flex w-full max-w-xl justify-center lg:justify-start" style={{ "--d": "200ms" } as CSSVars}>
+            <FreeUnlocksChip />
           </div>
         </div>
 
-        {/* ---------- Visual: stats card + floating chips ---------- */}
+        {/* ---------- Stats ---------- */}
         <div className="relative mx-auto w-full max-w-md lg:max-w-none">
-          {/* Glow behind the card: a radial gradient, not a filter blur, so it
-              costs no GPU blur layer. */}
           <div
             aria-hidden
-            className="absolute -inset-10 -z-10 bg-[radial-gradient(closest-side,var(--wash-2),transparent),radial-gradient(closest-side_at_70%_70%,var(--wash-1),transparent)]"
+            className="absolute -inset-10 -z-10 hidden bg-[radial-gradient(closest-side,var(--wash-2),transparent)] lg:block"
           />
           <div
-            className="rise-in surface relative rounded-panel p-5 shadow-floating sm:p-7 lg:rotate-[-1.5deg]"
-            style={{ "--d": "260ms" } as CSSVars}
+            className="rise-in surface relative rounded-panel p-4 shadow-elevated sm:p-6 lg:rotate-[-1.5deg] lg:shadow-floating"
+            style={{ "--d": "160ms" } as CSSVars}
           >
-            <div className="mb-5 flex items-center justify-between">
+            <div className="mb-4 flex items-center justify-between">
               <p className="text-eyebrow text-muted-foreground uppercase">Library at a glance</p>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-success-soft px-2.5 py-1 text-xs font-semibold text-success">
                 <span className="relative flex h-2 w-2" aria-hidden>
@@ -179,15 +161,13 @@ export function HomeHero({ siteName, description, stats, categories = [] }: Home
               {statItems.map(({ icon: Icon, value, label }, i) => (
                 <li
                   key={label}
-                  className="flex flex-col items-center gap-2 rounded-card bg-muted/70 px-2 py-4 text-center lg:flex-row lg:gap-4 lg:px-4 lg:text-left"
+                  className="flex flex-col items-center gap-2 rounded-card bg-muted/70 px-2 py-3.5 text-center lg:flex-row lg:gap-4 lg:px-4 lg:py-4 lg:text-left"
                 >
-                  <span
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-nested lg:h-12 lg:w-12 ${STAT_TONES[i]}`}
-                  >
+                  <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-nested lg:h-12 lg:w-12 ${STAT_TONES[i]}`}>
                     <Icon className="h-5 w-5" aria-hidden />
                   </span>
                   <div className="flex min-w-0 flex-col-reverse">
-                    <span className="text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase sm:text-xs">
+                    <span className="text-[0.7rem] font-semibold tracking-[0.1em] text-muted-foreground uppercase sm:text-xs">
                       {label}
                     </span>
                     <span className="numeric font-display text-xl font-extrabold tracking-tight sm:text-3xl">
@@ -197,41 +177,16 @@ export function HomeHero({ siteName, description, stats, categories = [] }: Home
                 </li>
               ))}
             </ul>
+            <p className="mt-4 hidden items-center justify-between gap-3 border-t border-border pt-4 text-sm text-muted-foreground lg:flex">
+              <span>
+                <span className="numeric font-semibold text-foreground">{formatNumber(stats.courses)}</span> courses, new
+                ones added regularly
+              </span>
+              <Link href="/courses?sort=newest" prefetch={false} className="shrink-0 font-semibold text-primary hover:underline">
+                See what&apos;s new
+              </Link>
+            </p>
           </div>
-
-          {/* Citrus sticker */}
-          <div
-            aria-hidden
-            className="absolute -right-4 -bottom-8 hidden sm:block lg:animate-float"
-            style={{ rotate: "8deg" }}
-          >
-            <div className="rise-in flex h-20 w-20 flex-col items-center justify-center rounded-full bg-accent text-center text-accent-foreground shadow-elevated ring-4 ring-background" style={{ "--d": "520ms" } as CSSVars}>
-              <span className="font-display text-xl leading-none font-extrabold">100%</span>
-              <span className="text-[0.65rem] font-bold tracking-wider uppercase">free</span>
-            </div>
-          </div>
-
-          {/* Floating category chips — real links, wide screens only. */}
-          {chips.map((chip, i) => {
-            const spot = CHIP_SPOTS[i];
-            return (
-              <div
-                key={chip.slug}
-                className={`animate-float-slow absolute hidden lg:block ${spot.className}`}
-                style={{ rotate: spot.rot, animationDelay: spot.delay }}
-              >
-                <Link
-                  href={`/courses?category=${chip.slug}`}
-                  prefetch={false}
-                  className="rise-in group inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold shadow-elevated transition-[box-shadow,color] duration-300 hover:text-primary hover:shadow-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  style={{ "--d": `${560 + i * 90}ms` } as CSSVars}
-                >
-                  {chip.name}
-                  <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden />
-                </Link>
-              </div>
-            );
-          })}
         </div>
       </div>
     </section>

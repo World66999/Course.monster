@@ -39,7 +39,7 @@ export default async function AdminLearningResourcesPage({ searchParams }: { sea
 
       <div className="flex w-fit flex-wrap gap-1 rounded-nested bg-muted p-1">
         {TABS.map((t) => (
-          <Link
+          <Link prefetch={false}
             key={t.value}
             href={`${adminPath("learning-resources")}?tab=${t.value}`}
             className={cn(

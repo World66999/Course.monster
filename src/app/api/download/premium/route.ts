@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
+import { z } from "@/lib/zod";
 import { db } from "@/lib/db";
 import { createDownloadToken } from "@/lib/download-token";
 import { checkRateLimit } from "@/lib/rate-limit";

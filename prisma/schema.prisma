@@ -1790,3 +1790,17 @@ model FreeUnlockSession {
   @@index([expiresAt])
   @@map("free_unlock_sessions")
 }
+
+/// One row per visitor per (IST) day, for the admin dashboard's visitor chart.
+/// `visitorHash` is a daily-rotating hash (day + hashed IP + browser string),
+/// so it cannot be linked across days or back to a person. No account, no
+/// cookie. Counting only: nothing reads this table to grant or limit anything.
+model SiteVisit {
+  day         String
+  visitorHash String
+  views       Int      @default(1)
+  firstSeenAt DateTime @default(now())
+
+  @@id([day, visitorHash])
+  @@map("site_visits")
+}

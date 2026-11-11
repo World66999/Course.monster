@@ -188,7 +188,7 @@ export default async function AdminRazorpayPage({ searchParams }: { searchParams
             {flagged.map((f) => (
               <li key={f.id} className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span className="numeric text-muted-foreground">{fmtTime(f.updatedAt)}</span>
-                <Link href={adminPath(`users/${f.user.id}`)} className="text-primary hover:underline">{f.user.email}</Link>
+                <Link prefetch={false} href={adminPath(`users/${f.user.id}`)} className="text-primary hover:underline">{f.user.email}</Link>
                 <span>{PLANS[f.plan].name} · {formatInr(f.amount)}</span>
                 <Badge variant="destructive">{f.flagReason ?? "flagged"}</Badge>
                 <span className="font-mono text-xs text-muted-foreground">{f.orderId ?? f.paymentLinkId}</span>
@@ -227,7 +227,7 @@ export default async function AdminRazorpayPage({ searchParams }: { searchParams
                   {p.fulfilledAt && <span className="block text-xs text-muted-foreground">paid {fmtTime(p.fulfilledAt)}</span>}
                 </td>
                 <td className="p-3">
-                  <Link href={adminPath(`users/${p.user.id}`)} className="text-primary hover:underline">{p.user.email}</Link>
+                  <Link prefetch={false} href={adminPath(`users/${p.user.id}`)} className="text-primary hover:underline">{p.user.email}</Link>
                   {p.telegramId && <span className="block text-xs text-muted-foreground">tg {p.telegramId}</span>}
                 </td>
                 <td className="p-3">{PLANS[p.plan].name}</td>
@@ -250,9 +250,9 @@ export default async function AdminRazorpayPage({ searchParams }: { searchParams
 
       {pageCount > 1 && (
         <div className="flex items-center justify-center gap-4 text-sm">
-          {page > 1 && <Link href={qs(page - 1)} className="text-primary">← Previous</Link>}
+          {page > 1 && <Link prefetch={false} href={qs(page - 1)} className="text-primary">← Previous</Link>}
           <span className="text-muted-foreground">Page {page} of {pageCount}</span>
-          {page < pageCount && <Link href={qs(page + 1)} className="text-primary">Next →</Link>}
+          {page < pageCount && <Link prefetch={false} href={qs(page + 1)} className="text-primary">Next →</Link>}
         </div>
       )}
     </div>

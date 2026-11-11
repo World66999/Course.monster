@@ -42,7 +42,7 @@ export default async function TelegramBroadcastsPage() {
 
 function TopList({ title, items }: { title: string; items: { label: string; count: number }[] }) {
   return (
-    <div className="rounded-card border border-border bg-card p-4">
+    <div className="min-w-0 rounded-card border border-border bg-card p-4">
       <h3 className="font-semibold">{title}</h3>
       {items.length === 0 ? (
         <p className="mt-2 text-sm text-muted-foreground">No data yet.</p>

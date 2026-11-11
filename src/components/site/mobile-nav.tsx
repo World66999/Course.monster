@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { LogOut, Menu, Send, User as UserIcon, X } from "lucide-react";
+import { Bookmark, LogOut, Menu, Send, User as UserIcon, X } from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import type { SiteSettings } from "@/lib/settings-schema";
 import { NAV_LINKS } from "@/lib/nav";
@@ -88,6 +88,16 @@ export function MobileNav({ settings }: { settings: SiteSettings }) {
                     )
                   )}
                 </nav>
+                <Link
+                  href="/saved"
+                  className={cn(
+                    "mt-2 flex items-center gap-2 rounded-control px-3 py-3 text-base font-semibold transition-[background-color,color] duration-300 hover:bg-muted",
+                    pathname === "/saved" ? "bg-primary-soft text-primary ring-1 ring-inset ring-primary/20" : "text-foreground"
+                  )}
+                >
+                  <Bookmark className="h-4.5 w-4.5" aria-hidden />
+                  Saved &amp; recently viewed
+                </Link>
                 {settings.telegramUrl && (
                   <a
                     href={settings.telegramUrl}

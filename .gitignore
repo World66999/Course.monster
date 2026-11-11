@@ -49,3 +49,7 @@ next-env.d.ts
 
 # allow the env template
 !.env.example
+
+# browser tests: their own dependencies and output
+/tests/e2e/node_modules
+/tests/e2e/results

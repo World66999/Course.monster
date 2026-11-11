@@ -15,7 +15,7 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   deleteAiPlatformsAction,
   setAiPlatformOrderAction,
@@ -95,7 +95,7 @@ export function AiPlatformsTable({
           <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search platforms…" className="pl-9" />
         </div>
-        <Link href={adminPath("ai-platforms/new")} className={buttonClasses("primary", "sm")}>
+        <Link prefetch={false} href={adminPath("ai-platforms/new")} className={buttonClasses("primary", "sm")}>
           New AI platform
         </Link>
       </div>
@@ -190,7 +190,7 @@ export function AiPlatformsTable({
                     >
                       <Sparkles className="h-4 w-4" />
                     </Button>
-                    <Link
+                    <Link prefetch={false}
                       href={adminPath(`ai-platforms/${row.id}/edit`)}
                       className={buttonClasses("ghost", "icon")}
                       aria-label="Edit"

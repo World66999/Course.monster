@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { BadgeCheck, ChevronLeft, ChevronRight, ExternalLink, Pencil, Search, Sparkles, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   deleteChannelsAction,
   toggleChannelPublishedAction,
@@ -73,7 +73,7 @@ export function CodingChannelsTable({ rows, page, pageCount }: { rows: AdminChan
           <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search channels…" className="pl-9" />
         </div>
-        <Link href={adminPath("coding-channels/new")} className={buttonClasses("primary", "sm")}>
+        <Link prefetch={false} href={adminPath("coding-channels/new")} className={buttonClasses("primary", "sm")}>
           New channel
         </Link>
       </div>
@@ -150,7 +150,7 @@ export function CodingChannelsTable({ rows, page, pageCount }: { rows: AdminChan
                     >
                       <BadgeCheck className="h-4 w-4" />
                     </Button>
-                    <Link href={adminPath(`coding-channels/${row.id}/edit`)} className={buttonClasses("ghost", "icon")} aria-label="Edit">
+                    <Link prefetch={false} href={adminPath(`coding-channels/${row.id}/edit`)} className={buttonClasses("ghost", "icon")} aria-label="Edit">
                       <Pencil className="h-4 w-4" />
                     </Link>
                     <Button variant="ghost" size="icon" aria-label="Delete" className="text-destructive hover:bg-destructive/10" onClick={() => void onDelete(row.id, row.name)}>

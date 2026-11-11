@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Crown, Link2, Loader2, Send, Unlink } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { createTelegramLinkAction, unlinkTelegramAction } from "@/server/actions/premium";
 import { safeAction } from "@/lib/safe-action";
 import { Button, buttonClasses } from "@/components/ui/button";

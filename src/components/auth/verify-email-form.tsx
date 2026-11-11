@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, MailCheck } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { verifySignupOtpAction, resendSignupOtpAction } from "@/server/actions/signup";
 import { safeAction } from "@/lib/safe-action";
 import { Button } from "@/components/ui/button";

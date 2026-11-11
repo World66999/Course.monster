@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
+import { z } from "@/lib/zod";
 import { db } from "@/lib/db";
 import { verifyCaptcha } from "@/lib/captcha";
 import { createDownloadToken } from "@/lib/download-token";

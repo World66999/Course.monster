@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Mail } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { z } from "zod";
 import { changeEmailRequestSchema } from "@/lib/validation";
 import { requestEmailChangeAction, verifyEmailChangeAction } from "@/server/actions/profile";

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { KeyRound, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { forgotPasswordFormSchema } from "@/lib/validation";
 import { requestPasswordResetAction, verifyPasswordResetOtpAction } from "@/server/actions/password-reset";
 import { safeAction } from "@/lib/safe-action";

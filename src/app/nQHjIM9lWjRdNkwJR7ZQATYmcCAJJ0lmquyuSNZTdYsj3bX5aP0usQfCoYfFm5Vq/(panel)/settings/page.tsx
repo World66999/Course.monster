@@ -68,7 +68,7 @@ async function FreeUnlocksToday({ limit, ipCap }: { limit: number; ipCap: number
                 if (kind === "u") {
                   const u = userById.get(id);
                   who = (
-                    <Link href={adminPath(`users/${id}`)} className="text-primary hover:underline">
+                    <Link prefetch={false} href={adminPath(`users/${id}`)} className="text-primary hover:underline">
                       {u?.email ?? u?.name ?? id}
                     </Link>
                   );

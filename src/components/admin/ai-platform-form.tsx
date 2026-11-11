@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { z } from "zod";
 import { aiPlatformFormSchema, type AiPlatformFormValues } from "@/lib/validation";
 import { saveAiPlatformAction } from "@/server/actions/admin-ai-platforms";
@@ -65,7 +65,7 @@ export function AiPlatformForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <Link
+        <Link prefetch={false}
           href={adminPath("ai-platforms")}
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary"
         >

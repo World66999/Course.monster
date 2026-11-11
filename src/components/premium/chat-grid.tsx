@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { Loader2, Send } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { PublicPremiumChat } from "@/lib/premium-catalog";
 import { usePremium } from "@/hooks/use-premium";
 import { getPremiumChatInviteAction } from "@/server/actions/premium";

@@ -6,7 +6,7 @@ import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { Search, ChevronLeft, ChevronRight, Crown, Loader2, EyeOff, RotateCcw, Settings2 } from "lucide-react";
 import { adminPath } from "@/lib/admin-path";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button, buttonClasses } from "@/components/ui/button";
@@ -183,7 +183,7 @@ export function UsersTable({
                   <span suppressHydrationWarning>{formatDistanceToNow(new Date(row.createdAt), { addSuffix: true })}</span>
                 </td>
                 <td className="flex items-center gap-1 p-3">
-                  <Link
+                  <Link prefetch={false}
                     href={adminPath(`users/${row.id}`)}
                     aria-label="Manage Premium and courses"
                     className={buttonClasses("ghost", "icon")}

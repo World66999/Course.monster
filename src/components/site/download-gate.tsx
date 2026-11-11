@@ -5,15 +5,23 @@ import dynamic from "next/dynamic";
 import { Turnstile } from "@marsidev/react-turnstile";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Download, ExternalLink, Loader2, TimerReset } from "lucide-react";
-import { useTheme } from "next-themes";
-import { toast } from "sonner";
+import { useTheme } from "@/lib/theme";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 
 // Code-split: the verification gateway (challenge mini-games, animations)
 // only ever renders after the user clicks "Get download link", so it should
 // never be part of this page's initial bundle.
 const VerificationGateway = dynamic(
-  () => import("@/components/site/verify/verification-gateway").then((m) => m.VerificationGateway),
+  // One retry: a single dropped request should not end in the error screen.
+  () =>
+    import("@/components/site/verify/verification-gateway")
+      .catch(() =>
+        new Promise<void>((resolve) => setTimeout(resolve, 1200)).then(
+          () => import("@/components/site/verify/verification-gateway"),
+        ),
+      )
+      .then((m) => m.VerificationGateway),
   {
     ssr: false,
     loading: () => (

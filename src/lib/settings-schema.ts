@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/zod";
 import { isSafeExternalUrl, SAFE_URL_MESSAGE } from "@/lib/safe-url";
 
 /**

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Send, XCircle } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { closeTicketAction, createTicketAction, replyTicketAction } from "@/server/actions/support";
 import { safeAction } from "@/lib/safe-action";
 import { SUPPORT_LIMITS } from "@/lib/support-limits";

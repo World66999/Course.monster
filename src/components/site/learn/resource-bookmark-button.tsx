@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useSession } from "next-auth/react";
 import { Bookmark } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { toggleResourceBookmarkAction } from "@/server/actions/learning-resources";
 import { safeAction } from "@/lib/safe-action";
 import { cn } from "@/lib/utils";
@@ -47,7 +47,7 @@ export function ResourceBookmarkButton({
       onClick={() => void onClick()}
       aria-pressed={bookmarked}
       className={cn(
-        "inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+        "inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
         bookmarked ? "border-primary/40 bg-primary/10 text-primary" : "border-border bg-card text-foreground hover:bg-muted"
       )}
     >

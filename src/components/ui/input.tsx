@@ -35,7 +35,7 @@ const field =
 
 export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
   ({ className, ...props }, ref) => (
-    <input ref={ref} className={cn(field, "h-10 px-3 py-2", className)} {...props} />
+    <input ref={ref} className={cn(field, "h-10 pointer-coarse:min-h-11 px-3 py-2", className)} {...props} />
   )
 );
 Input.displayName = "Input";

@@ -47,7 +47,7 @@ export default async function ChatAdminPage({ searchParams }: { searchParams: Se
 
       <div className="flex w-fit flex-wrap gap-1 rounded-nested bg-muted p-1">
         {TABS.map((t) => (
-          <Link
+          <Link prefetch={false}
             key={t.value}
             href={`${adminPath("chat")}?tab=${t.value}`}
             className={cn(

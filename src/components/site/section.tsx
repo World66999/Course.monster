@@ -149,7 +149,7 @@ export function PageHeader({
       </div>
       {actions && (
         <div
-          className="rise-in flex shrink-0 flex-wrap items-center gap-3"
+          className="rise-in flex max-w-full min-w-0 flex-wrap items-center gap-3"
           style={{ "--d": "200ms" } as React.CSSProperties}
         >
           {actions}

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { z } from "zod";
+import { z } from "@/lib/zod";
 import { db } from "@/lib/db";
 import { adminPath } from "@/lib/admin-path";
 import { Badge } from "@/components/ui/badge";
@@ -61,7 +61,7 @@ export default async function AdminUserPage({
 
   return (
     <div className="space-y-6">
-      <Link href={adminPath("users")} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary">
+      <Link prefetch={false} href={adminPath("users")} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary">
         <ArrowLeft className="h-4 w-4" aria-hidden /> Users
       </Link>
       <div>

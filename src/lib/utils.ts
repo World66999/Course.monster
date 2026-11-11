@@ -93,3 +93,13 @@ export function gradientFromString(input: string): { from: string; to: string; l
     light: isLightHsl(hue, 70, 45),
   };
 }
+
+/**
+ * `lang` for an element holding user-entered text: "hi" when it contains
+ * Devanagari, otherwise undefined (inherit the page's "en"). Lets the browser
+ * pick a Devanagari face and lets globals.css give Hindi the taller line
+ * height it needs.
+ */
+export function textLang(text: string | null | undefined): "hi" | undefined {
+  return text && /[\u0900-\u097F]/.test(text) ? "hi" : undefined;
+}

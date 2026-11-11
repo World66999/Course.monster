@@ -66,6 +66,11 @@ const nextConfig: NextConfig = {
  headers: [{ key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" }],
  },
  {
+ // App icons are fingerprint-free static files: cache for a week.
+ source: "/icons/:path*",
+ headers: [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=86400" }],
+ },
+ {
  source: "/go/:token*",
  headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
  },

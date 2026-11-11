@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, ShieldCheck } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { resetPasswordFormSchema } from "@/lib/validation";
 import { resetPasswordAction } from "@/server/actions/password-reset";
 import { safeAction } from "@/lib/safe-action";

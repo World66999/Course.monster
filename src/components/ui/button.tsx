@@ -48,7 +48,9 @@ const sizes: Record<Size, string> = {
 };
 
 const base =
-  "relative inline-flex items-center justify-center font-semibold whitespace-nowrap " +
+  // `tap-area`: on touch screens every button answers taps across at least
+  // 44x44px, whatever its drawn size (see globals.css).
+  "relative tap-area inline-flex items-center justify-center font-semibold whitespace-nowrap " +
   "transition-[background-color,border-color,color,box-shadow,transform,filter] duration-300 " +
   "ease-[cubic-bezier(0.22,1,0.36,1)] cursor-pointer touch-manipulation select-none " +
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 " +

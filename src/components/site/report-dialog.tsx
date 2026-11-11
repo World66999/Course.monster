@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Flag, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { reportContentAction } from "@/server/actions/reports";
 import { safeAction } from "@/lib/safe-action";
 import { Button } from "@/components/ui/button";

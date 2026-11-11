@@ -71,6 +71,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl("/free-resources"), changeFrequency: "weekly", priority: 0.8 },
     { url: absoluteUrl("/ai-platforms"), changeFrequency: "weekly", priority: 0.8 },
     { url: absoluteUrl("/how-to-download"), changeFrequency: "monthly", priority: 0.5 },
+    { url: absoluteUrl("/premium"), changeFrequency: "weekly", priority: 0.8 },
+    { url: absoluteUrl("/premium-resources"), changeFrequency: "weekly", priority: 0.6 },
+    { url: absoluteUrl("/downloader"), changeFrequency: "monthly", priority: 0.5 },
     ...GENERIC_PAGES.map((p) => ({
       url: absoluteUrl(p.path),
       changeFrequency: "monthly" as const,

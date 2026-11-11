@@ -105,7 +105,7 @@ export function AppFiltersBar() {
           className={cn(
             // `min-h-10` brings it from 38px to the 40px touch floor; it is a
             // full-width block in a grid, so growing it costs nothing.
-            "col-span-2 min-h-10 cursor-pointer rounded-control border px-3.5 py-2 text-sm font-medium transition-colors sm:col-span-1",
+            "col-span-2 min-h-10 pointer-coarse:min-h-11 cursor-pointer rounded-control border px-3.5 py-2 text-sm font-medium transition-colors sm:col-span-1",
             currentOpenSource
               ? "border-primary bg-primary/10 text-primary"
               : "border-border bg-card text-muted-foreground hover:bg-muted"

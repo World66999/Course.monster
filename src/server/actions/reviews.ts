@@ -1,6 +1,6 @@
 "use server";
 
-import { z } from "zod";
+import { z } from "@/lib/zod";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireUserSafe } from "@/server/auth-helpers";

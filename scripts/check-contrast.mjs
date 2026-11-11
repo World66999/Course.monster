@@ -32,7 +32,8 @@ const pairs = [
   ["--primary", "--background", "primary as text on page", 4.5],
   ["--primary", "--card", "primary as text on card", 4.5],
   ["--primary-foreground", "--primary", "primary button label", 4.5],
-  ["--accent", "--card", "accent as text on card", 4.5],
+  // Gold is a fill; accent-coloured *text* uses the ink token (see globals.css).
+  ["--accent-ink", "--card", "accent ink as text on card", 4.5],
   ["--accent-foreground", "--accent", "accent button label", 4.5],
   ["--success", "--card", "success text on card", 4.5],
   ["--warning", "--card", "warning text on card", 4.5],

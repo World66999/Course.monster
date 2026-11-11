@@ -82,7 +82,7 @@ export default async function DownloadPage({ params, searchParams }: Props) {
     <Section className="max-w-2xl py-12 sm:py-16">
       <Link
         href={`/courses/${course.slug}`}
-        className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
+        className="mb-4 inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-primary"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden />
         Back to course

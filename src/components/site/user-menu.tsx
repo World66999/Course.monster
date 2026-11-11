@@ -8,13 +8,7 @@ import { usePremium } from "@/hooks/use-premium";
 import { PremiumNameBadge } from "@/components/premium/crown";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buttonClasses } from "@/components/ui/button";
-import {
-  Dropdown,
-  DropdownTrigger,
-  DropdownContent,
-  DropdownItem,
-  DropdownSeparator,
-} from "@/components/ui/dropdown";
+import { Menu, MenuButton, MenuSeparator, menuItemClasses } from "@/components/ui/menu";
 
 export function UserMenu() {
   const { data: session, status } = useSession();
@@ -41,12 +35,13 @@ export function UserMenu() {
     .toUpperCase();
 
   return (
-    <Dropdown>
-      <DropdownTrigger asChild>
+    <Menu
+      align="end"
+      trigger={(props) => (
         <button
-          type="button"
+          {...props}
           aria-label="Account menu"
-          className="flex h-9 w-9 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-primary/15 text-sm font-semibold text-primary transition-transform hover:scale-105"
+          className="flex h-9 w-9 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-primary/15 text-sm font-semibold text-primary transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           {image ? (
             <Image src={image} alt="" width={36} height={36} unoptimized className="h-full w-full object-cover" />
@@ -54,40 +49,30 @@ export function UserMenu() {
             initials || <UserIcon className="h-4 w-4" aria-hidden />
           )}
         </button>
-      </DropdownTrigger>
-      <DropdownContent align="end">
-        <div className="flex items-center gap-2 px-2.5 py-1.5">
-          <p className="truncate text-sm font-medium">{name}</p>
-          {me.subscribed && <PremiumNameBadge />}
-        </div>
-        <DropdownSeparator />
-        <DropdownItem asChild>
-          <Link href="/account">
-            <UserIcon className="h-4 w-4" aria-hidden />
-            Account
-          </Link>
-        </DropdownItem>
-        <DropdownItem asChild>
-          <Link href="/premium">
-            <Crown className="h-4 w-4" aria-hidden />
-            {me.subscribed ? "My Premium" : "Go Premium"}
-          </Link>
-        </DropdownItem>
-        <DropdownItem asChild>
-          <Link href="/premium/support">
-            <LifeBuoy className="h-4 w-4" aria-hidden />
-            Purchase support
-          </Link>
-        </DropdownItem>
-        <DropdownSeparator />
-        <DropdownItem
-          onSelect={() => void signOut({ callbackUrl: "/" })}
-          className="text-destructive"
-        >
-          <LogOut className="h-4 w-4" aria-hidden />
-          Sign out
-        </DropdownItem>
-      </DropdownContent>
-    </Dropdown>
+      )}
+    >
+      <div className="flex items-center gap-2 px-2.5 py-1.5">
+        <p className="truncate text-sm font-medium">{name}</p>
+        {me.subscribed && <PremiumNameBadge />}
+      </div>
+      <MenuSeparator />
+      <Link href="/account" role="menuitem" className={menuItemClasses}>
+        <UserIcon className="h-4 w-4" aria-hidden />
+        Account
+      </Link>
+      <Link href="/premium" role="menuitem" className={menuItemClasses}>
+        <Crown className="h-4 w-4" aria-hidden />
+        {me.subscribed ? "My Premium" : "Go Premium"}
+      </Link>
+      <Link href="/premium/support" role="menuitem" className={menuItemClasses}>
+        <LifeBuoy className="h-4 w-4" aria-hidden />
+        Purchase support
+      </Link>
+      <MenuSeparator />
+      <MenuButton onClick={() => void signOut({ callbackUrl: "/" })} className="text-destructive">
+        <LogOut className="h-4 w-4" aria-hidden />
+        Sign out
+      </MenuButton>
+    </Menu>
   );
 }

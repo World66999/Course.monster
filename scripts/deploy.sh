@@ -155,8 +155,8 @@ fi
 # here, while the old slot is still the one taking traffic.
 echo "    warming $TARGET before the cutover"
 for path in / /courses /coding-channels /learn /apps /free-resources /ai-platforms \
-            /requests /chat /how-to-download \
-            /api/auth/session /login /sitemap.xml; do
+            /premium /saved /how-to-download /api/free-unlocks/status \
+            /api/auth/session /login /sitemap.xml /manifest.webmanifest; do
   curl -s -o /dev/null --max-time 30 "http://127.0.0.1:$TARGET_PORT$path" || true
 done
 echo "    warm-up done"

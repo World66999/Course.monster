@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { z } from "zod";
 import { freeResourceFormSchema, type FreeResourceFormValues } from "@/lib/validation";
 import { saveFreeResourceAction } from "@/server/actions/admin-free-resources";
@@ -78,7 +78,7 @@ export function FreeResourceForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <Link
+        <Link prefetch={false}
           href={adminPath("free-resources")}
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary"
         >

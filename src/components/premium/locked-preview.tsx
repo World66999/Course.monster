@@ -32,7 +32,7 @@ export function LockedPreview({
         </span>
         <Link
           href={href}
-          className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-gold/45 bg-gold-soft px-3.5 text-xs font-semibold text-gold-ink transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="inline-flex min-h-9 pointer-coarse:min-h-11 items-center gap-1.5 rounded-full border border-gold/45 bg-gold-soft px-3.5 text-xs font-semibold text-gold-ink transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:shadow-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {cta}
         </Link>

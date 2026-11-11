@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { BadgeCheck, Bookmark, ExternalLink, Sparkles } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { toggleChannelBookmarkAction } from "@/server/actions/coding-channels";
 import { safeAction } from "@/lib/safe-action";
 import { Badge } from "@/components/ui/badge";

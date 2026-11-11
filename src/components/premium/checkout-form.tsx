@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { AlertCircle, ArrowRight, Check, Loader2, Search, X } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { PLANS, PLAN_KEYS, type PlanKey } from "@/lib/premium-plans";
 import { MIN_SEARCH_LENGTH, normalizeQuery, POPULAR_COINS, type CheckoutCoin } from "@/lib/coins";
 import { createCheckoutAction } from "@/server/actions/premium";

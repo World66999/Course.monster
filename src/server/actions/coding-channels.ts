@@ -1,6 +1,6 @@
 "use server";
 
-import { z } from "zod";
+import { z } from "@/lib/zod";
 import { db } from "@/lib/db";
 import { requireUserSafe } from "@/server/auth-helpers";
 import type { ActionResult } from "@/server/actions/courses";
