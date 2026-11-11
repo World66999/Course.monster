@@ -101,3 +101,40 @@ Causes found with a CPU-throttled trace of the home page:
 - Playwright suite in `tests/e2e` (Chromium, Firefox, WebKit; small phone → wide desktop; portrait/landscape; dark/light; reduced motion; free unlock, Premium purchase path, admin actions).
 - Lighthouse before/after.
 - Deploy with `scripts/deploy.sh`, confirm site and bot are live.
+
+## 5. Outcome (2026-11-11)
+
+Released to production with `scripts/deploy.sh` (blue slot) from branch `redesign/2026-11-10`.
+
+### Tests on the release build
+| Suite | Result |
+| --- | --- |
+| Every page × every screen size, Chromium | 2283 passed, 0 failed |
+| Every page × every screen size, Firefox | 2206 passed, 0 failed |
+| Every page × every screen size, WebKit (Safari engine) | 2206 passed, 0 failed |
+| Free unlocks + Telegram bot (3 engines) | 124 passed, 0 failed |
+| Premium purchase path: Razorpay + NOWPayments, webhooks, activation | 82 passed, 0 failed |
+| Admin sign-in and actions | 109 passed, 0 failed |
+| Theme, saved courses, search, keyboard, SEO, site rules | 147 passed, 0 failed |
+| Unit tests | 178 passed, 8 skipped |
+
+### Lighthouse, live site
+Mobile runs are the default simulated slow-4G phone; "after" is the median of three runs. The only "before" run on the live site was the home page.
+
+| Page | Mobile before | Mobile after | Desktop after |
+| --- | --- | --- | --- |
+| Home | 45 | 84 | 99 |
+| Courses | – | 71 | 97 |
+| Course page | – | 79 | 99 |
+| Premium | – | 84 | 98 |
+
+Same build on the local test server (no Cloudflare, busier machine), mobile before → after: Home 64 → 71, Course page 66 → 74, Download 62 → 71, Premium 77 → 76, Courses 68 → 59 (single "before" run; runs on that machine vary by ±10).
+
+Accessibility 100 and best practices 100 on every page. SEO is 100 on the test server and 92 live: the one failing check is a `Content-Signal` line that Cloudflare adds to `robots.txt`, which Lighthouse does not recognise.
+
+The 90+ mobile target is met on desktop but not on mobile. What remains is the simulated LCP: the page's own text paints with the first frame, but Lighthouse's model charges the framework's start-up scripts to it. The next step that could move it is inlining the stylesheet (`experimental.inlineCss`), which needs its own test pass.
+
+### Not done
+- AVIF variants of uploaded images (WebP is served) and a hero video.
+- A missing or unpublished course still answers HTTP 200 with the not-found screen and `noindex` (the page streams); it was like this before.
+- The branch is not merged into `main` and not pushed.
