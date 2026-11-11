@@ -98,7 +98,7 @@ export function PremiumResourcesManager({ categories, resources }: { categories:
 
   return (
     <div className="grid gap-6 xl:grid-cols-[22rem_1fr]">
-      <section className="space-y-3 rounded-card border border-border bg-card p-5 shadow-soft">
+      <section className="min-w-0 space-y-3 rounded-card border border-border bg-card p-5 shadow-soft">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold">Categories</h2>
           <Button size="sm" variant="outline" onClick={() => setEditCat({ order: categories.length })}>
@@ -135,7 +135,7 @@ export function PremiumResourcesManager({ categories, resources }: { categories:
         </ul>
       </section>
 
-      <section className="space-y-3 rounded-card border border-border bg-card p-5 shadow-soft">
+      <section className="min-w-0 space-y-3 rounded-card border border-border bg-card p-5 shadow-soft">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold">Resources</h2>
           <Button size="sm" disabled={categories.length === 0} onClick={() => setEditRes({ categoryId: categories[0]?.id, published: false })}>

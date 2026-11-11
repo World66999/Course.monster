@@ -10,7 +10,9 @@ import { ADMIN, ADMIN_USER, BASE, OUT, check, engineNames, finish, launch, newDe
 
 const SHOTS = path.join(OUT, "screens");
 
-await resetTestData();
+// Engines can be swept side by side as separate processes; only the first one
+// may reset the shared test accounts (E2E_NO_RESET=1 for the others).
+if (!process.env.E2E_NO_RESET) await resetTestData();
 const course = (await q(`select slug from courses where published and not premium order by downloads desc limit 1`))[0];
 const fresh = (await q(`select slug from courses where published and not premium order by "createdAt" asc limit 1`))[0];
 const premiumCourse = (await q(`select slug from courses where published and premium limit 1`))[0];
@@ -174,7 +176,16 @@ async function inspect(ctx, tag, name, url, { phone = false, screenshot = false 
         if (w < 43.5 || h < 43.5) smallTargets.push(`${el.tagName.toLowerCase()} "${label(el)}" ${Math.round(w)}x${Math.round(h)}`);
       }
     }
-    return { scrollWidth: document.documentElement.scrollWidth, vw, overflow, brokenImgs, hrefs, smallInputs, smallTargets, title: document.title };
+    // The desktop nav must stop short of the header buttons. Overlap is not
+    // overflow, so the scroll-width check above cannot see it.
+    let navClash = "";
+    const nav = document.querySelector('header nav[aria-label="Main"]');
+    if (nav && getComputedStyle(nav).display !== "none") {
+      const right = Math.max(...[...nav.querySelectorAll("a,button")].map((e) => e.getBoundingClientRect().right));
+      const left = nav.parentElement?.nextElementSibling?.getBoundingClientRect().left ?? Infinity;
+      if (right > left - 4) navClash = `nav ends at ${Math.round(right)}, buttons start at ${Math.round(left)}`;
+    }
+    return { scrollWidth: document.documentElement.scrollWidth, vw, overflow, brokenImgs, hrefs, smallInputs, smallTargets, navClash, title: document.title };
   }, phone);
   for (const h of info.hrefs) {
     if (!h || !h.startsWith("/") || h.startsWith("//")) continue;
@@ -190,6 +201,7 @@ async function inspect(ctx, tag, name, url, { phone = false, screenshot = false 
   check(`${where}: no failed requests`, bad.length === 0, bad.join(" | "));
   check(`${where}: no broken images`, info.brokenImgs.length === 0, info.brokenImgs.join(" "));
   check(`${where}: no sideways scrolling`, info.overflow.length === 0 && info.scrollWidth <= info.vw + 1, `scrollWidth ${info.scrollWidth} > ${info.vw}: ${info.overflow.join(", ")}`);
+  check(`${where}: header nav clear of the header buttons`, !info.navClash, info.navClash);
   check(`${where}: nothing on screen left hidden by scroll animations`, stuck === 0, `${stuck} element(s) hidden while in view`);
   check(`${where}: has a title`, info.title.length > 3, info.title);
   check(`${where}: loads in under 5 s`, loadMs < 5000, `${loadMs} ms`);

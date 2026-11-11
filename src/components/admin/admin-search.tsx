@@ -35,6 +35,7 @@ export function AdminSearch({
   const currentQ = searchParams.get("q") ?? "";
   const currentStatus = searchParams.get("status") ?? "";
   const [value, setValue] = React.useState(currentQ);
+  const fallback = React.useRef<number | undefined>(undefined);
 
   const update = React.useCallback(
     (patch: Record<string, string>) => {
@@ -44,10 +45,20 @@ export function AdminSearch({
         if (v) params.set(k, v);
         else params.delete(k);
       }
-      router.replace(`${pathname}${params.size ? `?${params}` : ""}`);
+      const href = `${pathname}${params.size ? `?${params}` : ""}`;
+      router.replace(href);
+      // Safety net. The router occasionally drops a move to the same page with
+      // only the query changed (see site/use-filter-params.ts): the address
+      // never changes and the list stays unfiltered. If that happened, load
+      // the address the plain way so a search or filter always applies.
+      window.clearTimeout(fallback.current);
+      fallback.current = window.setTimeout(() => {
+        if (`${window.location.pathname}${window.location.search}` !== href) window.location.assign(href);
+      }, 3000);
     },
     [router, pathname, searchParams]
   );
+  React.useEffect(() => () => window.clearTimeout(fallback.current), []);
 
   React.useEffect(() => {
     if (value === currentQ) return;

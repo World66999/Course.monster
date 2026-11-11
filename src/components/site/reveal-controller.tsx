@@ -8,9 +8,10 @@ import { usePathname } from "next/navigation";
  * pointer-tracking card glow on the public site (see reveal.tsx and
  * motion/interactive.tsx, which only render markers).
  *
- * Reveal: after paint, all markers are measured in one read pass, then the
- * ones below the fold are marked "pending" in one write pass and handed to a
- * shared IntersectionObserver. One layout, one small style update.
+ * Reveal: after paint, every marker is handed to one shared
+ * IntersectionObserver. Markers it reports as out of view are marked
+ * "pending" (hidden) and revealed when they scroll in; markers already on
+ * screen are never touched. No layout is read from script.
  *
  * Spotlight: one passive pointermove listener on the document (fine pointers
  * only) writes the glow position on the card under the cursor.
@@ -27,14 +28,31 @@ export function RevealController() {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     if (document.documentElement.dataset.perf === "low") return;
 
+    // The observer does the measuring. Its first report for an element says
+    // whether that element is already on screen, worked out during the
+    // browser's own layout pass. Reading positions here instead
+    // (getBoundingClientRect) forced an extra layout, and forced the browser
+    // to lay out the off-screen sections it is otherwise allowed to skip.
     const seen = new WeakSet<Element>();
+    const judged = new WeakSet<Element>();
     const io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
-          io.unobserve(entry.target);
           const el = entry.target;
           const attr = el.hasAttribute("data-stagger") ? "data-stagger" : "data-reveal";
+          if (!judged.has(el)) {
+            judged.add(el);
+            if (entry.isIntersecting) {
+              // Already painted and on screen: leave it alone.
+              io.unobserve(el);
+            } else {
+              // Out of view: hide it now, reveal it when it scrolls in.
+              el.setAttribute(attr, "pending");
+            }
+            continue;
+          }
+          if (!entry.isIntersecting) continue;
+          io.unobserve(el);
           // One frame in the pending state guarantees the transition has a start.
           requestAnimationFrame(() => el.setAttribute(attr, "in"));
         }
@@ -48,21 +66,11 @@ export function RevealController() {
     const scan = () => {
       frame = 0;
       timer = 0;
-      const nodes = document.querySelectorAll<HTMLElement>('[data-reveal=""],[data-stagger=""]');
-      if (nodes.length === 0) return;
-      const fold = window.innerHeight * 0.92;
-      // Read phase.
-      const below: HTMLElement[] = [];
-      nodes.forEach((el) => {
+      document.querySelectorAll<HTMLElement>('[data-reveal=""],[data-stagger=""]').forEach((el) => {
         if (seen.has(el)) return;
         seen.add(el);
-        if (el.getBoundingClientRect().top >= fold) below.push(el);
-      });
-      // Write phase.
-      for (const el of below) {
-        el.setAttribute(el.hasAttribute("data-stagger") ? "data-stagger" : "data-reveal", "pending");
         io.observe(el);
-      }
+      });
     };
     const schedule = () => {
       if (frame || timer) return;

@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { z } from "zod";
+import { z } from "@/lib/zod";
 import { db } from "@/lib/db";
 import { requirePremiumViewer, jsonNoStore } from "@/server/premium-guard";
 import { checkRateLimit } from "@/lib/rate-limit";

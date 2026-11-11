@@ -199,13 +199,14 @@ export async function newDevice(browser, engine, deviceName, { ip = "10.50.0.1",
       if (/Failed to fetch RSC payload/.test(text)) return;
       if (ctx.ignoreErrors?.some((re) => re.test(text))) return;
       // Firefox prints a bare "Error" for thrown objects: fetch the real message.
-      if (/^(Error|JSHandle@\w+)$/.test(text.trim())) {
+      const bare = /^(Error|JSHandle@\w+)$/.test(text.trim());
+      if (bare || /\s(Error|JSHandle@\w+)$/.test(text.trim())) {
         const detail = await Promise.all(m.args().map((a) => a.evaluate((v) => (v && (v.stack || v.message)) || String(v)).catch(() => ""))).catch(() => []);
         if (detail.join(" ").trim()) text = detail.join(" ").slice(0, 400);
         // Still nothing but the word "Error": the page it came from is already
         // gone (the test moved on mid-request). Uncaught exceptions are
         // reported separately through `pageerror`, so nothing real is lost.
-        else return;
+        else if (bare) return;
       }
       if (NAVIGATION_NOISE.test(text)) return;
       ctx.errors.push(`${redact(p.url().replace(BASE, ""))} :: ${text}`);

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
+import { z } from "@/lib/zod";
 import { db } from "@/lib/db";
 import { requireUserSafe } from "@/server/auth-helpers";
 import { checkRateLimit } from "@/lib/rate-limit";

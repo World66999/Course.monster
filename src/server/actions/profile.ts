@@ -1,6 +1,6 @@
 "use server";
 
-import { z } from "zod";
+import { z } from "@/lib/zod";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { requireUserSafe } from "@/server/auth-helpers";

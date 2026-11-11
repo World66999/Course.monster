@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
+import { z } from "@/lib/zod";
 import { getPublishedCourse } from "@/lib/courses";
 import { createChallenge, verifyChallengeSubmission } from "@/lib/verify-challenge";
 import { checkVisitorRateLimit } from "@/lib/visitor-rate-limit";

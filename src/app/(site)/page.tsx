@@ -51,7 +51,13 @@ const RAIL_COLUMNS: Record<number, string> = {
  * page becomes interactive.
  */
 function Island({ children }: { children: React.ReactNode }) {
-  return <React.Suspense fallback={null}>{children}</React.Suspense>;
+  return (
+    <React.Suspense fallback={null}>
+      {/* Full-width wrapper, so the paint containment that comes with
+          `defer-offscreen` clips at the screen edge and never a card shadow. */}
+      <div className="defer-offscreen">{children}</div>
+    </React.Suspense>
+  );
 }
 
 /** One shared shell for the course rails, so they cannot drift apart. */

@@ -13,7 +13,15 @@ import { Button } from "@/components/ui/button";
 // only ever renders after the user clicks "Get download link", so it should
 // never be part of this page's initial bundle.
 const VerificationGateway = dynamic(
-  () => import("@/components/site/verify/verification-gateway").then((m) => m.VerificationGateway),
+  // One retry: a single dropped request should not end in the error screen.
+  () =>
+    import("@/components/site/verify/verification-gateway")
+      .catch(() =>
+        new Promise<void>((resolve) => setTimeout(resolve, 1200)).then(
+          () => import("@/components/site/verify/verification-gateway"),
+        ),
+      )
+      .then((m) => m.VerificationGateway),
   {
     ssr: false,
     loading: () => (

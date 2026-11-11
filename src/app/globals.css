@@ -240,8 +240,8 @@
   --color-gold-soft: var(--gold-soft);
   --color-gold-ink: var(--gold-ink);
 
-  --font-sans: var(--font-inter);
-  --font-display: var(--font-sora);
+  --font-sans: "Rupee Local", var(--font-inter);
+  --font-display: "Rupee Local", var(--font-sora);
   --font-mono: var(--font-geist-mono);
 
   /* Type scale — a real 1.2/1.25 ramp with tracking and leading baked in, so
@@ -479,6 +479,28 @@ html {
   scroll-padding-top: 5rem;
 }
 
+/* The rupee sign from a font the device already has.
+   Inter and Sora keep "₹" in their latin-ext files, so that one character made
+   every page with a price download about 100 KB of extra fonts and lay the
+   page out a second time. These faces cover only U+20B9 and point at system
+   fonts; where none of them exists the browser simply moves on to the web
+   font, exactly as before. */
+@font-face {
+  font-family: "Rupee Local";
+  font-weight: 100 599;
+  src: local("Roboto"), local("Segoe UI"), local("Helvetica Neue"), local("Noto Sans"), local("Arial"),
+    local("DejaVu Sans"), local("Liberation Sans");
+  unicode-range: U+20B9;
+}
+@font-face {
+  font-family: "Rupee Local";
+  font-weight: 600 900;
+  src: local("Roboto Bold"), local("Segoe UI Bold"), local("Helvetica Neue Bold"), local("Noto Sans Bold"),
+    local("Arial Bold"), local("DejaVu Sans Bold"), local("Liberation Sans Bold"), local("Roboto"),
+    local("Segoe UI"), local("Helvetica Neue"), local("Arial");
+  unicode-range: U+20B9;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -487,9 +509,11 @@ body {
      value var(--font-inter), but next/font only defines
      --font-inter on <body>, so at :root it resolves to the
      guaranteed-invalid value and the whole declaration is dropped. */
-  font-family: var(--font-inter), var(--font-fallback);
+  font-family: "Rupee Local", var(--font-inter), var(--font-fallback);
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+  /* No `text-rendering: optimizeLegibility`: browsers already kern and apply
+     ligatures by default, and that mode made the first layout of every page
+     measurably slower on phones for no visible difference. */
   /* A hair of negative tracking keeps Inter body copy from looking loose
      next to the tight display face. */
   letter-spacing: -0.005em;
@@ -503,7 +527,7 @@ h2,
 h3,
 h4,
 .font-display {
-  font-family: var(--font-sora), var(--font-inter), var(--font-fallback);
+  font-family: "Rupee Local", var(--font-sora), var(--font-inter), var(--font-fallback);
 }
 
 /* Hindi (Devanagari) needs more line height than the tight display leading:
@@ -1319,6 +1343,15 @@ html[data-perf="low"] {
 .overflow-x-auto {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
+}
+
+/* Below-the-fold blocks: let the browser skip their layout and paint until
+   they are about to scroll into view. The remembered size (`auto`) keeps the
+   scrollbar steady once a block has been shown. Browsers without support
+   ignore both lines and render everything up front, as before. */
+@utility defer-offscreen {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 40rem;
 }
 
 /* ---------- Charts (admin dashboard) ---------- */
