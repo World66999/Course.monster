@@ -89,6 +89,10 @@
   --wash-3: rgb(217 70 239 / 0.08);
   --wash-4: rgb(242 185 41 / 0.18);
   --wash-5: rgb(14 165 233 / 0.1);
+  /* Hero light (see .hero-aurora). */
+  --aurora-1: rgb(109 61 245 / 0.2);
+  --aurora-2: rgb(14 165 233 / 0.16);
+  --aurora-3: rgb(217 70 239 / 0.13);
 
   /* Effects */
   --glass: rgba(255, 255, 255, 0.78);
@@ -180,6 +184,9 @@
   --wash-3: rgb(240 171 252 / 0.07);
   --wash-4: rgb(245 196 81 / 0.09);
   --wash-5: rgb(56 189 248 / 0.1);
+  --aurora-1: rgb(139 92 246 / 0.3);
+  --aurora-2: rgb(56 189 248 / 0.18);
+  --aurora-3: rgb(217 70 239 / 0.16);
 
   --chart-1: #9085e9;
   --chart-2: #c98500;
@@ -1085,6 +1092,113 @@ h3:lang(hi) {
   animation-delay: var(--d, 0ms);
 }
 
+/* ---------- Hero light ----------
+   Three soft colour fields behind the homepage hero that drift slowly.
+   Only `transform` is animated and each field is its own layer, so the
+   browser moves them on the compositor: no layout, no repaint, no script and
+   nothing to download. Each is painted small and scaled up (a blurred
+   gradient loses nothing), which keeps the layers cheap on phones. */
+.hero-aurora {
+  position: absolute;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+  /* Fade out towards the bottom so no field is cut off at the hero's edge. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
+}
+.hero-aurora > i {
+  position: absolute;
+  display: block;
+  width: 14rem;
+  height: 14rem;
+  border-radius: 9999px;
+  will-change: transform;
+}
+.hero-aurora > i:nth-child(1) {
+  top: -2rem;
+  left: -3rem;
+  background: radial-gradient(closest-side, var(--aurora-1), transparent);
+  transform: translate3d(0, 0, 0) scale(1.9);
+}
+.hero-aurora > i:nth-child(2) {
+  top: 4rem;
+  right: -4rem;
+  background: radial-gradient(closest-side, var(--aurora-2), transparent);
+  transform: translate3d(0, 0, 0) scale(1.7);
+}
+.hero-aurora > i:nth-child(3) {
+  bottom: -3rem;
+  left: 28%;
+  background: radial-gradient(closest-side, var(--aurora-3), transparent);
+  transform: translate3d(0, 0, 0) scale(2);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hero-aurora > i:nth-child(1) {
+    animation: aurora-a 19s ease-in-out infinite alternate;
+  }
+  .hero-aurora > i:nth-child(2) {
+    animation: aurora-b 23s ease-in-out infinite alternate;
+  }
+  .hero-aurora > i:nth-child(3) {
+    animation: aurora-c 27s ease-in-out infinite alternate;
+  }
+}
+@keyframes aurora-a {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.9);
+  }
+  to {
+    transform: translate3d(38%, 26%, 0) scale(2.5);
+  }
+}
+@keyframes aurora-b {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.7);
+  }
+  to {
+    transform: translate3d(-42%, 34%, 0) scale(2.3);
+  }
+}
+@keyframes aurora-c {
+  from {
+    transform: translate3d(0, 0, 0) scale(2);
+  }
+  to {
+    transform: translate3d(30%, -36%, 0) scale(1.6);
+  }
+}
+
+/* The desktop-only hero video (components/site/hero-video.tsx). Invisible
+   until it is really playing, then it fades in over the CSS light. The mask
+   feathers its edges into the page. Its footage is light on black: shown as
+   is on the dark theme, and inverted back to the same hues on the light one. */
+.hero-video {
+  position: absolute;
+  inset: 0;
+  z-index: -10;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.6s ease;
+  -webkit-mask-image: radial-gradient(110% 85% at 50% 25%, #000 30%, transparent 78%);
+  mask-image: radial-gradient(110% 85% at 50% 25%, #000 30%, transparent 78%);
+}
+.hero-video[data-on="true"] {
+  opacity: 0.42;
+}
+html:not(.dark) .hero-video {
+  filter: invert(1) hue-rotate(180deg);
+  mix-blend-mode: multiply;
+}
+html:not(.dark) .hero-video[data-on="true"] {
+  opacity: 0.3;
+}
+
 /* Scroll-linked parallax for decorative layers, on the compositor via a
    scroll timeline. Browsers without scroll timelines just don't move them. */
 @supports (animation-timeline: scroll()) {
@@ -1314,6 +1428,8 @@ html[data-perf="low"] .animate-page-in {
   animation: none !important;
 }
 html[data-perf="low"] .scroll-progress,
+html[data-perf="low"] .hero-aurora,
+html[data-perf="low"] .hero-video,
 html[data-perf="low"] .hero-mesh {
   display: none !important;
 }

@@ -71,6 +71,11 @@ const nextConfig: NextConfig = {
  headers: [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=86400" }],
  },
  {
+ // Hero video and poster: static files, cached for a week.
+ source: "/hero/:path*",
+ headers: [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=86400" }],
+ },
+ {
  source: "/go/:token*",
  headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
  },

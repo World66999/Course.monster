@@ -338,6 +338,38 @@ async function missingCourse(browser) {
   await ctx.close();
 }
 
+// Hero motion rules: CSS light everywhere, the video only on a desktop with
+// no reduced-motion / data-saver signal, and never requested on a phone.
+async function heroMotion(browser) {
+  const run = async (label, options) => {
+    const ctx = await browser.newContext({ baseURL: BASE, ...options });
+    const page = await ctx.newPage();
+    const heroRequests = [];
+    page.on("request", (r) => /\/hero\//.test(new URL(r.url()).pathname) && heroRequests.push(r.url()));
+    await page.goto("/", { waitUntil: "load" });
+    await hydrated(page);
+    await sleep(6000); // the video waits for load + an idle period (up to 4 s)
+    const state = await page.evaluate(() => ({
+      aurora: document.querySelectorAll(".hero-aurora > i").length,
+      animation: getComputedStyle(document.querySelector(".hero-aurora > i")).animationName,
+      video: document.querySelector("video.hero-video"),
+      attrs: (() => {
+        const v = document.querySelector("video.hero-video");
+        return v ? { muted: v.muted, inline: v.playsInline, poster: v.getAttribute("poster"), preload: v.getAttribute("preload"), hidden: v.getAttribute("aria-hidden") } : null;
+      })(),
+    }));
+    await ctx.close();
+    return { label, heroRequests, ...state };
+  };
+  const phone = await run("phone", { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  check("hero: the CSS light is on the phone hero and animates", phone.aurora === 3 && /^aurora-/.test(phone.animation), JSON.stringify(phone));
+  check("hero: a phone never requests the video or its poster", phone.heroRequests.length === 0 && !phone.attrs, phone.heroRequests.join(","));
+  const calm = await run("reduced motion", { viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+  check("hero: reduced motion gets no video", calm.heroRequests.length === 0 && !calm.attrs, calm.heroRequests.join(","));
+  const desktop = await run("desktop", { viewport: { width: 1440, height: 900 } });
+  check("hero: a desktop gets the video after load, muted, inline, with a poster", !!desktop.attrs && desktop.attrs.muted && desktop.attrs.inline && !!desktop.attrs.poster && desktop.attrs.preload === "none" && desktop.attrs.hidden === "true", JSON.stringify(desktop.attrs));
+}
+
 for (const engine of engineNames()) {
   const browser = await launch(engine);
   for (const [name, fn] of [["theme", theme], ["motion", motion], ["saved", library], ["search", search], ["keyboard", keyboard]]) {
@@ -347,6 +379,7 @@ for (const engine of engineNames()) {
     await visits(browser).catch((e) => check("visit counting ran", false, e.stack));
     await noScript(browser).catch((e) => check("no-JavaScript checks ran", false, e.stack));
     await missingCourse(browser).catch((e) => check("missing-course checks ran", false, e.stack));
+    await heroMotion(browser).catch((e) => check("hero-motion checks ran", false, e.stack));
   }
   await browser.close();
 }
