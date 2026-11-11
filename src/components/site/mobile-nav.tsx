@@ -3,7 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
+import { signOut } from "next-auth/react";
+import { useSession } from "@/lib/session-client";
 import { Bookmark, LogOut, Menu, Send, User as UserIcon, X } from "lucide-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import type { SiteSettings } from "@/lib/settings-schema";

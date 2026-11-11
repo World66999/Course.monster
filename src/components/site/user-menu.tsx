@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useSession, signOut } from "next-auth/react";
+import { signOut } from "next-auth/react";
+import { useSession } from "@/lib/session-client";
 import { Crown, LifeBuoy, LogOut, User as UserIcon } from "lucide-react";
 import { usePremium } from "@/hooks/use-premium";
 import { PremiumNameBadge } from "@/components/premium/crown";

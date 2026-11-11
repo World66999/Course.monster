@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Sora, Geist_Mono } from "next/font/google";
 import Script from "next/script";
-import { SessionProvider } from "next-auth/react";
 import { LazyToaster } from "@/components/site/lazy-widgets";
 import { getSiteSettings } from "@/lib/settings";
 import { absoluteUrl } from "@/lib/utils";
@@ -125,15 +124,12 @@ export default async function RootLayout({
         <noscript>
           <style>{`[style*="opacity:0"]{opacity:1!important;transform:none!important}`}</style>
         </noscript>
-        {/* Deliberately NOT seeding this with a server-fetched session:
-            calling auth() here would make every page under this layout
-            opt out of static rendering (no PPR configured), regressing
-            the whole site to full per-request SSR just to avoid a brief
-            client-side loading flash. useSession() fetches on mount instead. */}
-        <SessionProvider>
-          {children}
-          <LazyToaster />
-        </SessionProvider>
+        {/* No <SessionProvider>: the session is read through a small store
+            (lib/session-client.ts). A provider here is a context above every
+            page, and its update when the session request returns made React
+            finish hydrating the whole page in one long blocking task. */}
+        {children}
+        <LazyToaster />
         {gaId ? (
           <>
             <Script

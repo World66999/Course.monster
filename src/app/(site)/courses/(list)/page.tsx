@@ -13,6 +13,13 @@ import { FreeUnlocksChip } from "@/components/site/free-unlocks-chip";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
+/**
+ * Cards in the first response. Eight is two full rows on a desktop and about
+ * four screens on a phone; the rest load as the visitor scrolls (see
+ * InfiniteCourseList), so the first response stays small and quick to start.
+ */
+const FIRST_PAGE = 8;
+
 export async function generateMetadata({
   searchParams,
 }: {
@@ -47,7 +54,7 @@ async function CourseResults({ searchParams }: { searchParams: SearchParams }) {
   const parsed = listCoursesQuerySchema.safeParse(flat);
   const query = parsed.success ? parsed.data : listCoursesQuerySchema.parse({});
 
-  const { items, nextCursor, total } = await listCourses(query);
+  const { items, nextCursor, total } = await listCourses({ ...query, limit: Math.min(query.limit, FIRST_PAGE) });
 
   const qs = new URLSearchParams();
   if (query.q) qs.set("q", query.q);

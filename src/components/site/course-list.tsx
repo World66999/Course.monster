@@ -90,8 +90,13 @@ export function InfiniteCourseList({ initialItems, initialCursor, total, querySt
         Showing {items.length} of {total} course{total === 1 ? "" : "s"}
       </p>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {items.map((course, i) => (
-          <CourseCard key={course.id} course={course} priority={i < 2} />
+        {items.map((course) => (
+          // One boundary per card. Nothing suspends; the boundary lets React
+          // make each card interactive in its own short task instead of the
+          // whole grid in one long one, so a phone stays responsive.
+          <React.Suspense key={course.id} fallback={null}>
+            <CourseCard course={course} />
+          </React.Suspense>
         ))}
         {loading &&
           Array.from({ length: 4 }, (_, i) => <CourseCardSkeleton key={`skeleton-${i}`} />)}

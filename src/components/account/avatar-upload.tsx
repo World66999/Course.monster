@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/session-client";
 import { Camera, Loader2 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { updateAvatarAction } from "@/server/actions/profile";

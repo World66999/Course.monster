@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { getSiteSettings } from "@/lib/settings";
 import { Header } from "@/components/site/header";
 import { Footer } from "@/components/site/footer";
@@ -20,7 +21,11 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <main id="main-content" className="flex-1">
         {children}
       </main>
-      <Footer settings={settings} />
+      {/* Its own boundary (nothing suspends): the footer hydrates in a
+          separate short task, after the content above it. */}
+      <Suspense fallback={null}>
+        <Footer settings={settings} />
+      </Suspense>
     </div>
   );
 }

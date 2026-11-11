@@ -80,15 +80,29 @@ function write(name: ListName, items: LibraryItem[]) {
   listeners.forEach((l) => l());
 }
 
+/**
+ * One `storage` listener for the page, however many Save buttons are on it,
+ * attached when the browser is idle: registering it makes the browser open
+ * its storage area, which is slow on phones and used to happen once per card
+ * in the middle of the page becoming interactive.
+ */
+let storageBound = false;
+function bindStorage() {
+  if (storageBound || typeof window === "undefined") return;
+  storageBound = true;
+  const bind = () =>
+    window.addEventListener("storage", (e: StorageEvent) => {
+      if (e.key === KEYS.saved || e.key === KEYS.recent || e.key === null) listeners.forEach((l) => l());
+    });
+  if (window.requestIdleCallback) window.requestIdleCallback(bind, { timeout: 4000 });
+  else window.setTimeout(bind, 1);
+}
+
 function subscribe(listener: () => void) {
   listeners.add(listener);
-  const onStorage = (e: StorageEvent) => {
-    if (e.key === KEYS.saved || e.key === KEYS.recent || e.key === null) listener();
-  };
-  window.addEventListener("storage", onStorage);
+  bindStorage();
   return () => {
     listeners.delete(listener);
-    window.removeEventListener("storage", onStorage);
   };
 }
 

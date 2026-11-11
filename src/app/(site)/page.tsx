@@ -68,7 +68,6 @@ function CourseRail({
   href,
   courses,
   columns = "three",
-  priority = false,
 }: {
   eyebrow: string;
   title: string;
@@ -76,7 +75,6 @@ function CourseRail({
   href: string;
   courses: Awaited<ReturnType<typeof getHomepageData>>["featured"];
   columns?: "three" | "four";
-  priority?: boolean;
 }) {
   if (courses.length === 0) return null;
   return (
@@ -97,7 +95,7 @@ function CourseRail({
               (columns === "four" ? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-3")
           )}
         >
-          {courses.map((course, i) => (
+          {courses.map((course) => (
             <StaggerItem
               key={course.id}
               className={cn(
@@ -105,7 +103,7 @@ function CourseRail({
                 courses.length === 1 ? "w-full" : "w-[82%] max-w-[21rem]"
               )}
             >
-              <CourseCard course={course} priority={priority && i < 2} />
+              <CourseCard course={course} />
             </StaggerItem>
           ))}
         </Stagger>
@@ -244,7 +242,6 @@ export default async function HomePage() {
         subtitle="Chosen by our team for depth and production quality"
         href="/courses?flag=featured"
         courses={featured}
-        priority
       />
 
       {/* Appears only once this browser has opened a course. */}

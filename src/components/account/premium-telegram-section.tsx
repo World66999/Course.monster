@@ -10,7 +10,13 @@ import { safeAction } from "@/lib/safe-action";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { PremiumNameBadge } from "@/components/premium/crown";
 
-const DATE = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
+// Built on first use, not when this file loads: creating a formatter makes
+// the browser load its locale data, which is slow on phones, and most
+// visitors never reach a date here.
+let dateFormat: Intl.DateTimeFormat | undefined;
+const DATE = {
+  format: (d: Date) => (dateFormat ??= new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" })).format(d),
+};
 
 export function PremiumTelegramSection({
   premiumUntil,

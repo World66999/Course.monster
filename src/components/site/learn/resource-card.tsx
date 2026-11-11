@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/session-client";
 import { Bookmark, Clock, ListVideo, PlayCircle } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { toggleResourceBookmarkAction } from "@/server/actions/learning-resources";

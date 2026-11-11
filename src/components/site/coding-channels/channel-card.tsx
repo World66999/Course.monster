@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/session-client";
 import { BadgeCheck, Bookmark, ExternalLink, Sparkles } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { toggleChannelBookmarkAction } from "@/server/actions/coding-channels";
