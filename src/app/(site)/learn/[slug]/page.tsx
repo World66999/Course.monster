@@ -69,7 +69,7 @@ export default async function LearningResourceDetailPage({ params }: Props) {
       {videoLd && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(videoLd) }} />
       )}
-      <Link href="/learn" className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary">
+      <Link href="/learn" className="mb-4 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary">
         <ArrowLeft className="h-4 w-4" aria-hidden />
         Back to Free Learning Hub
       </Link>

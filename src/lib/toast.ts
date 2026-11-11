@@ -12,11 +12,42 @@ type ToastFn = typeof import("sonner").toast;
 type Args = Parameters<ToastFn["success"]>;
 
 let cached: Promise<ToastFn> | null = null;
-const load = () => (cached ??= import("sonner").then((m) => m.toast));
+
+/**
+ * Resolved by the <Toaster> when it has mounted. A toast sent before that
+ * would be dropped (the library only delivers to a mounted container), which
+ * could happen to a tap made in the first moments after the page loads. A
+ * 4-second cap means a toast is never held back for long if the container is
+ * somehow missing.
+ */
+let markReady: () => void = () => undefined;
+const containerReady = new Promise<void>((resolve) => {
+  markReady = resolve;
+});
+export const toasterMounted = () => markReady();
+
+const load = () =>
+  (cached ??= Promise.all([
+    import("sonner").then((m) => m.toast),
+    Promise.race([containerReady, new Promise<void>((r) => setTimeout(r, 4000))]),
+  ])
+    .then(([t]) => t)
+    .catch((err) => {
+      // The download was cut off (offline, or the visitor left the page):
+      // forget it so the next toast tries again instead of failing forever.
+      cached = null;
+      throw err;
+    }));
+
+/** A toast that cannot be shown is dropped quietly; it must never break the action behind it. */
+const show = (kind: "success" | "error" | "info" | "message", args: Args) =>
+  void load()
+    .then((t) => t[kind](...args))
+    .catch(() => undefined);
 
 export const toast = {
-  success: (...args: Args) => void load().then((t) => t.success(...args)),
-  error: (...args: Args) => void load().then((t) => t.error(...args)),
-  info: (...args: Args) => void load().then((t) => t.info(...args)),
-  message: (...args: Args) => void load().then((t) => t.message(...args)),
+  success: (...args: Args) => show("success", args),
+  error: (...args: Args) => show("error", args),
+  info: (...args: Args) => show("info", args),
+  message: (...args: Args) => show("message", args),
 };

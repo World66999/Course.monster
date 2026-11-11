@@ -198,7 +198,7 @@ export function SocialDownloader({ signedIn }: { signedIn: boolean }) {
               onClick={() => setPlatform(p.id)}
               aria-pressed={platform === p.id}
               className={cn(
-                "rounded-nested border px-3 py-2.5 text-sm font-medium transition-colors",
+                "min-h-11 rounded-nested border px-3 py-2.5 text-sm font-medium transition-colors",
                 platform === p.id
                   ? "border-primary bg-primary/10 text-foreground ring-2 ring-primary/30"
                   : "border-border hover:bg-muted"

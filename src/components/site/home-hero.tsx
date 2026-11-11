@@ -116,7 +116,7 @@ export function HomeHero({ siteName, description, stats, freeLimit, categories =
                   key={c.slug}
                   href={`/courses?category=${c.slug}`}
                   prefetch={false}
-                  className="inline-flex h-10 shrink-0 items-center rounded-full border border-border bg-card/80 px-4 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="inline-flex h-11 shrink-0 items-center rounded-full border border-border bg-card/80 px-4 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {c.name}
                 </Link>
@@ -124,7 +124,7 @@ export function HomeHero({ siteName, description, stats, freeLimit, categories =
               <Link
                 href="/courses"
                 prefetch={false}
-                className="group inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="group inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 All courses
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" aria-hidden />

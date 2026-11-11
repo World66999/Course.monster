@@ -95,7 +95,7 @@ export function FiltersBar({
               type="button"
               aria-label="Clear search"
               onClick={() => setSearch("")}
-              className="absolute top-1/2 right-2.5 -translate-y-1/2 cursor-pointer rounded p-0.5 text-muted-foreground hover:text-foreground"
+              className="tap-area absolute top-1/2 right-2.5 -translate-y-1/2 cursor-pointer rounded p-0.5 text-muted-foreground hover:text-foreground"
             >
               <X className="h-4 w-4" />
             </button>

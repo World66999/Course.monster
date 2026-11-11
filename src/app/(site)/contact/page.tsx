@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const cardClass = "surface flex h-full flex-col rounded-feature p-6 sm:p-8";
+const cardClass = "surface flex h-full min-w-0 flex-col rounded-feature p-5 [overflow-wrap:anywhere] sm:p-8";
 const iconClass =
   "mb-5 flex h-12 w-12 shrink-0 items-center justify-center rounded-nested bg-primary/10 text-primary";
 
@@ -47,7 +47,7 @@ export default async function ContactPage() {
       </Section>
 
       <Section rhythm="none" className="pb-16">
-        <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-2">
+        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-2">
           <div className={`${cardClass} md:col-span-2 md:flex-row md:items-center md:gap-8`}>
             <div className="min-w-0 flex-1">
               <div className={iconClass}>
@@ -74,7 +74,7 @@ export default async function ContactPage() {
                   href={support.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-sm font-medium text-foreground underline-offset-4 hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className="inline-flex min-h-11 items-center rounded-sm font-medium text-foreground underline-offset-4 hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
                   {support.handle}
                 </a>

@@ -95,9 +95,11 @@ export function Menu({
   const onButtonKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
+      const index = e.key === "ArrowDown" ? 0 : -1;
+      if (open) return focusItem(index);
       setOpen(true);
       // The list mounts on the next render.
-      requestAnimationFrame(() => focusItem(e.key === "ArrowDown" ? 0 : -1));
+      requestAnimationFrame(() => focusItem(index));
     }
   };
 

@@ -28,7 +28,7 @@ const socialLinkClass =
   "tap-target flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-soft transition-[transform,box-shadow,border-color,color,background-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:border-primary hover:bg-primary hover:text-primary-foreground hover:shadow-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 const footerLinkClass =
-  "link-underline inline-block rounded-sm transition-colors duration-300 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  "link-underline tap-area inline-block rounded-sm transition-colors duration-300 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 function FooterHeading({ children }: { children: React.ReactNode }) {
   return (
@@ -114,7 +114,7 @@ export function Footer({ settings }: { settings: SiteSettings }) {
 
           <nav aria-label="Footer" className="lg:col-span-2">
             <FooterHeading>Explore</FooterHeading>
-            <ul className="space-y-2.5 text-sm text-muted-foreground">
+            <ul className="space-y-2.5 pointer-coarse:space-y-6 text-sm text-muted-foreground">
               <li>
                 <Link href="/courses" className={footerLinkClass} prefetch={false}>
                   All Courses
@@ -147,7 +147,7 @@ export function Footer({ settings }: { settings: SiteSettings }) {
           */}
           <nav aria-label="Free sections" className="lg:col-span-2">
             <FooterHeading>Free stuff</FooterHeading>
-            <ul className="space-y-2.5 text-sm text-muted-foreground">
+            <ul className="space-y-2.5 pointer-coarse:space-y-6 text-sm text-muted-foreground">
               <li>
                 <Link href="/free-resources" className={footerLinkClass} prefetch={false}>
                   Free Resources
@@ -201,7 +201,7 @@ export function Footer({ settings }: { settings: SiteSettings }) {
               © {new Date().getFullYear()} {settings.siteName}. All rights reserved.
             </p>
             <nav aria-label="Legal">
-              <ul className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted-foreground">
+              <ul className="flex flex-wrap items-center gap-x-5 gap-y-1 pointer-coarse:gap-y-6 text-sm text-muted-foreground">
                 {GENERIC_PAGES.map((page) => (
                   <li key={page.slug}>
                     <Link href={page.path} className={footerLinkClass} prefetch={false}>

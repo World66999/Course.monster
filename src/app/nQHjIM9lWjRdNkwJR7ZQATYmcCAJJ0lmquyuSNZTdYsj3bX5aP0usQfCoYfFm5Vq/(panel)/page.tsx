@@ -139,20 +139,24 @@ export default async function AdminDashboard({
           <h1 className="text-heading">Dashboard</h1>
           <p className="mt-1 text-sm text-muted-foreground">Days are India time (IST), the same day the free-unlock limit uses.</p>
         </div>
-        {/* One row of filters above the charts; plain links, so it works without JS. */}
+        {/* One row of filters above the charts. */}
         <nav aria-label="Time range" className="inline-flex rounded-full border border-border bg-card p-1 shadow-soft">
           {RANGE_OPTIONS.map((r) => (
-            <Link
+            // A plain link (full page load) on purpose. With Next's client-side
+            // navigation, a move to this same page with only the query changed
+            // was silently dropped about half the time in testing (the data was
+            // fetched, then never applied). A range switch must always work.
+            <a
               key={r}
               href={r === 30 ? adminPath("") : `${adminPath("")}?range=${r}`}
               aria-current={r === range ? "true" : undefined}
               className={cn(
-                "inline-flex h-9 min-w-14 items-center justify-center rounded-full px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "inline-flex h-9 pointer-coarse:h-11 min-w-14 items-center justify-center rounded-full px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 r === range ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
               )}
             >
               {r} days
-            </Link>
+            </a>
           ))}
         </nav>
       </div>

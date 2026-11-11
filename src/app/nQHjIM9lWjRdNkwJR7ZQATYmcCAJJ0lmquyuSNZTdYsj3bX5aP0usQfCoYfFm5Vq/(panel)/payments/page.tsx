@@ -79,18 +79,20 @@ interface PaymentRow {
 
 function Pill({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
   return (
-    <Link
+    // A plain link (full page load), not a client-side navigation: see the
+    // note on the dashboard's range switch. Filters must never be a no-op.
+    <a
       href={href}
       aria-current={active ? "true" : undefined}
       className={cn(
-        "inline-flex h-10 shrink-0 items-center rounded-full border px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "inline-flex h-10 pointer-coarse:h-11 shrink-0 items-center rounded-full border px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         active
           ? "border-primary bg-primary text-primary-foreground"
           : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
       )}
     >
       {children}
-    </Link>
+    </a>
   );
 }
 
@@ -339,9 +341,9 @@ export default async function AdminAllPaymentsPage({ searchParams }: { searchPar
 
       {pageCount > 1 && (
         <nav aria-label="Pages" className="flex items-center justify-center gap-4 text-sm">
-          {page > 1 && <Link href={link({ page: String(page - 1) })} className="inline-flex min-h-11 items-center font-medium text-primary">← Previous</Link>}
+          {page > 1 && <a href={link({ page: String(page - 1) })} className="inline-flex min-h-11 items-center font-medium text-primary">← Previous</a>}
           <span className="text-muted-foreground">Page {page} of {pageCount}</span>
-          {page < pageCount && <Link href={link({ page: String(page + 1) })} className="inline-flex min-h-11 items-center font-medium text-primary">Next →</Link>}
+          {page < pageCount && <a href={link({ page: String(page + 1) })} className="inline-flex min-h-11 items-center font-medium text-primary">Next →</a>}
         </nav>
       )}
     </div>

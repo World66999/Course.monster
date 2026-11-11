@@ -53,10 +53,10 @@ export function FreeUnlocksChip({
   const base =
     variant === "panel"
       ? "flex min-h-[4.25rem] items-center gap-3 rounded-card border px-4 py-3 text-sm"
-      : "inline-flex min-h-9 items-center gap-2 rounded-full border px-3 py-1.5 text-sm";
+      : "inline-flex min-h-9 max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-sm";
 
   if (status === undefined) {
-    return <div aria-hidden className={cn(base, "skeleton border-transparent", variant === "chip" && "w-56", className)} />;
+    return <div aria-hidden className={cn(base, "skeleton border-transparent", variant === "chip" && "w-56 max-w-full", className)} />;
   }
   if (status === null) return null;
 
@@ -100,7 +100,7 @@ export function FreeUnlocksChip({
           </span>
         )}
       </span>
-      <span className="ml-auto flex shrink-0 gap-1" aria-hidden>
+      <span className="ml-auto hidden shrink-0 gap-1 min-[360px]:flex" aria-hidden>
         {Array.from({ length: dots }, (_, i) => (
           <span
             key={i}

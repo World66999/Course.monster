@@ -242,7 +242,7 @@ export default async function CoursePage({ params }: Props) {
             backing (no blur) to stay legible on any artwork. Separators live
             inside the <li>s: an <ol> may only contain list items. */}
         <nav aria-label="Breadcrumb" className="mb-4">
-          <ol className="inline-flex max-w-full flex-nowrap items-center gap-1.5 overflow-hidden rounded-full bg-background/90 px-3.5 py-1.5 text-sm whitespace-nowrap text-muted-foreground shadow-soft ring-1 ring-border/60">
+          <ol className="inline-flex max-w-full flex-nowrap items-center gap-1.5 overflow-hidden rounded-full bg-background/90 px-3.5 py-1.5 text-sm whitespace-nowrap text-muted-foreground shadow-soft ring-1 ring-border/60 pointer-coarse:py-0 [&_a]:pointer-coarse:inline-flex [&_a]:pointer-coarse:min-h-11 [&_a]:pointer-coarse:min-w-11 [&_a]:pointer-coarse:items-center [&_a]:pointer-coarse:justify-center">
             <li>
               <Link href="/" className="hover:text-primary">
                 Home

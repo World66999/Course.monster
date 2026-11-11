@@ -58,7 +58,7 @@ export default async function CodingChannelDetailPage({ params }: Props) {
     <Section className="max-w-3xl py-12">
       <Link
         href="/coding-channels"
-        className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary"
+        className="mb-4 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden />
         Back to Coding Channels
@@ -126,7 +126,7 @@ export default async function CodingChannelDetailPage({ params }: Props) {
             href={channel.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm shadow-primary/25 hover:bg-primary-hover"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm shadow-primary/25 hover:bg-primary-hover"
           >
             <ExternalLink className="h-4 w-4" aria-hidden />
             Visit Channel

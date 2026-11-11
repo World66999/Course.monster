@@ -1,0 +1,13 @@
+{
+  "name": "coursevault-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Browser tests (Chromium, Firefox, WebKit). Kept out of the app's own package.json so production installs stay small.",
+  "scripts": {
+    "browsers": "playwright install chromium firefox webkit",
+    "test": "./run.sh"
+  },
+  "dependencies": {
+    "playwright": "1.64.1"
+  }
+}

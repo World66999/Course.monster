@@ -261,7 +261,7 @@ export default async function PremiumPage() {
         <div className="mx-auto max-w-3xl space-y-3">
           {FAQ.map((item) => (
             <details key={item.q} className="glass-card group rounded-card p-5 [&_summary::-webkit-details-marker]:hidden">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 font-semibold">
                 {item.q}
                 <span
                   aria-hidden

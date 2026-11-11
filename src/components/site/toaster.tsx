@@ -1,7 +1,9 @@
 "use client";
 
+import * as React from "react";
 import { Toaster as SonnerToaster } from "sonner";
 import { useTheme } from "@/lib/theme";
+import { toasterMounted } from "@/lib/toast";
 
 /**
  * Toasts in the site's own surface, radius and type, following the active
@@ -10,6 +12,8 @@ import { useTheme } from "@/lib/theme";
  */
 export function Toaster() {
   const { resolvedTheme } = useTheme();
+  // Lets queued toasts through (see lib/toast.ts).
+  React.useEffect(() => toasterMounted(), []);
   return (
     <SonnerToaster
       theme={resolvedTheme ?? "dark"}

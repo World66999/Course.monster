@@ -17,7 +17,7 @@ export const filterPillClass = (active: boolean, className?: string) =>
     // these wrap into `gap-2` rows, so invisible 44px boxes would overlap
     // vertically between rows. 40px + 8px of gap keeps a clear 48px pitch, and
     // desktop density is untouched.
-    "pointer-coarse:min-h-10",
+    "pointer-coarse:min-h-11 pointer-coarse:min-w-11 justify-center",
     "transition-[background-color,border-color,color,box-shadow,transform] duration-200",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
     "focus-visible:ring-offset-background active:scale-[0.97]",
@@ -63,7 +63,7 @@ export function FilterPillGhost({
       className={cn(
         "inline-flex cursor-pointer items-center rounded-full border border-dashed border-border px-3.5 py-1.5 text-sm font-medium text-muted-foreground",
         // Same 40px floor on touch as the pills it sits beside.
-        "pointer-coarse:min-h-10",
+        "pointer-coarse:min-h-11 pointer-coarse:min-w-11 justify-center",
         "transition-colors duration-200 hover:border-primary/45 hover:text-foreground",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         className

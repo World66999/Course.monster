@@ -611,6 +611,26 @@ h3:lang(hi) {
   }
 }
 
+/* The same invisible 44px hit area as `tap-target`, for elements that are
+   already positioned (relative OR absolute). Used by every button: it must not
+   set `position` itself, or it would fight an `absolute` utility on, say, a
+   button pinned inside a search field. */
+@utility tap-area {
+  @media (pointer: coarse) {
+    &::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      translate: -50% -50%;
+      min-width: 44px;
+      min-height: 44px;
+      width: 100%;
+      height: 100%;
+    }
+  }
+}
+
 /* The one page gutter. Five containers (Section, both footer rows, the
    announcement bar, the header nav row) each repeated their own
    `px-4 sm:px-6 lg:px-8` — and the header used `px-3` at base, so on mobile the

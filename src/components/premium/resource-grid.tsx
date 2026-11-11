@@ -94,7 +94,7 @@ export function PremiumResourceGrid({ categories }: { categories: PublicPremiumC
             aria-selected={active === c.slug}
             onClick={() => setActive(c.slug)}
             className={cn(
-              "inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors",
+              "inline-flex min-h-10 pointer-coarse:min-h-11 shrink-0 items-center justify-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               active === c.slug
                 ? "border-gold/50 bg-gold-soft text-gold-ink"
