@@ -248,8 +248,14 @@ async function seoAndRules() {
   check("seo: one h1 per page", (home.match(/<h1[\s>]/g) ?? []).length === 1 && (coursePage.match(/<h1[\s>]/g) ?? []).length === 1);
   const sitemap = await (await get("/sitemap.xml")).text();
   check("seo: sitemap lists the course, courses and Premium pages", sitemap.includes(`/courses/${course.slug}`) && sitemap.includes("/premium</loc>") && sitemap.includes("/courses</loc>"));
-  const missing = await (await get("/courses/this-course-does-not-exist")).text();
-  check("seo: a missing course shows the not-found page and is marked noindex", /took a day off/.test(missing) && /noindex/.test(missing));
+  const missingRes = await get("/courses/this-course-does-not-exist");
+  const missing = await missingRes.text();
+  check("seo: a missing course answers HTTP 404", missingRes.status === 404, missingRes.status);
+  check("seo: a missing course is marked noindex", /noindex/.test(missing));
+  for (const p of ["/download/this-course-does-not-exist", "/learn/nope", "/apps/nope", "/coding-channels/nope", "/no-such-page"]) {
+    const r = await get(p);
+    check(`seo: ${p} answers HTTP 404`, r.status === 404, r.status);
+  }
   check("seo: private pages stay out of the sitemap", !/\/(saved|account|download|login)<\/loc>/.test(sitemap));
   const robots = await (await get("/robots.txt")).text();
   check("seo: robots.txt points at the sitemap", /Sitemap: .*\/sitemap\.xml/.test(robots));
@@ -309,9 +315,26 @@ async function noScript(browser) {
   await page.locator("#hero-search").press("Enter");
   await page.waitForURL(/\/courses\?q=a/);
   check("without JavaScript: search still works (plain form)", (await page.locator("article").count()) > 0);
-  // (Course pages stream their body and need scripts to show it; that is how
-  // they already worked before this redesign, and the download gate needs
-  // JavaScript in any case.)
+  // Course pages are complete in the first response (the download gate itself
+  // needs JavaScript in any case).
+  await page.goto(`/courses/${course.slug}`);
+  const h1 = (await page.locator("h1").first().textContent().catch(() => "")) ?? "";
+  check("without JavaScript: a course page shows its content", h1.trim() === course.title.trim() && (await page.locator('a[href^="/download/"]').count()) > 0, h1);
+  await ctx.close();
+}
+
+/** A missing course: real 404 status, and the custom page with its search box. */
+async function missingCourse(browser) {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, baseURL: BASE });
+  const page = await ctx.newPage();
+  const res = await page.goto("/courses/this-course-does-not-exist");
+  check("missing course: HTTP 404 in the browser", res.status() === 404, res.status());
+  const box = page.locator('input[name="q"]');
+  check("missing course: the custom page with its search box is shown", (await seen(page.getByText("took a day off"))) && (await seen(box)));
+  await box.fill("python");
+  await box.press("Enter");
+  await page.waitForURL(/\/courses\?q=python/, { timeout: 15_000 }).catch(() => {});
+  check("missing course: searching from the 404 page opens the course list", /\/courses\?q=python/.test(page.url()), page.url());
   await ctx.close();
 }
 
@@ -323,6 +346,7 @@ for (const engine of engineNames()) {
   if (engine === "chromium") {
     await visits(browser).catch((e) => check("visit counting ran", false, e.stack));
     await noScript(browser).catch((e) => check("no-JavaScript checks ran", false, e.stack));
+    await missingCourse(browser).catch((e) => check("missing-course checks ran", false, e.stack));
   }
   await browser.close();
 }

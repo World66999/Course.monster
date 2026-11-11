@@ -108,15 +108,18 @@ async function adminRun(engine, browser, device) {
   await page.waitForFunction((t) => [...document.querySelectorAll("tbody tr")].some((r) => r.textContent.includes(t) && r.textContent.includes("Draft")), title, { timeout: 10_000 }).catch(() => {});
   check(`${tag}: bulk "Unpublish" takes it off the site`, (await q(`select published from courses where slug=$1`, slug))[0]?.published === false);
   // The public page is cached; unpublishing clears that cache. From then on
-  // the URL must show the not-found screen and none of the course's content.
-  // (Its HTTP status stays 200 because these pages are streamed; the page is
-  // marked noindex. That was already so before this redesign.)
+  // the URL must answer 404 with the not-found screen and none of the
+  // course's content.
   let goneBody = "";
+  let goneStatus = 0;
   for (let i = 0; i < 10; i++) {
-    goneBody = await (await page.request.get(`/courses/${slug}`)).text();
+    const gone = await page.request.get(`/courses/${slug}`);
+    goneStatus = gone.status();
+    goneBody = await gone.text();
     if (!goneBody.includes(title)) break;
     await sleep(500);
   }
+  check(`${tag}: an unpublished course answers HTTP 404`, goneStatus === 404, goneStatus);
   check(`${tag}: an unpublished course is no longer public (not-found screen, no course content)`, !goneBody.includes(title) && !goneBody.includes("e2e-course.zip") && /took a day off/.test(goneBody) && /noindex/.test(goneBody));
 
   // ---- reorder ----
