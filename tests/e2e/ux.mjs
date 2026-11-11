@@ -248,6 +248,8 @@ async function seoAndRules() {
   check("seo: one h1 per page", (home.match(/<h1[\s>]/g) ?? []).length === 1 && (coursePage.match(/<h1[\s>]/g) ?? []).length === 1);
   const sitemap = await (await get("/sitemap.xml")).text();
   check("seo: sitemap lists the course, courses and Premium pages", sitemap.includes(`/courses/${course.slug}`) && sitemap.includes("/premium</loc>") && sitemap.includes("/courses</loc>"));
+  const missing = await (await get("/courses/this-course-does-not-exist")).text();
+  check("seo: a missing course shows the not-found page and is marked noindex", /took a day off/.test(missing) && /noindex/.test(missing));
   check("seo: private pages stay out of the sitemap", !/\/(saved|account|download|login)<\/loc>/.test(sitemap));
   const robots = await (await get("/robots.txt")).text();
   check("seo: robots.txt points at the sitemap", /Sitemap: .*\/sitemap\.xml/.test(robots));

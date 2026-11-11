@@ -138,6 +138,11 @@ export function AdminShell({
               <Link
                 key={href}
                 href={href}
+                // No prefetch. Left on, every admin page load fetched all ~25
+                // sections in the background. Besides the wasted work, each of
+                // those responses re-issues the session cookie, so one arriving
+                // just after "Sign out" signed the admin straight back in.
+                prefetch={false}
                 className={cn(
                   "relative flex min-h-10 items-center gap-3 rounded-control px-3 py-2 text-sm font-medium",
                   "transition-[background-color,color,box-shadow] duration-200",
@@ -156,7 +161,7 @@ export function AdminShell({
         </div>
       ))}
       <div className="mt-auto space-y-1 border-t border-border pt-4">
-        <Link
+        <Link prefetch={false}
           href="/"
           target="_blank"
           className="flex items-center gap-3 rounded-control px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"

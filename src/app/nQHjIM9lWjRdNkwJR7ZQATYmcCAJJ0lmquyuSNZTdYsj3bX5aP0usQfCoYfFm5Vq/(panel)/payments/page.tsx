@@ -206,8 +206,8 @@ export default async function AdminAllPaymentsPage({ searchParams }: { searchPar
         <h1 className="text-heading">Payments &amp; subscriptions</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Every payment from both gateways in one list. Times are UTC. For gateway detail, open{" "}
-          <Link href={adminPath("razorpay")} className="font-medium text-primary hover:underline">Razorpay</Link> or{" "}
-          <Link href={adminPath("premium")} className="font-medium text-primary hover:underline">NOWPayments</Link>.
+          <Link prefetch={false} href={adminPath("razorpay")} className="font-medium text-primary hover:underline">Razorpay</Link> or{" "}
+          <Link prefetch={false} href={adminPath("premium")} className="font-medium text-primary hover:underline">NOWPayments</Link>.
         </p>
       </div>
 
@@ -288,7 +288,7 @@ export default async function AdminAllPaymentsPage({ searchParams }: { searchPar
                   <td className="numeric p-3 whitespace-nowrap">{stamp(p.createdAt)}</td>
                   <td className="p-3 whitespace-nowrap">{p.gateway === "razorpay" ? "Razorpay" : "NOWPayments"}</td>
                   <td className="p-3">
-                    <Link href={adminPath(`users/${p.userId}`)} className="text-primary hover:underline">{p.email ?? "(no email)"}</Link>
+                    <Link prefetch={false} href={adminPath(`users/${p.userId}`)} className="text-primary hover:underline">{p.email ?? "(no email)"}</Link>
                   </td>
                   <td className="p-3">{isPlanKey(p.plan) ? PLANS[p.plan].name : p.plan}</td>
                   <td className="numeric p-3 whitespace-nowrap">
@@ -322,7 +322,7 @@ export default async function AdminAllPaymentsPage({ searchParams }: { searchPar
               {subs.map((s) => (
                 <tr key={s.id} className="border-b border-border last:border-0">
                   <td className="p-3">
-                    <Link href={adminPath(`users/${s.user.id}`)} className="text-primary hover:underline">{s.user.email ?? "(no email)"}</Link>
+                    <Link prefetch={false} href={adminPath(`users/${s.user.id}`)} className="text-primary hover:underline">{s.user.email ?? "(no email)"}</Link>
                   </td>
                   <td className="p-3">{PLANS[s.plan].name}</td>
                   <td className="p-3"><Badge variant={SUB_VARIANT[s.status]}>{s.status}</Badge></td>

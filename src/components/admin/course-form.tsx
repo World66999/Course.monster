@@ -136,7 +136,7 @@ export function CourseForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <Link
+        <Link prefetch={false}
           href={adminPath("courses")}
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary"
         >
@@ -557,7 +557,7 @@ export function CourseForm({
           {courseId ? "Save changes" : "Create course"}
         </Button>
       </div>
-      <Link href={adminPath("courses")} className={buttonClasses("ghost", "sm", "sr-only")}>
+      <Link prefetch={false} href={adminPath("courses")} className={buttonClasses("ghost", "sm", "sr-only")}>
         Cancel
       </Link>
     </form>

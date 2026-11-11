@@ -18,7 +18,7 @@ export function SocialTabs() {
       {TABS.map((t) => {
         const active = t.exact ? pathname === t.href : pathname.startsWith(t.href);
         return (
-          <Link
+          <Link prefetch={false}
             key={t.href}
             href={t.href}
             className={cn(

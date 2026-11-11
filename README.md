@@ -13,13 +13,21 @@ Prisma and PostgreSQL.
   (Open Graph, Twitter cards, `Course` + `BreadcrumbList` JSON-LD)
 - Protected download flow: countdown → Cloudflare Turnstile captcha → server-generated
   vplink.in short link → single-use, IP-bound, 90-second redirect token
-- Admin-editable "How to Download" page, custom 404, dark/light theme, ⌘K search,
+- Admin-editable "How to Download" page, custom 404 with search, dark/light theme, ⌘K search,
   newsletter signup, full keyboard navigation and reduced-motion support
+- Free daily unlocks (3 a day through a rotating short link) with a counter shown across the
+  site, and Premium (Razorpay UPI/card, NOWPayments crypto) for instant downloads
+- Saved courses and recently viewed, kept in the visitor's browser only (no sign-in)
+- Installable (web app manifest + icons); one design system in `src/app/globals.css`
+  that themes the public site and the admin panel
 
 **Admin panel** (at a secret path — see below)
-- Dashboard with stats, 14-day download chart, popular courses and recent activity
-- Course CRUD: create, edit, delete, duplicate, publish/unpublish, reorder,
-  bulk select + bulk publish/unpublish/delete, image uploads (auto-WebP via sharp)
+- Dashboard with charts for visitors, free unlocks by shortener, downloads, Premium sales and
+  revenue by gateway (7 / 30 / 90 days, India time), popular courses and recent activity
+- Course CRUD: create, edit, delete, duplicate, publish/unpublish, drag-to-reorder,
+  search and category/type filters, bulk publish/unpublish/feature/trending/delete,
+  image uploads (auto-WebP via sharp)
+- One payments list across both gateways with status filters, plus a subscription list
 - Category management, markdown page editor, newsletter subscriber list, audit log
 - Website settings: name, logo, favicon, announcement bar, Telegram & social links,
   SEO defaults, Google Analytics, robots.txt, default theme, download countdown —
@@ -79,6 +87,14 @@ CHAT_TEST_DATABASE_URL=postgresql://user:pass@localhost:5432/coursevault_test np
 ```
 
 Never point that variable at the production database.
+
+### Browser tests
+
+`tests/e2e` holds Playwright tests that run the real site in Chromium, Firefox and WebKit
+across phone, tablet, laptop and wide-screen sizes: every page, the free-unlock flow, the
+Premium purchase path (against mock gateways), the Telegram bot hand-off and the admin
+panel. They use their own test-only settings and a throwaway database. See
+[tests/e2e/README.md](tests/e2e/README.md).
 
 ## Documentation
 

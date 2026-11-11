@@ -196,7 +196,7 @@ export default async function AdminDashboard({
           <ol className="space-y-1">
             {popularCourses.map((course, i) => (
               <li key={course.id}>
-                <Link
+                <Link prefetch={false}
                   href={adminPath(`courses/${course.id}/edit`)}
                   className="group flex min-h-11 items-center gap-3 rounded-nested p-2 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
@@ -246,7 +246,7 @@ export default async function AdminDashboard({
             title="Premium sales"
             hint="Paid plans per day, by payment gateway"
             action={
-              <Link href={adminPath("payments")} className="inline-flex min-h-9 shrink-0 items-center gap-0.5 text-xs font-medium text-primary hover:underline">
+              <Link prefetch={false} href={adminPath("payments")} className="inline-flex min-h-9 shrink-0 items-center gap-0.5 text-xs font-medium text-primary hover:underline">
                 All payments
                 <ArrowUpRight className="h-3 w-3" aria-hidden />
               </Link>
@@ -326,7 +326,7 @@ export default async function AdminDashboard({
         <Panel
           title="Recent activity"
           action={
-            <Link href={adminPath("activity")} className="inline-flex min-h-9 shrink-0 items-center gap-0.5 text-xs font-medium text-primary hover:underline">
+            <Link prefetch={false} href={adminPath("activity")} className="inline-flex min-h-9 shrink-0 items-center gap-0.5 text-xs font-medium text-primary hover:underline">
               View all
               <ArrowUpRight className="h-3 w-3" aria-hidden />
             </Link>

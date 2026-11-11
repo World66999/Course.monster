@@ -148,7 +148,7 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
               <tr key={p.id} className="border-b border-border last:border-0">
                 <td className="numeric p-3 whitespace-nowrap">{p.createdAt.toISOString().slice(0, 16).replace("T", " ")}</td>
                 <td className="p-3">
-                  <Link href={adminPath(`users/${p.user.id}`)} className="text-primary hover:underline">{p.user.email}</Link>
+                  <Link prefetch={false} href={adminPath(`users/${p.user.id}`)} className="text-primary hover:underline">{p.user.email}</Link>
                 </td>
                 <td className="p-3">{PLANS[p.plan].name}</td>
                 <td className="numeric p-3">${p.priceAmount.toFixed(2)}</td>
@@ -166,9 +166,9 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
 
       {pageCount > 1 && (
         <div className="flex items-center justify-center gap-4 text-sm">
-          {page > 1 && <Link href={qs(page - 1)} className="text-primary">← Previous</Link>}
+          {page > 1 && <Link prefetch={false} href={qs(page - 1)} className="text-primary">← Previous</Link>}
           <span className="text-muted-foreground">Page {page} of {pageCount}</span>
-          {page < pageCount && <Link href={qs(page + 1)} className="text-primary">Next →</Link>}
+          {page < pageCount && <Link prefetch={false} href={qs(page + 1)} className="text-primary">Next →</Link>}
         </div>
       )}
     </div>

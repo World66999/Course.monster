@@ -65,7 +65,7 @@ export default async function AdminCoursesPage({
             {total} course{total === 1 ? "" : "s"} total
           </p>
         </div>
-        <Link href={adminPath("courses/new")} className={buttonClasses("primary", "md")}>
+        <Link prefetch={false} href={adminPath("courses/new")} className={buttonClasses("primary", "md")}>
           <Plus className="h-4 w-4" aria-hidden />
           New course
         </Link>

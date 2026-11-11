@@ -66,7 +66,7 @@ export default async function AdminSupportPage({ searchParams }: { searchParams:
       </div>
       <div className="flex flex-wrap gap-2">
         {TABS.map((t) => (
-          <Link
+          <Link prefetch={false}
             key={t.key}
             href={`?status=${t.key}`}
             className={`rounded-full border px-3.5 py-1.5 text-sm ${tab === t.key ? "border-primary bg-primary-soft text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}
@@ -81,7 +81,7 @@ export default async function AdminSupportPage({ searchParams }: { searchParams:
         <ul>
           {tickets.map((t) => (
             <li key={t.id} className="border-b border-border last:border-0">
-              <Link href={adminPath(`support/${t.id}`)} className="flex flex-wrap items-center justify-between gap-3 p-4 hover:bg-primary-soft/40">
+              <Link prefetch={false} href={adminPath(`support/${t.id}`)} className="flex flex-wrap items-center justify-between gap-3 p-4 hover:bg-primary-soft/40">
                 <span className="min-w-0">
                   <span className="flex items-center gap-2 font-medium">
                     {t.priority && (

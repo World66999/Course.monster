@@ -138,7 +138,7 @@ export function CodingChannelForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <Link href={adminPath("coding-channels")} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary">
+        <Link prefetch={false} href={adminPath("coding-channels")} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary">
           <ArrowLeft className="h-4 w-4" aria-hidden />
           Back to Coding Channels
         </Link>

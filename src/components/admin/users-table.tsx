@@ -183,7 +183,7 @@ export function UsersTable({
                   <span suppressHydrationWarning>{formatDistanceToNow(new Date(row.createdAt), { addSuffix: true })}</span>
                 </td>
                 <td className="flex items-center gap-1 p-3">
-                  <Link
+                  <Link prefetch={false}
                     href={adminPath(`users/${row.id}`)}
                     aria-label="Manage Premium and courses"
                     className={buttonClasses("ghost", "icon")}

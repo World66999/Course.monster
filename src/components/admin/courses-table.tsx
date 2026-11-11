@@ -333,7 +333,7 @@ export function CoursesTable({
                       <CourseImage src={course.thumbnail} title={course.title} className="[&>span]:text-xs" />
                     </div>
                     <div className="min-w-0">
-                      <Link
+                      <Link prefetch={false}
                         href={adminPath(`courses/${course.id}/edit`)}
                         className="block max-w-64 truncate font-medium hover:text-primary"
                       >
@@ -395,13 +395,13 @@ export function CoursesTable({
                     </DropdownTrigger>
                     <DropdownContent align="end">
                       <DropdownItem asChild>
-                        <Link href={adminPath(`courses/${course.id}/edit`)}>
+                        <Link prefetch={false} href={adminPath(`courses/${course.id}/edit`)}>
                           <Pencil className="h-3.5 w-3.5" aria-hidden />
                           Edit
                         </Link>
                       </DropdownItem>
                       <DropdownItem asChild>
-                        <Link href={`/courses/${course.slug}`} target="_blank">
+                        <Link prefetch={false} href={`/courses/${course.slug}`} target="_blank">
                           <ExternalLink className="h-3.5 w-3.5" aria-hidden />
                           View on site
                         </Link>
@@ -497,7 +497,7 @@ export function CoursesTable({
         ) : (
           <>Reordering is available when no search or filter is active.</>
         )}{" "}
-        <Link href={adminPath("courses/new")} className={buttonClasses("ghost", "sm", "h-auto p-0 text-xs text-primary")}>
+        <Link prefetch={false} href={adminPath("courses/new")} className={buttonClasses("ghost", "sm", "h-auto p-0 text-xs text-primary")}>
           Add a new course →
         </Link>
       </p>

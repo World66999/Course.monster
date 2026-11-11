@@ -66,7 +66,7 @@ export function LearningResourcesTable({ rows, page, pageCount }: { rows: AdminR
           <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search resources…" className="pl-9" />
         </div>
-        <Link href={adminPath("learning-resources/new")} className={buttonClasses("primary", "sm")}>
+        <Link prefetch={false} href={adminPath("learning-resources/new")} className={buttonClasses("primary", "sm")}>
           New resource
         </Link>
       </div>
@@ -139,7 +139,7 @@ export function LearningResourcesTable({ rows, page, pageCount }: { rows: AdminR
                       >
                         <Sparkles className="h-4 w-4" />
                       </Button>
-                      <Link href={adminPath(`learning-resources/${row.id}/edit`)} className={buttonClasses("ghost", "icon")} aria-label="Edit">
+                      <Link prefetch={false} href={adminPath(`learning-resources/${row.id}/edit`)} className={buttonClasses("ghost", "icon")} aria-label="Edit">
                         <Pencil className="h-4 w-4" />
                       </Link>
                       <Button variant="ghost" size="icon" aria-label="Delete" className="text-destructive hover:bg-destructive/10" onClick={() => void onDelete(row.id, row.title)}>

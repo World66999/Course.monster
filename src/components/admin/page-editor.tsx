@@ -48,7 +48,7 @@ export function PageEditor({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-semibold">{defaultTitle}</h2>
         <div className="flex gap-2">
-          <Link href={publicPath} target="_blank" className={buttonClasses("outline", "sm")}>
+          <Link prefetch={false} href={publicPath} target="_blank" className={buttonClasses("outline", "sm")}>
             <ExternalLink className="h-3.5 w-3.5" aria-hidden />
             View page
           </Link>

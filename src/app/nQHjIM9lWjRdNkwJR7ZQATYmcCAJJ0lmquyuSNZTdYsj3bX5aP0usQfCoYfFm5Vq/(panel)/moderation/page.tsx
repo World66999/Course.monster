@@ -42,7 +42,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: S
 
       <div className="flex w-fit gap-1 rounded-nested bg-muted p-1">
         {TABS.map((t) => (
-          <Link
+          <Link prefetch={false}
             key={t.value}
             href={`${adminPath("moderation")}?tab=${t.value}`}
             className={cn(

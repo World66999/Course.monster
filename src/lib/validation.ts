@@ -1,4 +1,10 @@
 import { z } from "zod";
+
+// Zod normally probes whether it may compile validators with `new Function`.
+// The site's Content-Security-Policy forbids that (no 'unsafe-eval'), so the
+// probe only produced a CSP violation in the browser console (Firefox reports
+// it as an error). Interpreted validation is plenty fast for form-sized input.
+z.config({ jitless: true });
 import { isYoutubeUrl } from "@/lib/youtube";
 import { isSafeExternalUrl, SAFE_URL_MESSAGE } from "@/lib/safe-url";
 import {

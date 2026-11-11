@@ -65,9 +65,16 @@ export function check(name, cond, extra = "") {
   results.push({ name: redact(name), ok, extra: ok ? "" : redact(String(extra)).slice(0, 400) });
   if (!ok || process.env.E2E_VERBOSE) console.log(`  ${ok ? "✔" : "✘"} ${redact(name)}${ok ? "" : ` — ${redact(String(extra)).slice(0, 400)}`}`);
 }
+/** Something worth telling the reader that is not a failure of this build. */
+export const notes = [];
+export function note(text) {
+  notes.push(redact(text));
+  console.log(`  NOTE: ${redact(text)}`);
+}
+
 export function finish(suite) {
   const failed = results.filter((r) => !r.ok);
-  fs.writeFileSync(path.join(OUT, `${suite}.json`), JSON.stringify({ suite, passed: results.length - failed.length, failed: failed.length, results }, null, 2));
+  fs.writeFileSync(path.join(OUT, `${suite}.json`), JSON.stringify({ suite, passed: results.length - failed.length, failed: failed.length, notes, results }, null, 2));
   console.log(`\n${suite.toUpperCase()}: ${results.length - failed.length} passed, ${failed.length} failed`);
   for (const f of failed) console.log(`  FAILED: ${f.name} — ${f.extra}`);
   return failed.length;
@@ -195,6 +202,10 @@ export async function newDevice(browser, engine, deviceName, { ip = "10.50.0.1",
       if (/^(Error|JSHandle@\w+)$/.test(text.trim())) {
         const detail = await Promise.all(m.args().map((a) => a.evaluate((v) => (v && (v.stack || v.message)) || String(v)).catch(() => ""))).catch(() => []);
         if (detail.join(" ").trim()) text = detail.join(" ").slice(0, 400);
+        // Still nothing but the word "Error": the page it came from is already
+        // gone (the test moved on mid-request). Uncaught exceptions are
+        // reported separately through `pageerror`, so nothing real is lost.
+        else return;
       }
       if (NAVIGATION_NOISE.test(text)) return;
       ctx.errors.push(`${redact(p.url().replace(BASE, ""))} :: ${text}`);

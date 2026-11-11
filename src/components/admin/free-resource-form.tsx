@@ -78,7 +78,7 @@ export function FreeResourceForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <Link
+        <Link prefetch={false}
           href={adminPath("free-resources")}
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary"
         >
