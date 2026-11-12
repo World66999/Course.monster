@@ -138,3 +138,52 @@ The 90+ mobile target is met on desktop but not on mobile. What remains is the s
 - AVIF variants of uploaded images (WebP is served) and a hero video.
 - A missing or unpublished course still answers HTTP 200 with the not-found screen and `noindex` (the page streams); it was like this before.
 - The branch is not merged into `main` and not pushed.
+
+## 6. Follow-up (2026-11-12)
+
+Branch `perf/2026-11-11-lighthouse-90`, released with `scripts/deploy.sh` (green slot). Everything under "Must not break" is unchanged.
+
+### What changed
+- **Real 404.** A missing course, download, guide, app, coding channel or unknown address now answers HTTP 404 with `noindex`, and still shows the custom not-found page with search. The cause was the route-level loading screens: once a loading screen has been sent, the status can no longer change. The courses list moved to `courses/(list)` so it does not wrap the course page, and the course page's loading screen was removed.
+- **AVIF images.** Every upload is stored as AVIF, WebP and JPEG (or PNG) in the sizes the pages use. Pages offer them in that order with `<picture>`, and a direct request for an upload gets the best format the browser accepts. `scripts/generate-image-variants.ts` converted the existing images and runs on every deploy; new admin uploads create all variants on save.
+- **Hero.** Three soft colour fields drift behind the home hero (CSS, transform only, no download, off for reduced motion and low-end devices). A short looping video plays over it only on a desktop with a mouse, a wide screen and a fast connection; it loads after the page has finished loading, shows a poster first, and is never requested on phones, data-saver or reduced motion. Desktop Lighthouse with the video: 99 on Home, so it stayed.
+- **Speed.**
+  - The LCP image on the course page is preloaded as AVIF with `fetchpriority="high"`; card thumbnails are lazy and sized to the width shown.
+  - Courses renders 8 cards on first load instead of 24, each card becomes interactive on its own, and the four filter dropdowns are native selects (less script, and the phone's own picker).
+  - The sign-in state is read from a small store (`src/lib/session-client.ts`) instead of a provider around the whole page. The provider made the browser finish the entire page in one long blocking task when the session answer arrived.
+  - The footer and below-the-fold sections wait until the page is idle; date formatters and the storage listener are created on first use.
+- **Removed branch.** `redesign/2026-11-10` was deleted from GitHub.
+
+### Tests on the release build
+| Suite | Result |
+| --- | --- |
+| Every page × every screen size, Chromium | 2283 passed, 0 failed |
+| Every page × every screen size, Firefox | 2206 passed, 0 failed |
+| Every page × every screen size, WebKit (Safari engine) | 2206 passed, 0 failed |
+| Free unlocks + Telegram bot (3 engines) | 124 passed, 0 failed |
+| Premium purchase path: Razorpay + NOWPayments, webhooks, activation | 82 passed, 0 failed |
+| Admin sign-in and actions | 113 passed, 0 failed |
+| Theme, saved courses, search, keyboard, SEO, site rules, hero | 161 passed, 0 failed |
+| Unit tests | 183 passed, 8 skipped |
+
+### Lighthouse, live site, mobile
+Median of five runs per page, simulated slow-4G phone. The "after" column is a pass taken with nothing else running on the server; single runs vary by about ±8.
+
+| Page | Before | After | LCP before → after | Blocking time before → after |
+| --- | --- | --- | --- | --- |
+| Home | 77 | 79 | 4.3 s → 3.7 s | 229 ms → 294 ms |
+| Courses | 64 | 84 | 5.4 s → 3.4 s | 547 ms → 261 ms |
+| Course page | 75 | 81 | 4.7 s → 3.8 s | 303 ms → 294 ms |
+| Premium | 74 | 84 | 3.7 s → 3.6 s | 580 ms → 250 ms |
+
+Accessibility 100 and best practices 100 on every page; SEO 92 (the Cloudflare `robots.txt` line, as before). Layout shift is 0 everywhere.
+
+### 90+ on mobile: not reached
+Single runs reach 90 to 93 on Courses and 89 to 90 on the other pages, but no page has a median of 90. Two things hold the score:
+- **Simulated LCP of 3.4 to 3.8 s.** The text paints with the first frame in a real browser (about 1 s). Lighthouse's model adds every script and font that finished loading before that paint, and the framework's start-up scripts (about 185 KB) and two fonts (85 KB) always do.
+- **Inlining the stylesheet was tried and dropped.** Next's built-in option (`experimental.inlineCss`) with this build tool breaks the font addresses, puts the stylesheet into every page three times (869 KB of HTML) and scored lower.
+
+### Left for the site owner (Cloudflare)
+- Static scripts and styles are cached by Cloudflare as gzip. Serving them as Brotli (about 12% smaller) needs a small nginx change plus a cache purge.
+- Pages themselves are not cached by Cloudflare (`DYNAMIC`). A cache rule for signed-out visitors would cut the first response time.
+- Cloudflare adds its Web Analytics script to every page and the `Content-Signal` line to `robots.txt` (the SEO 92).
