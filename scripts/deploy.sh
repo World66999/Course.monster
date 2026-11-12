@@ -126,6 +126,13 @@ log "7/9 Verifying the admin path never leaked into a client bundle a visitor ge
 # them, but one shared import would put it in a chunk the homepage pulls in.
 node scripts/check-admin-path-leak.mjs .next || fail "admin segment leaked into a client bundle"
 
+# AVIF, smaller sizes and JPEG fallbacks for uploaded images that do not have
+# them yet (src/lib/image-variants.ts). Only ever adds files; a run with
+# nothing to do takes a second. Never blocks a release: pages still work
+# without the copies, because the site generates a missing one on first request.
+echo "    image copies (AVIF / sizes) for uploads"
+( cd "$APP" && npx tsx scripts/generate-image-variants.ts | tail -1 ) || echo "    WARNING: image copies were not generated; the site will make them on demand"
+
 log "8/9 Installing into the $TARGET slot and starting it"
 systemctl stop "coursevault@$TARGET" 2>/dev/null || true
 rm -rf "${RELEASES:?}/$TARGET"

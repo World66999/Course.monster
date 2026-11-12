@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ReportButton } from "@/components/site/report-dialog";
 import { Markdown } from "@/components/site/markdown";
 import { CATEGORY_LABELS, PLATFORM_LABELS } from "@/components/site/apps/app-card";
+import { UploadPicture } from "@/components/site/upload-picture";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -80,8 +81,7 @@ export default async function AppDetailPage({ params }: Props) {
       <div className="rounded-card border border-border bg-card p-6 shadow-soft sm:p-8">
         <div className="flex items-start gap-4">
           {app.icon ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={app.icon} alt={app.name} className="h-20 w-20 shrink-0 rounded-card object-cover" />
+            <UploadPicture src={app.icon} alt={app.name} sizes="80px" loading="eager" className="h-20 w-20 shrink-0 rounded-card object-cover" />
           ) : (
             <div
               className="flex h-20 w-20 shrink-0 items-center justify-center rounded-card"
@@ -148,12 +148,11 @@ export default async function AppDetailPage({ params }: Props) {
         {app.screenshots.length > 0 && (
           <div className="mt-6 flex gap-3 overflow-x-auto pb-2">
             {app.screenshots.map((src, i) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <UploadPicture
                 key={src}
                 src={src}
                 alt={`${app.name} screenshot ${i + 1}`}
-                loading="lazy"
+                sizes="320px"
                 className="h-48 w-auto shrink-0 rounded-nested border border-border object-cover"
               />
             ))}

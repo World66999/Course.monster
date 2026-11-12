@@ -3,6 +3,7 @@ import { ExternalLink, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cardClasses } from "@/components/ui/card";
 import { cn, gradientFromString } from "@/lib/utils";
+import { UploadPicture } from "@/components/site/upload-picture";
 
 export interface AppCardDTO {
   id: string;
@@ -45,8 +46,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 function AppIcon({ name, icon }: { name: string; icon: string | null }) {
   if (icon) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={icon} alt={name} className="h-12 w-12 rounded-nested object-cover" loading="lazy" />;
+    return <UploadPicture src={icon} alt={name} sizes="48px" className="h-12 w-12 rounded-nested object-cover" />;
   }
   const { from, to, light } = gradientFromString(name);
   const initials = name

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/session-client";
 import { BadgeCheck, Bookmark, ExternalLink, Sparkles } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { toggleChannelBookmarkAction } from "@/server/actions/coding-channels";
@@ -10,6 +10,7 @@ import { safeAction } from "@/lib/safe-action";
 import { Badge } from "@/components/ui/badge";
 import { cardClasses } from "@/components/ui/card";
 import { cn, gradientFromString } from "@/lib/utils";
+import { UploadPicture } from "@/components/site/upload-picture";
 
 export interface ChannelCardDTO {
   id: string;
@@ -29,8 +30,7 @@ export interface ChannelCardDTO {
 
 function ChannelLogo({ name, logo }: { name: string; logo: string | null }) {
   if (logo) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={logo} alt={name} className="h-14 w-14 rounded-nested object-cover" loading="lazy" />;
+    return <UploadPicture src={logo} alt={name} sizes="56px" className="h-14 w-14 rounded-nested object-cover" />;
   }
   const { from, to, light } = gradientFromString(name);
   const initials = name

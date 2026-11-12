@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { signIn, useSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
+import { useSession } from "@/lib/session-client";
 
 /**
  * Inside a Telegram Mini App, Telegram appends the signed launch data to the

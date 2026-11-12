@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/session-client";
 
 /**
  * The viewer's Premium state for client components on static pages.

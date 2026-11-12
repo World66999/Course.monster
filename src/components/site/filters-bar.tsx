@@ -2,16 +2,13 @@
 
 import * as React from "react";
 import { X } from "lucide-react";
-import { useDebouncedSearchParam, useFilterParams } from "@/components/site/use-filter-params";
+import {
+  useDebouncedSearchParam,
+  useFilterParams,
+} from "@/components/site/use-filter-params";
 import { FilterSearchIcon } from "@/components/site/filter-search-icon";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Badge } from "@/components/ui/badge";
 import { FilterPill, FilterPillGhost } from "@/components/ui/filter-pill";
 
@@ -68,14 +65,20 @@ export function FiltersBar({
   const currentDuration = searchParams.get("duration") ?? "";
   const currentFlag = searchParams.get("flag") ?? "";
 
-  const [search, setSearch, searchPending] = useDebouncedSearchParam("q", replaceLive, searchParams);
+  const [search, setSearch, searchPending] = useDebouncedSearchParam(
+    "q",
+    replaceLive,
+    searchParams,
+  );
 
   const [categoriesExpanded, setCategoriesExpanded] = React.useState(false);
   React.useEffect(() => {
     const idx = categories.findIndex((c) => c.slug === currentCategory);
     if (idx >= PILL_VISIBLE) setCategoriesExpanded(true);
   }, [currentCategory, categories]);
-  const visibleCategories = categoriesExpanded ? categories : categories.slice(0, PILL_VISIBLE);
+  const visibleCategories = categoriesExpanded
+    ? categories
+    : categories.slice(0, PILL_VISIBLE);
   const hiddenCategoryCount = categories.length - visibleCategories.length;
 
   return (
@@ -102,75 +105,74 @@ export function FiltersBar({
           )}
         </div>
         <div className="w-full sm:w-48">
-          <Select value={currentSort} onValueChange={(v) => update({ sort: v === "newest" ? "" : v })}>
-            <SelectTrigger aria-label="Sort courses">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {SORT_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <NativeSelect
+            aria-label="Sort courses"
+            value={currentSort}
+            onChange={(e) => {
+              const v = e.target.value;
+              update({ sort: v === "newest" ? "" : v });
+            }}
+          >
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </NativeSelect>
         </div>
       </div>
 
       {/* Attribute filters */}
       <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
         <div className="sm:w-44">
-          <Select
+          <NativeSelect
+            aria-label="Filter by skill level"
             value={currentLevel || ALL}
-            onValueChange={(v) => update({ level: v === ALL ? "" : v })}
+            onChange={(e) => {
+              const v = e.target.value;
+              update({ level: v === ALL ? "" : v });
+            }}
           >
-            <SelectTrigger aria-label="Filter by skill level">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {LEVEL_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            {LEVEL_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </NativeSelect>
         </div>
         <div className="sm:w-44">
-          <Select
+          <NativeSelect
+            aria-label="Filter by duration"
             value={currentDuration || ALL}
-            onValueChange={(v) => update({ duration: v === ALL ? "" : v })}
+            onChange={(e) => {
+              const v = e.target.value;
+              update({ duration: v === ALL ? "" : v });
+            }}
           >
-            <SelectTrigger aria-label="Filter by duration">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {DURATION_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            {DURATION_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </NativeSelect>
         </div>
         {languages.length > 0 && (
           <div className="sm:w-44">
-            <Select
+            <NativeSelect
+              aria-label="Filter by language"
               value={currentLang || ALL}
-              onValueChange={(v) => update({ lang: v === ALL ? "" : v })}
+              onChange={(e) => {
+                const v = e.target.value;
+                update({ lang: v === ALL ? "" : v });
+              }}
             >
-              <SelectTrigger aria-label="Filter by language">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>All languages</SelectItem>
-                {languages.map((lang) => (
-                  <SelectItem key={lang} value={lang}>
-                    {lang}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <option value={ALL}>All languages</option>
+              {languages.map((lang) => (
+                <option key={lang} value={lang}>
+                  {lang}
+                </option>
+              ))}
+            </NativeSelect>
           </div>
         )}
         <div
@@ -182,7 +184,9 @@ export function FiltersBar({
             <FilterPill
               key={f.value}
               active={currentFlag === f.value}
-              onClick={() => update({ flag: currentFlag === f.value ? "" : f.value })}
+              onClick={() =>
+                update({ flag: currentFlag === f.value ? "" : f.value })
+              }
             >
               {f.label}
             </FilterPill>
@@ -197,7 +201,10 @@ export function FiltersBar({
         role="group"
         aria-label="Filter by category"
       >
-        <FilterPill active={!currentCategory} onClick={() => update({ category: "" })}>
+        <FilterPill
+          active={!currentCategory}
+          onClick={() => update({ category: "" })}
+        >
           All
         </FilterPill>
         {visibleCategories.map((c) => (
@@ -205,7 +212,9 @@ export function FiltersBar({
             key={c.slug}
             active={currentCategory === c.slug}
             count={c.count}
-            onClick={() => update({ category: currentCategory === c.slug ? "" : c.slug })}
+            onClick={() =>
+              update({ category: currentCategory === c.slug ? "" : c.slug })
+            }
           >
             {c.name}
           </FilterPill>
@@ -216,7 +225,9 @@ export function FiltersBar({
           </FilterPillGhost>
         )}
         {categoriesExpanded && categories.length > PILL_VISIBLE && (
-          <FilterPillGhost onClick={() => setCategoriesExpanded(false)}>Show less</FilterPillGhost>
+          <FilterPillGhost onClick={() => setCategoriesExpanded(false)}>
+            Show less
+          </FilterPillGhost>
         )}
       </div>
 

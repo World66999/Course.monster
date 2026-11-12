@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/session-client";
 import { Bookmark } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { toggleResourceBookmarkAction } from "@/server/actions/learning-resources";

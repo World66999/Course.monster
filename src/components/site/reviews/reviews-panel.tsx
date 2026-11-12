@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/session-client";
 import type { ReviewWithAuthor, ReviewSummary, ReviewSort } from "@/lib/comments";
 import { createReviewAction, editReviewAction, deleteReviewAction } from "@/server/actions/reviews";
 import { safeAction } from "@/lib/safe-action";

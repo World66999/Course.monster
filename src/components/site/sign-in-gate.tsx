@@ -1,6 +1,7 @@
 "use client";
 
-import { useSession, signIn } from "next-auth/react";
+import { signIn } from "next-auth/react";
+import { useSession } from "@/lib/session-client";
 import { LogIn } from "lucide-react";
 import { buttonClasses } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";

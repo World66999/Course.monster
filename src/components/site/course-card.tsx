@@ -56,8 +56,11 @@ const CourseCard = React.memo(function CourseCard({
         <CourseImage
           src={course.thumbnail}
           title={course.title}
+          // Always lazy. On a phone no card is on the first screen of any
+          // page, and an eagerly loaded thumbnail there is fetched before the
+          // text that matters and delays it. The browser still loads a card
+          // that is on screen (or close to it) straight away.
           loading={priority ? "eager" : "lazy"}
-          priority={priority}
           className="transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.05]"
         />
         <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5">

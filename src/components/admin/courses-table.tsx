@@ -330,7 +330,7 @@ export function CoursesTable({
                 <td className="p-3">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
-                      <CourseImage src={course.thumbnail} title={course.title} className="[&>span]:text-xs" />
+                      <CourseImage src={course.thumbnail} title={course.title} sizes="64px" className="[&>span]:text-xs" />
                     </div>
                     <div className="min-w-0">
                       <Link prefetch={false}

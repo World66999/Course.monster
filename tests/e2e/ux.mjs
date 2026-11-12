@@ -248,8 +248,14 @@ async function seoAndRules() {
   check("seo: one h1 per page", (home.match(/<h1[\s>]/g) ?? []).length === 1 && (coursePage.match(/<h1[\s>]/g) ?? []).length === 1);
   const sitemap = await (await get("/sitemap.xml")).text();
   check("seo: sitemap lists the course, courses and Premium pages", sitemap.includes(`/courses/${course.slug}`) && sitemap.includes("/premium</loc>") && sitemap.includes("/courses</loc>"));
-  const missing = await (await get("/courses/this-course-does-not-exist")).text();
-  check("seo: a missing course shows the not-found page and is marked noindex", /took a day off/.test(missing) && /noindex/.test(missing));
+  const missingRes = await get("/courses/this-course-does-not-exist");
+  const missing = await missingRes.text();
+  check("seo: a missing course answers HTTP 404", missingRes.status === 404, missingRes.status);
+  check("seo: a missing course is marked noindex", /noindex/.test(missing));
+  for (const p of ["/download/this-course-does-not-exist", "/learn/nope", "/apps/nope", "/coding-channels/nope", "/no-such-page"]) {
+    const r = await get(p);
+    check(`seo: ${p} answers HTTP 404`, r.status === 404, r.status);
+  }
   check("seo: private pages stay out of the sitemap", !/\/(saved|account|download|login)<\/loc>/.test(sitemap));
   const robots = await (await get("/robots.txt")).text();
   check("seo: robots.txt points at the sitemap", /Sitemap: .*\/sitemap\.xml/.test(robots));
@@ -309,10 +315,59 @@ async function noScript(browser) {
   await page.locator("#hero-search").press("Enter");
   await page.waitForURL(/\/courses\?q=a/);
   check("without JavaScript: search still works (plain form)", (await page.locator("article").count()) > 0);
-  // (Course pages stream their body and need scripts to show it; that is how
-  // they already worked before this redesign, and the download gate needs
-  // JavaScript in any case.)
+  // Course pages are complete in the first response (the download gate itself
+  // needs JavaScript in any case).
+  await page.goto(`/courses/${course.slug}`);
+  const h1 = (await page.locator("h1").first().textContent().catch(() => "")) ?? "";
+  check("without JavaScript: a course page shows its content", h1.trim() === course.title.trim() && (await page.locator('a[href^="/download/"]').count()) > 0, h1);
   await ctx.close();
+}
+
+/** A missing course: real 404 status, and the custom page with its search box. */
+async function missingCourse(browser) {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, baseURL: BASE });
+  const page = await ctx.newPage();
+  const res = await page.goto("/courses/this-course-does-not-exist");
+  check("missing course: HTTP 404 in the browser", res.status() === 404, res.status());
+  const box = page.locator('input[name="q"]');
+  check("missing course: the custom page with its search box is shown", (await seen(page.getByText("took a day off"))) && (await seen(box)));
+  await box.fill("python");
+  await box.press("Enter");
+  await page.waitForURL(/\/courses\?q=python/, { timeout: 15_000 }).catch(() => {});
+  check("missing course: searching from the 404 page opens the course list", /\/courses\?q=python/.test(page.url()), page.url());
+  await ctx.close();
+}
+
+// Hero motion rules: CSS light everywhere, the video only on a desktop with
+// no reduced-motion / data-saver signal, and never requested on a phone.
+async function heroMotion(browser) {
+  const run = async (label, options) => {
+    const ctx = await browser.newContext({ baseURL: BASE, ...options });
+    const page = await ctx.newPage();
+    const heroRequests = [];
+    page.on("request", (r) => /\/hero\//.test(new URL(r.url()).pathname) && heroRequests.push(r.url()));
+    await page.goto("/", { waitUntil: "load" });
+    await hydrated(page);
+    await sleep(6000); // the video waits for load + an idle period (up to 4 s)
+    const state = await page.evaluate(() => ({
+      aurora: document.querySelectorAll(".hero-aurora > i").length,
+      animation: getComputedStyle(document.querySelector(".hero-aurora > i")).animationName,
+      video: document.querySelector("video.hero-video"),
+      attrs: (() => {
+        const v = document.querySelector("video.hero-video");
+        return v ? { muted: v.muted, inline: v.playsInline, poster: v.getAttribute("poster"), preload: v.getAttribute("preload"), hidden: v.getAttribute("aria-hidden") } : null;
+      })(),
+    }));
+    await ctx.close();
+    return { label, heroRequests, ...state };
+  };
+  const phone = await run("phone", { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  check("hero: the CSS light is on the phone hero and animates", phone.aurora === 3 && /^aurora-/.test(phone.animation), JSON.stringify(phone));
+  check("hero: a phone never requests the video or its poster", phone.heroRequests.length === 0 && !phone.attrs, phone.heroRequests.join(","));
+  const calm = await run("reduced motion", { viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
+  check("hero: reduced motion gets no video", calm.heroRequests.length === 0 && !calm.attrs, calm.heroRequests.join(","));
+  const desktop = await run("desktop", { viewport: { width: 1440, height: 900 } });
+  check("hero: a desktop gets the video after load, muted, inline, with a poster", !!desktop.attrs && desktop.attrs.muted && desktop.attrs.inline && !!desktop.attrs.poster && desktop.attrs.preload === "none" && desktop.attrs.hidden === "true", JSON.stringify(desktop.attrs));
 }
 
 for (const engine of engineNames()) {
@@ -323,6 +378,8 @@ for (const engine of engineNames()) {
   if (engine === "chromium") {
     await visits(browser).catch((e) => check("visit counting ran", false, e.stack));
     await noScript(browser).catch((e) => check("no-JavaScript checks ran", false, e.stack));
+    await missingCourse(browser).catch((e) => check("missing-course checks ran", false, e.stack));
+    await heroMotion(browser).catch((e) => check("hero-motion checks ran", false, e.stack));
   }
   await browser.close();
 }

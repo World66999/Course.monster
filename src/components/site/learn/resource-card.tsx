@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/session-client";
 import { Bookmark, Clock, ListVideo, PlayCircle } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { toggleResourceBookmarkAction } from "@/server/actions/learning-resources";
@@ -11,6 +11,8 @@ import { youtubeThumbnailUrl } from "@/lib/youtube";
 import { Badge } from "@/components/ui/badge";
 import { cardClasses } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { UploadPicture } from "@/components/site/upload-picture";
+import { CARD_SIZES } from "@/components/site/course-image";
 
 export interface ResourceCardDTO {
   id: string;
@@ -66,11 +68,10 @@ export function ResourceCard({ resource }: { resource: ResourceCardDTO }) {
     >
       <div className="relative aspect-video overflow-hidden bg-muted">
         {thumb ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <UploadPicture
             src={thumb}
             alt={resource.title}
-            loading="lazy"
+            sizes={CARD_SIZES}
             className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
           />
         ) : (

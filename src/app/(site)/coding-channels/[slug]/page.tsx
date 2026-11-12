@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ReportButton } from "@/components/site/report-dialog";
 import { ChannelBookmarkButton } from "@/components/site/coding-channels/channel-bookmark-button";
 import { Markdown } from "@/components/site/markdown";
+import { UploadPicture } from "@/components/site/upload-picture";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -67,8 +68,7 @@ export default async function CodingChannelDetailPage({ params }: Props) {
       <div className="rounded-card border border-border bg-card p-6 shadow-soft sm:p-8">
         <div className="flex items-start gap-4">
           {channel.logo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={channel.logo} alt={channel.name} className="h-20 w-20 shrink-0 rounded-card object-cover" />
+            <UploadPicture src={channel.logo} alt={channel.name} sizes="80px" loading="eager" className="h-20 w-20 shrink-0 rounded-card object-cover" />
           ) : (
             <div
               className="flex h-20 w-20 shrink-0 items-center justify-center rounded-card"

@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { buttonClasses } from "@/components/ui/button";
 import { AnimatedCounter } from "@/components/site/animated-counter";
 import { FreeUnlocksChip } from "@/components/site/free-unlocks-chip";
+import { HeroVideo } from "@/components/site/hero-video";
 import { formatNumber } from "@/lib/utils";
 
 interface HomeHeroProps {
@@ -22,9 +23,9 @@ const STAT_TONES = ["bg-primary/12 text-primary", "bg-sky/12 text-sky", "bg-acce
 
 /**
  * Homepage hero. A server component: the entrance is CSS (`rise-in`, which
- * also plays with JavaScript disabled), the background is one static gradient
- * mesh that only drifts on large screens, and the only client code is the
- * stat count-up and the unlock counter. The search box is a plain GET form,
+ * also plays with JavaScript disabled), the background is a gradient mesh
+ * with CSS light drifting over it (`hero-aurora`), and the only client code
+ * is the stat count-up, the unlock counter and the desktop-only video. The search box is a plain GET form,
  * so it works before hydration and in every in-app browser.
  */
 export function HomeHero({ siteName, description, stats, freeLimit, categories = [] }: HomeHeroProps) {
@@ -42,6 +43,16 @@ export function HomeHero({ siteName, description, stats, freeLimit, categories =
         aria-hidden
         className="hero-mesh parallax-slow pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(34rem_26rem_at_8%_0%,var(--wash-1),transparent_70%),radial-gradient(30rem_24rem_at_96%_8%,var(--wash-5),transparent_70%),radial-gradient(28rem_22rem_at_55%_70%,var(--wash-2),transparent_70%)] lg:animate-drift"
       />
+      {/* Moving light: three soft colour fields that drift, animated on the
+          compositor (transform only), so they cost no download and no
+          main-thread work on any device. */}
+      <div aria-hidden className="hero-aurora">
+        <i />
+        <i />
+        <i />
+      </div>
+      {/* Desktop on a fast connection only; see the component. */}
+      <HeroVideo />
       <div aria-hidden className="bg-dots pointer-events-none absolute inset-0 -z-10 opacity-50" />
 
       <div className="page-gutter mx-auto grid max-w-7xl items-center gap-10 pt-8 pb-10 sm:pt-14 sm:pb-16 lg:grid-cols-[1.15fr_0.85fr] lg:gap-16 lg:pt-20 lg:pb-24">

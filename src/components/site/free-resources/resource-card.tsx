@@ -4,6 +4,7 @@ import { cardClasses } from "@/components/ui/card";
 import { hostnameOf } from "@/lib/external-resource";
 import { RESOURCE_CATEGORY_LABELS, RESOURCE_SOURCE_LABELS, labelFor } from "@/lib/directory-labels";
 import { cn, gradientFromString } from "@/lib/utils";
+import { UploadPicture } from "@/components/site/upload-picture";
 
 export interface FreeResourceCardDTO {
   id: string;
@@ -19,8 +20,7 @@ export interface FreeResourceCardDTO {
 
 function ResourceThumb({ title, thumbnail }: { title: string; thumbnail: string | null }) {
   if (thumbnail) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={thumbnail} alt="" className="h-12 w-12 shrink-0 rounded-nested object-cover" loading="lazy" />;
+    return <UploadPicture src={thumbnail} alt="" sizes="48px" className="h-12 w-12 shrink-0 rounded-nested object-cover" />;
   }
   const { from, to, light } = gradientFromString(title);
   const initials = title

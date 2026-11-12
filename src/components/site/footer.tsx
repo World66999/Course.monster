@@ -51,7 +51,9 @@ export function Footer({ settings }: { settings: SiteSettings }) {
     <footer className="page-gutter mx-auto mt-16 w-full max-w-7xl pb-[max(1rem,env(safe-area-inset-bottom))] sm:mt-24">
       {/* One raised rounded panel instead of a full-bleed grey band: the footer
           reads as a designed object that closes the page. */}
-      <div className="@container relative isolate overflow-hidden rounded-feature border border-border bg-surface-sunken">
+      {/* `defer-offscreen`: the footer is below the fold on nearly every page,
+          so the browser skips its layout and paint until it is scrolled near. */}
+      <div className="defer-offscreen @container relative isolate overflow-hidden rounded-feature border border-border bg-surface-sunken">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(40rem_18rem_at_0%_0%,var(--wash-1),transparent_70%),radial-gradient(30rem_16rem_at_100%_100%,var(--wash-3),transparent_70%)]"
